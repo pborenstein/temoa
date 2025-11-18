@@ -13,17 +13,18 @@ logger = logging.getLogger(__name__)
 
 class VaultContent:
     """Represents content from a single vault file."""
-    
+
     def __init__(
         self,
         file_path: Path,
         title: str,
         content: str,
+        vault_root: Path,
         frontmatter: Optional[Dict] = None,
         tags: Optional[List[str]] = None
     ):
         self.file_path = file_path
-        self.relative_path = str(file_path).replace(str(file_path.parents[2]), "").lstrip("/")
+        self.relative_path = str(file_path.relative_to(vault_root))
         self.title = title
         self.content = content
         self.frontmatter = frontmatter or {}
@@ -195,6 +196,7 @@ class VaultReader:
                 file_path=file_path,
                 title=title,
                 content=cleaned_content,
+                vault_root=self.vault_root,
                 frontmatter=frontmatter,
                 tags=tags
             )

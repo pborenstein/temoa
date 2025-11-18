@@ -103,7 +103,7 @@ Ixpantilia is a **local HTTP server** that provides:
 - [ ] Phase 3: Enhanced features (better UI, archaeology endpoint)
 - [ ] Phase 4: Vault-first LLM (chat with vault context)
 
-See [IMPLEMENTATION.md](IMPLEMENTATION.md) for detailed implementation plan.
+See [docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md) for detailed implementation plan.
 
 ## Tech Stack
 
@@ -209,8 +209,9 @@ Vault-first LLM chat - searches vault before calling external LLM.
 ## Documentation
 
 - **[docs/IXPANTILIA.md](docs/IXPANTILIA.md)**: Comprehensive project plan (847 lines)
+- **[docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md)**: Detailed waterfall implementation plan
+- **[docs/CHRONICLES.md](docs/CHRONICLES.md)**: Design discussions and decision log
 - **[docs/copilot-learnings.md](docs/copilot-learnings.md)**: Analysis of Obsidian Copilot architecture
-- **[IMPLEMENTATION.md](IMPLEMENTATION.md)**: Detailed waterfall implementation plan
 - **[CLAUDE.md](CLAUDE.md)**: Development guide for Claude AI sessions
 
 ## Related Projects

@@ -129,7 +129,7 @@ class ConfigManager:
         """
         vault_path = self.get("vault_path")
         if vault_path:
-            return Path(vault_path).expanduser().resolve()
+            return Path(vault_path).expanduser()
         return None
 
     def set_vault_path(self, vault_path: Path) -> bool:
@@ -142,7 +142,7 @@ class ConfigManager:
             True if successfully saved
         """
         # Convert to string and expand user home directory
-        path_str = str(Path(vault_path).expanduser().resolve())
+        path_str = str(Path(vault_path).expanduser())
         return self.set("vault_path", path_str)
     
     def reset_to_defaults(self) -> bool:
