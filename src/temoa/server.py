@@ -1,5 +1,6 @@
 """FastAPI server for Temoa semantic search"""
 import logging
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Optional
 
@@ -38,13 +39,34 @@ except SynthesisError as e:
     logger.error(f"Failed to initialize Synthesis: {e}")
     raise
 
+
+# Lifespan context manager for startup/shutdown
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Handle startup and shutdown events"""
+    # Startup
+    logger.info("=" * 60)
+    logger.info("Temoa server starting")
+    logger.info(f"  Vault: {config.vault_path}")
+    logger.info(f"  Model: {config.default_model}")
+    logger.info(f"  Synthesis: {config.synthesis_path}")
+    logger.info(f"  Server: http://{config.server_host}:{config.server_port}")
+    logger.info("=" * 60)
+
+    yield
+
+    # Shutdown
+    logger.info("Temoa server shutting down")
+
+
 # Create FastAPI app
 app = FastAPI(
     title="Temoa",
     description="Local semantic search server for Obsidian vault",
     version="0.1.0",
     docs_url="/docs",
-    redoc_url="/redoc"
+    redoc_url="/redoc",
+    lifespan=lifespan
 )
 
 # Add CORS middleware for development
@@ -289,21 +311,3 @@ async def health():
         )
 
 
-# Startup event
-@app.on_event("startup")
-async def startup_event():
-    """Log startup information"""
-    logger.info("=" * 60)
-    logger.info("Temoa server starting")
-    logger.info(f"  Vault: {config.vault_path}")
-    logger.info(f"  Model: {config.default_model}")
-    logger.info(f"  Synthesis: {config.synthesis_path}")
-    logger.info(f"  Server: http://{config.server_host}:{config.server_port}")
-    logger.info("=" * 60)
-
-
-# Shutdown event
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Cleanup on shutdown"""
-    logger.info("Temoa server shutting down")

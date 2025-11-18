@@ -43,8 +43,11 @@ def run_synthesis_command(args: list, timeout: int = 30) -> tuple[bool, str, str
         return (False, "", f"Command timed out after {timeout}s", elapsed)
 
 
-def test_search_performance(query: str, run_name: str = "search"):
+def test_search_performance():
     """Test a single search query and print results."""
+    query = "semantic search"
+    run_name = "search"
+
     print(f"\n{'='*60}")
     print(f"Test: {run_name}")
     print(f"Query: '{query}'")
@@ -108,8 +111,10 @@ def test_models():
         print(f"ERROR: {stderr}")
 
 
-def test_archaeology(topic: str):
+def test_archaeology():
     """Test temporal archaeology feature."""
+    topic = "artificial intelligence"
+
     print(f"\n{'='*60}")
     print(f"Test: Archaeology - '{topic}'")
     print(f"{'='*60}")
