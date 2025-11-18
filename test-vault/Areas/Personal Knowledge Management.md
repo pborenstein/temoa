@@ -45,7 +45,7 @@ Example:
 - Keyword search finds: documents with literal phrase "productivity systems"
 - Semantic search finds: GTD, Pomodoro, time blocking, etc.
 
-This is why [[Ixpantilia]] focuses on semantic search - makes retrieval actually work.
+This is why [[Temoa]] focuses on semantic search - makes retrieval actually work.
 
 ## Tools
 

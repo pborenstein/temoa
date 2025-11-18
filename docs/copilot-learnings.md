@@ -1,6 +1,6 @@
-# Ixpantilia: Key Learnings from Obsidian Copilot
+# Temoa: Key Learnings from Obsidian Copilot
 
-> **Purpose**: Extract practical implementation insights from Copilot's RAG/semantic search to guide Ixpantilia development
+> **Purpose**: Extract practical implementation insights from Copilot's RAG/semantic search to guide Temoa development
 
 **Created**: 2025-11-18
 **Status**: Analysis Complete
@@ -15,7 +15,7 @@
 4. [Mobile-First Performance](#mobile-first-performance)
 5. [Context Preparation for LLMs](#context-preparation-for-llms)
 6. [Vector Store Implementation](#vector-store-implementation)
-7. [Practical Recommendations for Ixpantilia](#practical-recommendations-for-Ixpantilia)
+7. [Practical Recommendations for Temoa](#practical-recommendations-for-Temoa)
 
 ---
 
@@ -29,7 +29,7 @@
 4. **XML context format**: Structured `<retrieved_document>` blocks for LLMs
 5. **Progressive refinement**: Cheap operations first (grep), expensive later (full-text)
 
-### What's Relevant to Ixpantilia
+### What's Relevant to Temoa
 
 - **Synthesis already has embeddings** → Start with semantic-only (simpler)
 - **Chunking may help gleanings** → Each gleaning is small, probably doesn't need chunking
@@ -50,7 +50,7 @@
 // Examples:
 //   "Daily/2024-11-17.md#0"
 //   "Daily/2024-11-17.md#1"
-//   "Projects/Ixpantilia.md#0"
+//   "Projects/Temoa.md#0"
 
 interface Chunk {
   id: string;              // note_path#chunk_index
@@ -85,7 +85,7 @@ interface Chunk {
 Each chunk includes a **header** for context:
 
 ```markdown
-NOTE TITLE: [[Project Ixpantilia]]
+NOTE TITLE: [[Project Temoa]]
 
 NOTE BLOCK CONTENT:
 
@@ -146,7 +146,7 @@ if (file.stat.mtime > chunks[0].mtime) {
 }
 ```
 
-**Ixpantilia Insight**: Synthesis could track mtimes and re-embed only changed notes.
+**Temoa Insight**: Synthesis could track mtimes and re-embed only changed notes.
 
 ---
 
@@ -270,7 +270,7 @@ Tags:    4.0x   ← Highest weight!
 Body:    1.0x
 ```
 
-**Ixpantilia Insight**: Tags are CRITICAL. Your gleanings should have good tags!
+**Temoa Insight**: Tags are CRITICAL. Your gleanings should have good tags!
 
 ---
 
@@ -328,7 +328,7 @@ Split:
   65% → FlexSearch index metadata
 ```
 
-**Why this matters for Ixpantilia**:
+**Why this matters for Temoa**:
 - Server-side, so less critical
 - But informs how much to cache in RAM vs re-fetch
 - Synthesis could adopt similar budget strategy
@@ -347,7 +347,7 @@ if (Platform.isMobile && settings.disableIndexOnMobile) {
 }
 ```
 
-**Ixpantilia doesn't need this** (server-based), but shows how to optimize for device constraints.
+**Temoa doesn't need this** (server-based), but shows how to optimize for device constraints.
 
 ---
 
@@ -428,7 +428,7 @@ const sourceCatalog = sourceEntries
 Available sources:
 1. Semantic Search Tools
 2. Daily Note - November 11
-3. Project Ixpantilia Plan
+3. Project Temoa Plan
 
 Insert [#] inline citations as you reference sources.
 Append a ## Sources section listing all cited sources.
@@ -442,7 +442,7 @@ semantic search can help surface related notes when needed.
 
 ## Sources
 1. Semantic Search Tools (L/Gleanings/2025-11-11-semantic-search.md)
-3. Project Ixpantilia Plan (Projects/Ixpantilia.md)
+3. Project Temoa Plan (Projects/Temoa.md)
 ```
 
 ### Sanitization Before LLM
@@ -562,15 +562,15 @@ From `mobile-qa-search.md` analysis:
 2. Wait for index sync via Obsidian Sync
 3. Load index from disk (no re-indexing needed)
 
-**Ixpantilia parallel**: Build index on server, make available via API
+**Temoa parallel**: Build index on server, make available via API
 
 ---
 
-## Practical Recommendations for Ixpantilia
+## Practical Recommendations for Temoa
 
 ### Phase 0: Answer Key Questions
 
-Based on Copilot learnings, here are informed answers to your Ixpantilia.md questions:
+Based on Copilot learnings, here are informed answers to your Temoa.md questions:
 
 #### 1. "Does synthesis currently index daily notes?"
 
@@ -599,7 +599,7 @@ uv run main.py stats
 - If gleanings have long descriptions/notes → chunk
 - CHUNK_SIZE = 6000 is generous, most gleanings won't hit it
 
-#### 3. "Should Ixpantilia cache results?"
+#### 3. "Should Temoa cache results?"
 
 **Recommendation**: **Not initially, add later if needed**
 
@@ -619,7 +619,7 @@ uv run main.py stats
 **Recommendation**: **Adopt Copilot's XML format**
 
 ```python
-# In Ixpantilia server
+# In Temoa server
 def format_for_llm(results):
     """Format search results for LLM context"""
     docs = []
@@ -667,7 +667,7 @@ Based on Copilot architecture, here's the simplest path:
 **Server**: FastAPI (Python)
 
 ```python
-# Ixpantilia/server.py
+# Temoa/server.py
 from fastapi import FastAPI
 import subprocess
 import json
@@ -799,7 +799,7 @@ uv run main.py process  # Re-index
 #### 1. Grep-First Recall
 
 ```python
-# Add to Ixpantilia if synthesis is slow
+# Add to Temoa if synthesis is slow
 import subprocess
 
 def grep_filter(query: str, vault_path: Path) -> list[Path]:
@@ -912,9 +912,9 @@ Instructions:
 
 ---
 
-## Key Differences: Copilot vs Ixpantilia
+## Key Differences: Copilot vs Temoa
 
-| Aspect | Copilot | Ixpantilia |
+| Aspect | Copilot | Temoa |
 |--------|---------|-----------|
 | **Environment** | Obsidian plugin (client-side) | Server-side API |
 | **Memory constraints** | 20MB mobile, 100MB desktop | Server RAM (GB available) |
@@ -1055,7 +1055,7 @@ uv run main.py search "semantic search" --json
 ```
 
 **Test on mobile**:
-1. Start Ixpantilia server
+1. Start Temoa server
 2. Access via Tailscale: `http://server-ip:8000`
 3. Search and click obsidian:// links
 4. Verify Obsidian app opens to correct note
@@ -1072,7 +1072,7 @@ uv run main.py search "semantic search" --json
 4. **Simple caching** (measure first, optimize later)
 5. **Chunk-based results** (only if gleanings get long)
 
-### ❌ Skip These (Not Needed for Ixpantilia)
+### ❌ Skip These (Not Needed for Temoa)
 
 1. **Dual search mode** (semantic-only is simpler)
 2. **Mobile memory optimization** (server has plenty of RAM)
@@ -1093,7 +1093,7 @@ uv run main.py search "semantic search" --json
 ## Next Steps
 
 1. **Run Phase 0 discovery tasks** to validate Synthesis performance
-2. **Prototype simple Ixpantilia server** with `/search` endpoint
+2. **Prototype simple Temoa server** with `/search` endpoint
 3. **Extract 10-20 gleanings** to test end-to-end flow
 4. **Measure performance**: How fast is subprocess + Synthesis?
 5. **Test mobile UX**: Does obsidian:// URI work from phone?

@@ -40,7 +40,7 @@ Topics are too broad. Questions drive thinking.
 - Slow payoff (compound returns)
 - Can feel chaotic initially
 
-## Application to [[Ixpantilia]]
+## Application to [[Temoa]]
 
 The zettelkasten approach validates the gleanings concept:
 - Atomic notes (one link per gleaning)

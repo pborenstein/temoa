@@ -15,6 +15,6 @@ Key takeaways:
 - Background tasks for long-running operations
 - Proper exception handling with custom exceptions
 
-For Ixpantilia: Keep it simple initially, can refactor later if needed.
+For Temoa: Keep it simple initially, can refactor later if needed.
 
 [Link](https://github.com/zhanymkanov/fastapi-best-practices)

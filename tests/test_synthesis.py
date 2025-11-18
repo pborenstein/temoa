@@ -1,8 +1,8 @@
 """Tests for Synthesis direct import wrapper"""
 import pytest
 from pathlib import Path
-from ixpantilia.synthesis import SynthesisClient, SynthesisError
-from ixpantilia.config import Config
+from temoa.synthesis import SynthesisClient, SynthesisError
+from temoa.config import Config
 
 
 @pytest.fixture

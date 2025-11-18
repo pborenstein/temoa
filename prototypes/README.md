@@ -12,7 +12,7 @@ This directory contains test scripts for Phase 0: Discovery & Validation.
 
 2. **Configure Synthesis to use your vault**:
    ```bash
-   cd /path/to/ixpantilia
+   cd /path/to/temoa
    python prototypes/setup_vault.py ~/Obsidian/toy-vault
    ```
 
@@ -31,7 +31,7 @@ This directory contains test scripts for Phase 0: Discovery & Validation.
 
 4. **Run the performance test**:
    ```bash
-   cd ../..  # back to ixpantilia root
+   cd ../..  # back to temoa root
    python prototypes/test_synthesis_performance.py
    ```
 
@@ -81,7 +81,7 @@ After you report the results, I'll:
 Run the performance investigation script:
 
 ```bash
-cd /path/to/ixpantilia
+cd /path/to/temoa
 python prototypes/investigate_performance.py
 ```
 

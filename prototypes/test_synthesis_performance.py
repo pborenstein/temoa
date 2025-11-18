@@ -6,7 +6,7 @@ This script tests Synthesis search performance and gathers baseline metrics.
 Run this on your machine with internet access to download models and test.
 
 Usage:
-    cd /path/to/ixpantilia
+    cd /path/to/temoa
     python prototypes/test_synthesis_performance.py
 """
 

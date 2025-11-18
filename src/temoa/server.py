@@ -1,4 +1,4 @@
-"""FastAPI server for Ixpantilia semantic search"""
+"""FastAPI server for Temoa semantic search"""
 import logging
 from pathlib import Path
 from typing import Optional
@@ -40,7 +40,7 @@ except SynthesisError as e:
 
 # Create FastAPI app
 app = FastAPI(
-    title="Ixpantilia",
+    title="Temoa",
     description="Local semantic search server for Obsidian vault",
     version="0.1.0",
     docs_url="/docs",
@@ -69,10 +69,10 @@ async def root():
 <html>
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Ixpantilia</title>
+    <title>Temoa</title>
 </head>
 <body>
-    <h1>🔍 Ixpantilia</h1>
+    <h1>🔍 Temoa</h1>
     <p>Semantic search server is running!</p>
     <p>UI coming soon. Try <a href="/docs">/docs</a> for API documentation.</p>
 </body>
@@ -294,7 +294,7 @@ async def health():
 async def startup_event():
     """Log startup information"""
     logger.info("=" * 60)
-    logger.info("Ixpantilia server starting")
+    logger.info("Temoa server starting")
     logger.info(f"  Vault: {config.vault_path}")
     logger.info(f"  Model: {config.default_model}")
     logger.info(f"  Synthesis: {config.synthesis_path}")
@@ -306,4 +306,4 @@ async def startup_event():
 @app.on_event("shutdown")
 async def shutdown_event():
     """Cleanup on shutdown"""
-    logger.info("Ixpantilia server shutting down")
+    logger.info("Temoa server shutting down")

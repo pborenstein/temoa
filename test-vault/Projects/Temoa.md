@@ -4,7 +4,7 @@ tags: [project, semantic-search, obsidian]
 status: planning
 ---
 
-# Ixpantilia
+# Temoa
 
 Local semantic search server for Obsidian vault. Makes saved links and notes searchable from mobile.
 
@@ -29,7 +29,7 @@ FastAPI server wrapping [[Synthesis]] semantic search engine. Access from phone 
 - Search: Synthesis subprocess (sentence-transformers)
 - Embeddings: all-MiniLM-L6-v2 (384d, fast)
 - Network: Tailscale VPN
-- Storage: Index in `.ixpantilia/` within vault
+- Storage: Index in `.temoa/` within vault
 
 See [[docs/CHRONICLES.md]] for architectural decisions.
 

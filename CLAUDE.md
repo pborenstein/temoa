@@ -1,6 +1,6 @@
-# CLAUDE.md - Development Guide for Ixpantilia
+# CLAUDE.md - Development Guide for Temoa
 
-> **Purpose**: This document provides context and guidance for Claude AI when working on the Ixpantilia project across multiple sessions.
+> **Purpose**: This document provides context and guidance for Claude AI when working on the Temoa project across multiple sessions.
 
 **Last Updated**: 2025-11-18
 **Project Status**: Planning Phase (Phase 0 Discovery pending)
@@ -10,9 +10,9 @@
 
 ## Project Overview
 
-**Ixpantilia** is a local semantic search server for an Obsidian vault, enabling vault-first research workflows. It wraps the existing **Synthesis** semantic search engine with an HTTP API and mobile-friendly interface.
+**Temoa** is a local semantic search server for an Obsidian vault, enabling vault-first research workflows. It wraps the existing **Synthesis** semantic search engine with an HTTP API and mobile-friendly interface.
 
-**Problem Solved**: Saved links and notes accumulate but never resurface when needed during research. Ixpantilia makes your vault the first place to check before external search.
+**Problem Solved**: Saved links and notes accumulate but never resurface when needed during research. Temoa makes your vault the first place to check before external search.
 
 **Core Architecture**: FastAPI server → Synthesis subprocess → Sentence-transformer embeddings → Results
 
@@ -56,7 +56,7 @@
 
 ## Architectural Constraints
 
-These constraints shape how Ixpantilia is built. See [docs/CHRONICLES.md](docs/CHRONICLES.md) Entry 2 for detailed discussion.
+These constraints shape how Temoa is built. See [docs/CHRONICLES.md](docs/CHRONICLES.md) Entry 2 for detailed discussion.
 
 ### 1. Vault Format Agnostic
 - **Optimized for**: Obsidian vault (markdown, frontmatter, wikilinks)
@@ -65,7 +65,7 @@ These constraints shape how Ixpantilia is built. See [docs/CHRONICLES.md](docs/C
 - **Why**: Future-proof, tool-independent, Synthesis already supports this
 
 ### 2. Vector Database Storage
-- **Phase 1 decision**: Store in `.ixpantilia/` within vault
+- **Phase 1 decision**: Store in `.temoa/` within vault
 - **Must be configurable**: Allow index outside vault if needed
 - **Options**: Inside vault, outside vault, user-specified path
 - **Why**: Co-location is simple, but we might need flexibility later
@@ -73,7 +73,7 @@ These constraints shape how Ixpantilia is built. See [docs/CHRONICLES.md](docs/C
 ### 3. Obsidian Sync Awareness
 - **Context**: Vault syncs via Obsidian Sync (to mobile)
 - **Index should NOT sync**: Too large, not useful on mobile (yet)
-- **Implementation**: Document how to exclude `.ixpantilia/` from sync
+- **Implementation**: Document how to exclude `.temoa/` from sync
 - **Flexibility**: Keep option open for mobile-side search in future
 
 ### 4. Network Model (Tailscale)
@@ -93,7 +93,7 @@ These constraints shape how Ixpantilia is built. See [docs/CHRONICLES.md](docs/C
 ## Project Structure
 
 ```
-ixpantilia/
+temoa/
 ├── README.md              # Project overview (user-facing)
 ├── CLAUDE.md             # This file (development guide)
 ├── docs/                 # Planning documents
@@ -104,7 +104,7 @@ ixpantilia/
 ├── old-ideas/           # Reference implementations
 │   ├── synthesis/       # Production search engine (DO NOT MODIFY)
 │   └── old-gleanings/   # Abandoned project (reference only)
-├── src/                 # Ixpantilia source code (to be created)
+├── src/                 # Temoa source code (to be created)
 ├── tests/               # Test suite (to be created)
 ├── config.example.json  # Configuration template (to be created)
 └── pyproject.toml       # uv dependencies (to be created)
@@ -146,7 +146,7 @@ uv run main.py models
 
 **Current Coverage**: 1,899 vault files
 
-**Ixpantilia's Role**: Call Synthesis via subprocess, parse JSON output, serve via HTTP
+**Temoa's Role**: Call Synthesis via subprocess, parse JSON output, serve via HTTP
 
 ### Old Gleanings Project
 
@@ -164,7 +164,7 @@ uv run main.py models
 - Web application approach
 - Manual script regeneration workflow
 
-**Lesson**: Over-engineering kills adoption. Keep Ixpantilia simple.
+**Lesson**: Over-engineering kills adoption. Keep Temoa simple.
 
 ---
 
@@ -205,7 +205,7 @@ uv run main.py models
 **Success Criteria**: All gleanings searchable, new ones captured regularly
 
 ### Phase 3: Enhanced Features
-**Goal**: Make Ixpantilia indispensable
+**Goal**: Make Temoa indispensable
 
 **Deliverables**:
 - `/archaeology` endpoint (temporal analysis)
@@ -245,11 +245,11 @@ uv run main.py models
 
 **Trade-offs**:
 - Overhead: ~50-100ms subprocess startup
-- Isolation: Synthesis changes don't break Ixpantilia
+- Isolation: Synthesis changes don't break Temoa
 - Simplicity: Well-defined interface via JSON
 
 ### Why Not Chunking?
-**Obsidian Copilot uses 6000-char chunks**, but Ixpantilia doesn't need this because:
+**Obsidian Copilot uses 6000-char chunks**, but Temoa doesn't need this because:
 - Gleanings are small (< 500 chars typically)
 - Already atomic units (one link per note)
 - Synthesis handles short documents well
@@ -265,7 +265,7 @@ uv run main.py models
 
 **Add caching if**: Search takes > 500ms consistently, same queries repeat often
 
-### Where Should Ixpantilia Live?
+### Where Should Temoa Live?
 **Options**:
 1. Integrate into Apantli (LLM proxy) → single service, mixed concerns
 2. Separate service → clean separation, can be called by Apantli
@@ -309,7 +309,7 @@ import subprocess
 import json
 from pathlib import Path
 
-app = FastAPI(title="Ixpantilia", version="0.1.0")
+app = FastAPI(title="Temoa", version="0.1.0")
 
 SYNTHESIS_PATH = Path("~/.obsidian/vaults/main/.tools/synthesis").expanduser()
 
@@ -370,7 +370,7 @@ async def index():
 ```
 
 **Configuration notes**:
-- `index_path`: If `null`, defaults to `.ixpantilia/` inside vault. Can override to store index elsewhere.
+- `index_path`: If `null`, defaults to `.temoa/` inside vault. Can override to store index elsewhere.
 - All paths support `~` expansion
 - See docs/CHRONICLES.md Entry 2 for architectural rationale
 
@@ -405,7 +405,7 @@ def test_search_with_limit():
 <html>
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Ixpantilia - Vault Search</title>
+  <title>Temoa - Vault Search</title>
   <style>
     body {
       font-family: system-ui, -apple-system, sans-serif;
@@ -445,7 +445,7 @@ def test_search_with_limit():
   </style>
 </head>
 <body>
-  <h1>🔍 Ixpantilia</h1>
+  <h1>🔍 Temoa</h1>
   <input id="query" type="text" placeholder="Search your vault..." autofocus />
   <button onclick="search()">Search</button>
   <div id="results"></div>
@@ -547,7 +547,7 @@ def grep_filter(query: str, vault_path: Path) -> list[Path]:
 ### Deployment
 - [ ] Same server as Apantli or separate?
 - [ ] Systemd vs Docker vs simple script?
-- [ ] Where should Ixpantilia code live?
+- [ ] Where should Temoa code live?
 - [ ] How to handle Synthesis updates/re-indexing?
 
 ---
@@ -690,4 +690,4 @@ When starting a new development session:
 **Created**: 2025-11-18
 **For**: Claude AI development sessions
 **Owner**: pborenstein
-**Project**: Ixpantilia - Vault-First Research Workflow
+**Project**: Temoa - Vault-First Research Workflow

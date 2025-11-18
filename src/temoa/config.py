@@ -1,4 +1,4 @@
-"""Configuration management for Ixpantilia"""
+"""Configuration management for Temoa"""
 import json
 from pathlib import Path
 from typing import Dict, Any, Optional
@@ -57,8 +57,8 @@ class Config:
         if config.get("index_path"):
             config["index_path"] = self._expand_path(config["index_path"], "index_path")
         else:
-            # Default to .ixpantilia/ inside vault
-            config["index_path"] = config["vault_path"] / ".ixpantilia"
+            # Default to .temoa/ inside vault
+            config["index_path"] = config["vault_path"] / ".temoa"
 
         return config
 
@@ -100,7 +100,7 @@ class Config:
 
     @property
     def index_path(self) -> Optional[Path]:
-        """Path to store index (default: vault/.ixpantilia)"""
+        """Path to store index (default: vault/.temoa)"""
         return self._config["index_path"]
 
     @property

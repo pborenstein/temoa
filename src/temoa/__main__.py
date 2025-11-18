@@ -1,14 +1,14 @@
-"""Main entry point for running Ixpantilia server"""
+"""Main entry point for running Temoa server"""
 import uvicorn
 from .config import Config
 
 
 def main():
-    """Run the Ixpantilia server"""
+    """Run the Temoa server"""
     config = Config()
 
     uvicorn.run(
-        "ixpantilia.server:app",
+        "temoa.server:app",
         host=config.server_host,
         port=config.server_port,
         reload=False,  # Set to True for development

@@ -55,7 +55,7 @@ Design principle: If it doesn't work well on mobile, it doesn't work at all.
 
 ## Examples
 
-- [[Ixpantilia]] - Search interface designed for mobile
+- [[Temoa]] - Search interface designed for mobile
 - Google AMP (controversial but fast)
 - Tailwind mobile utilities
 

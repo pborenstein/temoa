@@ -33,8 +33,8 @@
 1. Initialize Python project with uv:
    ```bash
    # Create project structure
-   mkdir -p src/ixpantilia/ui tests
-   touch src/ixpantilia/__init__.py
+   mkdir -p src/temoa/ui tests
+   touch src/temoa/__init__.py
 
    # Initialize uv project
    uv init
@@ -43,7 +43,7 @@
 2. Create `pyproject.toml`:
    ```toml
    [project]
-   name = "ixpantilia"
+   name = "temoa"
    version = "0.1.0"
    description = "Local semantic search server for Obsidian vault"
    requires-python = ">=3.11"
@@ -116,9 +116,9 @@
 **Estimated Time**: 1 hour
 
 **Actions**:
-1. Create `src/ixpantilia/config.py`:
+1. Create `src/temoa/config.py`:
    ```python
-   """Configuration management for Ixpantilia"""
+   """Configuration management for Temoa"""
    import json
    from pathlib import Path
    from typing import Dict, Any
@@ -201,7 +201,7 @@
 This keeps the model loaded in memory (~400ms vs ~3s per search).
 
 **Actions**:
-1. Add Synthesis to Python path in `src/ixpantilia/synthesis.py`:
+1. Add Synthesis to Python path in `src/temoa/synthesis.py`:
    ```python
    """Synthesis direct import wrapper - loads model once, keeps in memory"""
    import sys
@@ -335,9 +335,9 @@ This keeps the model loaded in memory (~400ms vs ~3s per search).
 **Estimated Time**: 3 hours
 
 **Actions**:
-1. Create `src/ixpantilia/server.py`:
+1. Create `src/temoa/server.py`:
    ```python
-   """FastAPI server for Ixpantilia"""
+   """FastAPI server for Temoa"""
    from fastapi import FastAPI, HTTPException, Query
    from fastapi.responses import HTMLResponse
    from fastapi.middleware.cors import CORSMiddleware
@@ -363,7 +363,7 @@ This keeps the model loaded in memory (~400ms vs ~3s per search).
 
    # Create FastAPI app
    app = FastAPI(
-       title="Ixpantilia",
+       title="Temoa",
        description="Local semantic search server for Obsidian vault",
        version="0.1.0"
    )
@@ -447,18 +447,18 @@ This keeps the model loaded in memory (~400ms vs ~3s per search).
            }
    ```
 
-2. Create minimal UI: `src/ixpantilia/ui/search.html` (adapt from Phase 0 mockup)
+2. Create minimal UI: `src/temoa/ui/search.html` (adapt from Phase 0 mockup)
 
-3. Create `src/ixpantilia/__main__.py` for running server:
+3. Create `src/temoa/__main__.py` for running server:
    ```python
-   """Main entry point for running Ixpantilia server"""
+   """Main entry point for running Temoa server"""
    import uvicorn
    from .config import Config
 
    if __name__ == "__main__":
        config = Config()
        uvicorn.run(
-           "ixpantilia.server:app",
+           "temoa.server:app",
            host=config.server_host,
            port=config.server_port,
            reload=True  # Development mode
@@ -481,7 +481,7 @@ This keeps the model loaded in memory (~400ms vs ~3s per search).
 **Estimated Time**: 2 hours
 
 **Actions**:
-1. Create `src/ixpantilia/ui/search.html` (enhanced from Phase 0 mockup):
+1. Create `src/temoa/ui/search.html` (enhanced from Phase 0 mockup):
    - Clean, mobile-optimized layout
    - Search input with Enter key support
    - Results display with obsidian:// links
@@ -515,7 +515,7 @@ This keeps the model loaded in memory (~400ms vs ~3s per search).
    """Tests for FastAPI server"""
    import pytest
    from fastapi.testclient import TestClient
-   from ixpantilia.server import app
+   from temoa.server import app
 
    client = TestClient(app)
 
@@ -577,10 +577,10 @@ This keeps the model loaded in memory (~400ms vs ~3s per search).
 
 ## Phase 1 Deliverables
 
-- [ ] Working FastAPI server (`src/ixpantilia/server.py`)
-- [ ] Configuration system (`src/ixpantilia/config.py`)
-- [ ] Synthesis wrapper (`src/ixpantilia/synthesis.py`)
-- [ ] Mobile web UI (`src/ixpantilia/ui/search.html`)
+- [ ] Working FastAPI server (`src/temoa/server.py`)
+- [ ] Configuration system (`src/temoa/config.py`)
+- [ ] Synthesis wrapper (`src/temoa/synthesis.py`)
+- [ ] Mobile web UI (`src/temoa/ui/search.html`)
 - [ ] Basic test suite (`tests/`)
 - [ ] Project documentation (README, API docs)
 - [ ] `pyproject.toml` with dependencies

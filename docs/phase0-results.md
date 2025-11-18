@@ -111,7 +111,7 @@ Synthesis loads the sentence-transformer model AND embeddings from disk **on eve
 - ✓ Search algorithm is reasonably fast (~0.4s)
 - ✓ Scales well (2,289 files same speed as 13 files)
 
-#### Implications for Ixpantilia ✅ CLEAR PATH FORWARD
+#### Implications for Temoa ✅ CLEAR PATH FORWARD
 
 **The Good News**:
 - Actual search is reasonably fast (~0.4s)

@@ -1,6 +1,6 @@
 # Phase 3: Enhanced Features
 
-**Goal**: Make Ixpantilia indispensable for daily use
+**Goal**: Make Temoa indispensable for daily use
 
 **Duration**: 5-7 days
 **Status**: Not Started

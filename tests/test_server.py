@@ -1,7 +1,7 @@
 """Tests for FastAPI server endpoints"""
 import pytest
 from fastapi.testclient import TestClient
-from ixpantilia.server import app
+from temoa.server import app
 
 client = TestClient(app)
 
@@ -11,7 +11,7 @@ def test_root_endpoint():
     response = client.get("/")
     assert response.status_code == 200
     assert "text/html" in response.headers["content-type"]
-    assert "Ixpantilia" in response.text
+    assert "Temoa" in response.text
 
 
 def test_health_endpoint():

@@ -2,7 +2,7 @@
 import json
 import pytest
 from pathlib import Path
-from ixpantilia.config import Config, ConfigError
+from temoa.config import Config, ConfigError
 
 
 def test_config_loads_successfully(tmp_path):
@@ -101,7 +101,7 @@ def test_config_expands_tilde_paths(tmp_path):
 
 
 def test_config_default_index_path(tmp_path):
-    """Test that index_path defaults to vault/.ixpantilia"""
+    """Test that index_path defaults to vault/.temoa"""
     config_file = tmp_path / "config.json"
     config_data = {
         "vault_path": str(tmp_path / "vault"),
@@ -120,8 +120,8 @@ def test_config_default_index_path(tmp_path):
 
     config = Config(config_file)
 
-    # Should default to .ixpantilia inside vault
-    expected = (tmp_path / "vault" / ".ixpantilia").resolve()
+    # Should default to .temoa inside vault
+    expected = (tmp_path / "vault" / ".temoa").resolve()
     assert config.index_path == expected
 
 

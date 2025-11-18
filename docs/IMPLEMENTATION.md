@@ -1,10 +1,10 @@
-# IMPLEMENTATION.md - Ixpantilia Development Plan
+# IMPLEMENTATION.md - Temoa Development Plan
 
 > **Approach**: Plan like waterfall, implement in agile
 >
 > This document tracks progress across all implementation phases. Detailed phase plans are in `docs/phases/`.
 
-**Project**: Ixpantilia - Local Semantic Search Server for Obsidian Vault
+**Project**: Temoa - Local Semantic Search Server for Obsidian Vault
 **Created**: 2025-11-18
 **Status**: Phase 0 ✅ COMPLETE | Phase 1 READY TO START
 **Last Updated**: 2025-11-18
@@ -78,10 +78,10 @@ See [phases/phase-0-discovery.md](phases/phase-0-discovery.md)
 
 ### Deliverables
 
-- [ ] Working FastAPI server (`src/ixpantilia/server.py`)
-- [ ] Configuration system (`src/ixpantilia/config.py`)
-- [ ] Synthesis wrapper (`src/ixpantilia/synthesis.py`)
-- [ ] Mobile web UI (`src/ixpantilia/ui/search.html`)
+- [ ] Working FastAPI server (`src/temoa/server.py`)
+- [ ] Configuration system (`src/temoa/config.py`)
+- [ ] Synthesis wrapper (`src/temoa/synthesis.py`)
+- [ ] Mobile web UI (`src/temoa/ui/search.html`)
 - [ ] Basic test suite (`tests/`)
 - [ ] Project documentation (README, API docs)
 - [ ] `pyproject.toml` with dependencies
@@ -138,7 +138,7 @@ See [phases/phase-2-gleanings.md](phases/phase-2-gleanings.md)
 ## Phase 3: Enhanced Features ⚪
 
 **Status**: Not Started
-**Goal**: Make Ixpantilia indispensable for daily use
+**Goal**: Make Temoa indispensable for daily use
 **Duration**: 5-7 days
 
 ### Tasks Overview
@@ -244,20 +244,20 @@ See [phases/phase-4-llm.md](phases/phase-4-llm.md)
 
 ### Development
 ```bash
-uv run python -m ixpantilia
+uv run python -m temoa
 ```
 
 ### Production (Systemd)
 ```ini
 [Unit]
-Description=Ixpantilia Semantic Search Server
+Description=Temoa Semantic Search Server
 After=network.target
 
 [Service]
 Type=simple
 User=youruser
-WorkingDirectory=/path/to/ixpantilia
-ExecStart=/path/to/ixpantilia/.venv/bin/uvicorn ixpantilia.server:app --host 0.0.0.0 --port 8080
+WorkingDirectory=/path/to/temoa
+ExecStart=/path/to/temoa/.venv/bin/uvicorn temoa.server:app --host 0.0.0.0 --port 8080
 Restart=always
 
 [Install]
@@ -270,7 +270,7 @@ FROM python:3.11-slim
 WORKDIR /app
 COPY . .
 RUN pip install uv && uv sync
-CMD ["uvicorn", "ixpantilia.server:app", "--host", "0.0.0.0", "--port", "8080"]
+CMD ["uvicorn", "temoa.server:app", "--host", "0.0.0.0", "--port", "8080"]
 ```
 
 ---

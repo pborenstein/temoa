@@ -159,7 +159,7 @@
    <html>
    <head>
      <meta name="viewport" content="width=device-width, initial-scale=1">
-     <title>Ixpantilia Mockup</title>
+     <title>Temoa Mockup</title>
      <style>
        * { box-sizing: border-box; margin: 0; padding: 0; }
        body {
@@ -210,7 +210,7 @@
      </style>
    </head>
    <body>
-     <h1 style="margin-bottom: 20px;">🔍 Ixpantilia</h1>
+     <h1 style="margin-bottom: 20px;">🔍 Temoa</h1>
      <input type="text" class="search-box" placeholder="Search your vault..." id="query" autofocus>
      <button class="search-btn" onclick="mockSearch()">Search</button>
      <div id="results"></div>
@@ -386,7 +386,7 @@ source: "[[{daily_note.stem}]]"
 
 1. **Architecture**: FastAPI server with direct Synthesis imports (DEC-009)
 2. **Deployment**: Standalone service (can integrate with Apantli in Phase 4)
-3. **Location**: `src/` directory in ixpantilia repo
+3. **Location**: `src/` directory in temoa repo
 4. **Caching**: Not needed initially, search is fast enough (DEC-010)
 5. **Gleanings**: Extract from daily notes (Phase 2 task)
 6. **UI**: Web UI first (mobile-optimized HTML)

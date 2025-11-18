@@ -53,18 +53,18 @@ uv run main.py stats
 
 ## Why This Matters
 
-Synthesis proves that local semantic search is fast enough for interactive use. This validates the [[Ixpantilia]] architecture.
+Synthesis proves that local semantic search is fast enough for interactive use. This validates the [[Temoa]] architecture.
 
-## Integration with Ixpantilia
+## Integration with Temoa
 
-Ixpantilia wraps Synthesis as subprocess:
+Temoa wraps Synthesis as subprocess:
 - Clean separation of concerns
-- Synthesis changes don't break Ixpantilia
+- Synthesis changes don't break Temoa
 - Well-defined JSON interface
 - ~50-100ms subprocess overhead (acceptable)
 
 ## Related
 
-- [[Ixpantilia]] - HTTP API wrapper for Synthesis
+- [[Temoa]] - HTTP API wrapper for Synthesis
 - [[Sentence Transformers]]
 - [[Vector Databases]]

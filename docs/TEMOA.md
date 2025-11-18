@@ -1,14 +1,14 @@
 ---
-title: "Project Ixpantilia"
+title: "Project Temoa"
 description: "Local semantic search server for Obsidian vault - vault-first research workflow"
 created: 2025-11-17
 status: planning
 tags: [project, semantic-search, obsidian, apantli, synthesis]
 ---
 
-# Project Ixpantilia
+# Project Temoa
 
-> [Ixpantilia](https://nahuatl.wired-humanities.org/content/ixpantilia) (Nahuatl): To find out something about a friend; for something to present or manifest itself
+> [Temoa](https://nahuatl.wired-humanities.org/content/temoa) (Nahuatl): To find out something about a friend; for something to present or manifest itself
 
 A local semantic search server that enables vault-first research workflows, making your personal knowledge base the first stop before searching the broader internet.
 
@@ -142,7 +142,7 @@ uv run main.py stats
                   │ HTTP Request: /search?q=semantic+search
                   ↓
 ┌─────────────────────────────────────────────────────┐
-│ Ixpantilia Server (or Apantli + /search endpoint)    │
+│ Temoa Server (or Apantli + /search endpoint)    │
 │ - Receives query                                    │
 │ - Calls synthesis                                   │
 │ - Returns formatted results                         │
@@ -175,9 +175,9 @@ Cons:
   - Apantli changes affect both workflows
 ```
 
-**Option B: Separate Ixpantilia Service**
+**Option B: Separate Temoa Service**
 ```
-Ixpantilia:
+Temoa:
   - Dedicated vault search service
   - Could be called BY Apantli (before external LLM)
   - Could be called directly from mobile
@@ -195,8 +195,8 @@ Cons:
 **Option C: Hybrid - Apantli Orchestrates**
 ```
 Apantli becomes intelligent proxy:
-  - GET /search → calls Ixpantilia → returns results
-  - POST /chat → calls Ixpantilia first → includes vault context → calls LLM
+  - GET /search → calls Temoa → returns results
+  - POST /chat → calls Temoa first → includes vault context → calls LLM
 
 This is the "vault-first LLM" architecture
 ```
@@ -259,9 +259,9 @@ cd .tools/synthesis/
 uv run main.py process  # incremental, only new/changed files
 ```
 
-**Alternative**: Could Ixpantilia trigger synthesis re-indexing automatically?
+**Alternative**: Could Temoa trigger synthesis re-indexing automatically?
 
-### 2. Ixpantilia Server
+### 2. Temoa Server
 
 **Tech Stack Options**:
 - **Option A**: Alpine (like Apantli) - familiar, lightweight
@@ -346,7 +346,7 @@ async def archaeology(q: str, threshold: float = 0.2):
 
 **Option A: Simple Web UI**
 ```html
-<!-- Served by Ixpantilia at / -->
+<!-- Served by Temoa at / -->
 <html>
   <body>
     <input id="query" placeholder="Search vault..." />
@@ -376,7 +376,7 @@ async def archaeology(q: str, threshold: float = 0.2):
 **Option B: Obsidian Plugin**
 - More complex, requires TypeScript
 - Better UX (native to Obsidian)
-- Works offline if Ixpantilia is down
+- Works offline if Temoa is down
 - Could show results in sidebar
 
 **Option C: Shortcuts/Scriptable (iOS)**
@@ -391,7 +391,7 @@ async def archaeology(q: str, threshold: float = 0.2):
 
 **Implementation**:
 ```python
-# In Apantli or Ixpantilia
+# In Apantli or Temoa
 @app.post("/chat")
 async def chat_with_context(message: str, provider: str = "anthropic"):
     # 1. Search vault semantically
@@ -424,7 +424,7 @@ async def chat_with_context(message: str, provider: str = "anthropic"):
 Once extracted to individual notes and indexed by synthesis:
 
 **When researching "local LLM tools"**:
-1. Query Ixpantilia: `/search?q=local LLM tools`
+1. Query Temoa: `/search?q=local LLM tools`
 2. Results include:
    - Your notes about local LLMs
    - MOCs you've created
@@ -463,7 +463,7 @@ Once extracted to individual notes and indexed by synthesis:
 
 ### Path Resolution
 - **Synthesis location**: `.tools/synthesis/` (in main vault)
-- **Ixpantilia location**: TBD - could be:
+- **Temoa location**: TBD - could be:
   - Integrated into Apantli repo
   - Separate repo/service
   - Inside vault (like synthesis)?
@@ -475,11 +475,11 @@ Synthesis needs to know where the vault is. Currently hardcoded?
 
 **Options**:
 - Environment variable: `VAULT_PATH=/path/to/vault`
-- Config file: `Ixpantilia_config.json`
+- Config file: `Temoa_config.json`
 - Command-line arg when starting server
 
 ### Model Selection
-Synthesis supports 5 models. Which should Ixpantilia use?
+Synthesis supports 5 models. Which should Temoa use?
 
 **Default**: `all-MiniLM-L6-v2` (fast)
 **Production**: `all-mpnet-base-v2` (better quality)
@@ -498,7 +498,7 @@ Should this be:
   - Or: Import synthesis as Python module?
 
 ### Deployment
-**Where does Ixpantilia run?**
+**Where does Temoa run?**
 - Same server as Apantli (local machine, always on?)
 - Raspberry Pi / home server?
 - Docker container?
@@ -506,13 +506,13 @@ Should this be:
 **How to start**:
 ```bash
 # Option A: systemd service
-sudo systemctl start Ixpantilia
+sudo systemctl start Temoa
 
 # Option B: Docker
-docker run -d -p 8080:8080 Ixpantilia
+docker run -d -p 8080:8080 Temoa
 
 # Option C: Simple script
-cd /path/to/Ixpantilia
+cd /path/to/Temoa
 uv run server.py
 ```
 
@@ -557,7 +557,7 @@ uv run server.py
 **Goal**: Basic semantic search working on mobile
 
 **Tasks**:
-1. **Create Ixpantilia server** (or add to Apantli)
+1. **Create Temoa server** (or add to Apantli)
    - Single endpoint: `GET /search?q=query`
    - Calls synthesis, returns JSON
    - Simple error handling
@@ -566,7 +566,7 @@ uv run server.py
    - Single page: search box + results
    - Obsidian:// links clickable
    - Shows similarity scores
-   - Hosted by Ixpantilia at `/`
+   - Hosted by Temoa at `/`
 
 3. **Deploy to local server**
    - Configure Tailscale access
@@ -607,7 +607,7 @@ uv run server.py
 
 4. **Automated extraction**
    - Cron job or manual workflow
-   - Could trigger from Ixpantilia? (`POST /reindex`)
+   - Could trigger from Temoa? (`POST /reindex`)
 
 **Success Criteria**:
 - All 505 historical gleanings are searchable
@@ -682,7 +682,7 @@ uv run server.py
 
 ### Architecture
 - [ ] Integrate into Apantli or separate service?
-- [ ] Where should Ixpantilia code live? (repo location)
+- [ ] Where should Temoa code live? (repo location)
 - [ ] How to coordinate synthesis + server? (subprocess vs module import)
 
 ### Technical
@@ -704,8 +704,8 @@ uv run server.py
 - [ ] How to handle no results / poor matches?
 
 ### Integration
-- [ ] Can Ixpantilia trigger synthesis re-indexing?
-- [ ] Should Apantli use Ixpantilia for vault context?
+- [ ] Can Temoa trigger synthesis re-indexing?
+- [ ] Should Apantli use Temoa for vault context?
 - [ ] How to coordinate between services?
 
 ### Deployment
@@ -762,14 +762,14 @@ uv run server.py
 **Status**: Production-ready
 **Purpose**: Semantic search and knowledge graph generation
 
-**Integration Point**: Ixpantilia calls synthesis for actual search
+**Integration Point**: Temoa calls synthesis for actual search
 
 ### Apantli
 **Repo**: https://github.com/pborenstein/apantli
 **Status**: Production (local server)
 **Purpose**: LLM proxy with usage tracking
 
-**Integration Point**: Ixpantilia could be integrated, or called by Apantli
+**Integration Point**: Temoa could be integrated, or called by Apantli
 
 ### Obsidian Bases
 **Feature**: Native Obsidian database/filtering (launched Aug 2025)

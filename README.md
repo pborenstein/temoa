@@ -1,6 +1,6 @@
-# Ixpantilia
+# Temoa
 
-> [Ixpantilia](https://nahuatl.wired-humanities.org/content/ixpantilia) (Nahuatl): To find out something about a friend; for something to present or manifest itself
+> [Temoa](https://nahuatl.wired-humanities.org/content/temoa) (Nahuatl): To search for, to seek
 
 **A local semantic search server that enables vault-first research workflows, making your personal knowledge base the first stop before searching the broader internet.**
 
@@ -26,11 +26,11 @@ Question → Perplexity/Claude/GPT → Save link to daily note → Never see it 
 
 **Vault-First Research Workflow**:
 ```
-Question → Ixpantilia (semantic search) → [if relevant found: build on it]
-                                        → [if not: external search → save → connect to vault]
+Question → Temoa (semantic search) → [if relevant found: build on it]
+                                   → [if not: external search → save → connect to vault]
 ```
 
-Ixpantilia is a **local HTTP server** that provides:
+Temoa is a **local HTTP server** that provides:
 - Fast semantic search across your entire Obsidian vault (~1,900 files)
 - Mobile-first design (server does the heavy lifting)
 - Private and local (runs on your network via Tailscale)
@@ -46,7 +46,7 @@ Ixpantilia is a **local HTTP server** that provides:
                   │ HTTP Request: /search?q=semantic+search
                   ↓
 ┌─────────────────────────────────────────────────────┐
-│ Ixpantilia Server (FastAPI)                         │
+│ Temoa Server (FastAPI)                              │
 │ - Receives query                                    │
 │ - Direct imports from Synthesis                     │
 │ - Model loaded ONCE at startup (~400ms searches)    │
@@ -70,7 +70,7 @@ Ixpantilia is a **local HTTP server** that provides:
    - Supports search, archaeology (temporal analysis), and statistics
    - Located at `.tools/synthesis/` in main Obsidian vault
 
-2. **Ixpantilia Server** (to be built): FastAPI HTTP wrapper around Synthesis
+2. **Temoa Server** (to be built): FastAPI HTTP wrapper around Synthesis
    - Provides `/search`, `/archaeology`, `/stats` endpoints
    - Serves mobile-friendly web UI
    - Handles authentication via Tailscale network
@@ -124,8 +124,8 @@ See [docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md) for detailed implementation
 
 ```bash
 # Clone the repository
-git clone https://github.com/pborenstein/ixpantilia
-cd ixpantilia
+git clone https://github.com/pborenstein/temoa
+cd temoa
 
 # Install dependencies with uv
 uv sync
@@ -135,7 +135,7 @@ cp config.example.json config.json
 # Edit config.json with your vault and synthesis paths
 
 # Start the server
-uv run python -m ixpantilia
+uv run python -m temoa
 # Server will run at http://localhost:8080
 # First startup takes ~15s to load the sentence-transformer model
 
@@ -235,7 +235,7 @@ Vault-first LLM chat - searches vault before calling external LLM.
 
 ## Documentation
 
-- **[docs/IXPANTILIA.md](docs/IXPANTILIA.md)**: Comprehensive project plan (847 lines)
+- **[docs/TEMOA.md](docs/TEMOA.md)**: Comprehensive project plan (847 lines)
 - **[docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md)**: Detailed waterfall implementation plan
 - **[docs/CHRONICLES.md](docs/CHRONICLES.md)**: Design discussions and decision log
 - **[docs/copilot-learnings.md](docs/copilot-learnings.md)**: Analysis of Obsidian Copilot architecture
@@ -249,7 +249,7 @@ Vault-first LLM chat - searches vault before calling external LLM.
   - Currently indexes 1,899 vault files
 
 - **[Apantli](https://github.com/pborenstein/apantli)**: LLM proxy server
-  - May be integrated with Ixpantilia in Phase 4
+  - May be integrated with Temoa in Phase 4
   - Provider-agnostic, usage tracking
 
 - **[Old Gleanings](old-ideas/old-gleanings/)**: Previous gleaning management system (abandoned)

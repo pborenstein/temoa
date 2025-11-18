@@ -1,6 +1,6 @@
 # CHRONICLES.md - Project Lore & Design Discussions
 
-> **Purpose**: This document captures key discussions, design decisions, and historical context for the Ixpantilia project. Unlike IMPLEMENTATION.md (which tracks *what* to build) or CLAUDE.md (which explains *how* to build), Chronicles explains *why* we're building it this way.
+> **Purpose**: This document captures key discussions, design decisions, and historical context for the Temoa project. Unlike IMPLEMENTATION.md (which tracks *what* to build) or CLAUDE.md (which explains *how* to build), Chronicles explains *why* we're building it this way.
 
 **Created**: 2025-11-18
 **Format**: Chronological entries with discussion summaries
@@ -14,7 +14,7 @@
 
 > "I have a bunch of documents and I want to know what is in them. The canonical 'query my documents' problem. If there were a silver bullet, I would probably know about it. What is the deal with this problem, and am I reinventing the axle?"
 
-This is **the** question. If you're reading this wondering whether Ixpantilia is necessary, start here.
+This is **the** question. If you're reading this wondering whether Temoa is necessary, start here.
 
 ---
 
@@ -62,7 +62,7 @@ The "query my documents" problem is fundamentally hard because it's **not one pr
 
 Why isn't someone else already solving this? **They are, but not for *your* use case.**
 
-| Solution | What It Does Well | Why It Doesn't Solve Ixpantilia's Problem | Cost/Complexity |
+| Solution | What It Does Well | Why It Doesn't Solve Temoa's Problem | Cost/Complexity |
 |----------|-------------------|------------------------------------------|-----------------|
 | **Obsidian Native Search** | Fast keyword search, works offline | Not semantic, doesn't rank by relevance, desktop-only UI, no mobile optimization | Free, built-in |
 | **Obsidian Copilot** | Chat with vault, semantic search, good LLM integration | Requires OpenAI API (not local), complex 6000-char chunking, chat-focused not search-focused, heavy dependencies | ~$20/mo for API, plugin setup |
@@ -83,9 +83,9 @@ Why isn't someone else already solving this? **They are, but not for *your* use 
 
 ---
 
-### What Ixpantilia Actually Is
+### What Temoa Actually Is
 
-**Ixpantilia is NOT a new search algorithm.** It's a **workflow wrapper** that:
+**Temoa is NOT a new search algorithm.** It's a **workflow wrapper** that:
 
 1. **Makes existing tech (Synthesis) accessible from mobile** → removes friction
 2. **Puts your vault first** → habit formation (check before Googling)
@@ -132,11 +132,11 @@ These are explicitly **out of scope** (learned from old-gleanings failure):
 | ❌ Multi-user collaboration | Personal vault is single-user by design | Auth, sync, conflict resolution complexity |
 | ❌ Real-time sync | Batch re-indexing is sufficient | Watcher overhead, race conditions |
 
-**Lesson from old-gleanings**: Over-engineering kills adoption. Keep Ixpantilia simple.
+**Lesson from old-gleanings**: Over-engineering kills adoption. Keep Temoa simple.
 
 ---
 
-### The Ixpantilia Hypothesis
+### The Temoa Hypothesis
 
 Our core bet:
 
@@ -171,7 +171,7 @@ This is **not** a technology hypothesis. It's a **behavioral hypothesis**.
    - Search returns what you actually have (trustworthy)
    - Both are needed for different tasks
 
-3. **Ixpantilia's niche is underserved**: Mobile-first, local, Obsidian-native semantic search with <2s response time.
+3. **Temoa's niche is underserved**: Mobile-first, local, Obsidian-native semantic search with <2s response time.
 
 4. **Behavioral change is the hard part**, not the technology. Synthesis already works. Making it accessible and habitual is the innovation.
 
@@ -186,7 +186,7 @@ This is **not** a technology hypothesis. It's a **behavioral hypothesis**.
 ### DEC-001: Why Subprocess Instead of Library Import?
 
 **Date**: 2025-11-18
-**Context**: How should Ixpantilia call Synthesis?
+**Context**: How should Temoa call Synthesis?
 **Options Considered**:
 1. Import Synthesis as Python module → tight coupling
 2. Keep Synthesis as separate service → deployment complexity
@@ -195,7 +195,7 @@ This is **not** a technology hypothesis. It's a **behavioral hypothesis**.
 **Decision**: Subprocess call
 **Rationale**:
 - Clean interface via JSON (well-defined contract)
-- Synthesis changes don't break Ixpantilia (loose coupling)
+- Synthesis changes don't break Temoa (loose coupling)
 - Overhead ~50-100ms acceptable for non-interactive use
 - Simpler deployment (one codebase, one process)
 
@@ -206,7 +206,7 @@ This is **not** a technology hypothesis. It's a **behavioral hypothesis**.
 ### DEC-002: Why No Chunking?
 
 **Date**: 2025-11-18
-**Context**: Obsidian Copilot uses 6000-char chunks. Should Ixpantilia chunk documents?
+**Context**: Obsidian Copilot uses 6000-char chunks. Should Temoa chunk documents?
 **Decision**: No chunking initially
 **Rationale**:
 - Gleanings are already small (<500 chars typically)
@@ -239,13 +239,13 @@ This is **not** a technology hypothesis. It's a **behavioral hypothesis**.
 
 ### The Context
 
-Before implementation begins, we need to establish key architectural constraints that will shape how Ixpantilia is built and deployed. These aren't nice-to-haves—they're fundamental assumptions about the environment.
+Before implementation begins, we need to establish key architectural constraints that will shape how Temoa is built and deployed. These aren't nice-to-haves—they're fundamental assumptions about the environment.
 
 ---
 
 ### Constraint 1: Vault Format Agnosticism
 
-**Principle**: Ixpantilia is a neutral backend service.
+**Principle**: Temoa is a neutral backend service.
 
 - **Optimized for**: Obsidian vault structure (markdown files, frontmatter, wikilinks)
 - **Should degrade gracefully to**: Plain text files in directories
@@ -262,7 +262,7 @@ Before implementation begins, we need to establish key architectural constraints
 - obsidian:// URIs are UI enhancement, not core functionality
 - File discovery should work on any directory tree
 
-**Test**: If I point Ixpantilia at a folder of .txt files, search should still work (even if less optimized).
+**Test**: If I point Temoa at a folder of .txt files, search should still work (even if less optimized).
 
 ---
 
@@ -270,7 +270,7 @@ Before implementation begins, we need to establish key architectural constraints
 
 **Question**: Where should the embedding index/vector DB live?
 
-**Current thinking**: Store with the vault (probably in `.ixpantilia/` or similar)
+**Current thinking**: Store with the vault (probably in `.temoa/` or similar)
 
 **Rationale**:
 - Co-location with data (vault moves → index moves)
@@ -284,7 +284,7 @@ Before implementation begins, we need to establish key architectural constraints
 - Might want to exclude from Obsidian Sync (see next section)
 - **Don't paint ourselves into a corner**
 
-**Decision for Phase 1**: Store index with vault in `.ixpantilia/` directory, but make path configurable in `config.json` so we can move it later if needed.
+**Decision for Phase 1**: Store index with vault in `.temoa/` directory, but make path configurable in `config.json` so we can move it later if needed.
 
 ---
 
@@ -299,26 +299,26 @@ Before implementation begins, we need to establish key architectural constraints
 
 **Probably not**, because:
 - Index could be large (hundreds of MB for 2000+ files)
-- Mobile devices don't run Ixpantilia server (yet?)
+- Mobile devices don't run Temoa server (yet?)
 - Wasted bandwidth syncing binary index files
 - Index format might be platform-specific
 
 **But maybe yes**, if:
-- We eventually run Ixpantilia on mobile (future possibility?)
+- We eventually run Temoa on mobile (future possibility?)
 - Index is small enough (need to measure)
 - Having local index enables offline search on mobile
 
 **Decision for Phase 1**:
-- Store index in `.ixpantilia/` directory within vault
+- Store index in `.temoa/` directory within vault
 - Document how to exclude from Obsidian Sync (`.obsidian/sync-config.json` or similar)
 - Keep the option open to change this later
 
 **Don't paint ourselves into a corner**: Make index location configurable. Allow index to live either:
-1. Inside vault (`.ixpantilia/`)
-2. Outside vault (e.g., `~/.local/share/ixpantilia/<vault-name>/`)
+1. Inside vault (`.temoa/`)
+2. Outside vault (e.g., `~/.local/share/temoa/<vault-name>/`)
 3. Wherever user specifies in config
 
-**Actual Obsidian Sync exclusion**: Add `.ixpantilia/` to the vault's `.gitignore` equivalent for Obsidian Sync. (Obsidian Sync has its own exclusion patterns—document this in setup guide.)
+**Actual Obsidian Sync exclusion**: Add `.temoa/` to the vault's `.gitignore` equivalent for Obsidian Sync. (Obsidian Sync has its own exclusion patterns—document this in setup guide.)
 
 ---
 
@@ -327,7 +327,7 @@ Before implementation begins, we need to establish key architectural constraints
 **Assumption**: We're running on a local machine behind NAT, not internet-accessible.
 
 **Current setup**:
-- Ixpantilia server runs on desktop/laptop (local network)
+- Temoa server runs on desktop/laptop (local network)
 - NOT exposed to public internet (no port forwarding, no VPS)
 - Using **Tailscale** to create "fake local network" across devices
 - Very naive Tailscale usage (no special config, just "everything on same VPN")
@@ -338,7 +338,7 @@ Before implementation begins, we need to establish key architectural constraints
 - Encrypted by default (Wireguard under the hood)
 - No certificates, no DNS, no SSL complexity (for now)
 
-**What this means for Ixpantilia**:
+**What this means for Temoa**:
 - No authentication needed initially (Tailscale network is trusted)
 - No HTTPS required (Tailscale encrypts transport)
 - Simple `http://` endpoints are fine
@@ -371,7 +371,7 @@ Throughout these decisions, the theme is: **Make it work, keep it simple, leave 
 - Requirements will change as we use it
 - Over-optimization now = regret later
 
-**The old-gleanings lesson**: Rigid structure (15 categories, complex state) killed adoption. Ixpantilia stays flexible.
+**The old-gleanings lesson**: Rigid structure (15 categories, complex state) killed adoption. Temoa stays flexible.
 
 ---
 
@@ -386,14 +386,14 @@ Throughout these decisions, the theme is: **Make it work, keep it simple, leave 
 - Synthesis already works with any markdown
 - Obsidian-specific features are UI enhancements, not core functionality
 **Trade-offs**: May not leverage all Obsidian features (graph view, plugins, etc.)
-**Test**: Point Ixpantilia at a directory of .txt files—search should work
+**Test**: Point Temoa at a directory of .txt files—search should work
 
 ---
 
 ### DEC-005: Vector Database Storage Location
 
 **Date**: 2025-11-18
-**Decision**: Store in `.ixpantilia/` within vault, but make path configurable
+**Decision**: Store in `.temoa/` within vault, but make path configurable
 **Rationale**:
 - Co-location with data (vault moves → index moves)
 - Simpler backup story
@@ -407,7 +407,7 @@ Throughout these decisions, the theme is: **Make it work, keep it simple, leave 
 ### DEC-006: Obsidian Sync Exclusion
 
 **Date**: 2025-11-18
-**Decision**: Document how to exclude `.ixpantilia/` from Obsidian Sync, but keep option open
+**Decision**: Document how to exclude `.temoa/` from Obsidian Sync, but keep option open
 **Rationale**:
 - Index could be large (hundreds of MB)
 - Mobile doesn't run server (yet)
@@ -466,14 +466,14 @@ Questions to answer in future entries:
 
 During Phase 0 validation testing in a VM environment, we discovered multiple instances of hardcoded absolute paths that broke portability:
 
-1. **Setup script**: `cd /home/user/ixpantilia/old-ideas/synthesis`
+1. **Setup script**: `cd /home/user/temoa/old-ideas/synthesis`
 2. **Config resolution**: `.resolve()` converting relative paths to absolute
 3. **Relative path calculation**: Hacky string replacement using `file_path.parents[2]`
 4. **Embeddings in git**: 1,981 files from Mac vault committed to repo
 
 These issues manifested as:
 - Scripts failing in VM: `No such file or directory: /System/Volumes/Data/home/user/...`
-- Search results with Mac paths: `/Users/philip/projects/ixpantilia/...`
+- Search results with Mac paths: `/Users/philip/projects/temoa/...`
 - Duplicate path segments: `test-vault/test-vault/Areas/...`
 - Old embeddings polluting test results
 
@@ -500,7 +500,7 @@ All paths must be:
 #### 1. Setup Script Portability
 **Before**:
 ```bash
-cd /home/user/ixpantilia/old-ideas/synthesis
+cd /home/user/temoa/old-ideas/synthesis
 ```
 
 **After**:
@@ -530,7 +530,7 @@ def get_vault_path(self) -> Optional[Path]:
     return None
 ```
 
-**Why**: `.resolve()` converts `../../test-vault` to `/Users/philip/projects/ixpantilia/test-vault`. Removing it preserves relative paths that work across environments.
+**Why**: `.resolve()` converts `../../test-vault` to `/Users/philip/projects/temoa/test-vault`. Removing it preserves relative paths that work across environments.
 
 #### 3. Relative Path Calculation
 **Before**:
@@ -1051,7 +1051,7 @@ dependencies = [
 
 **Import surface**:
 ```python
-# src/ixpantilia/synthesis.py (only file that imports Synthesis)
+# src/temoa/synthesis.py (only file that imports Synthesis)
 from src.embeddings import EmbeddingPipeline
 from src.embeddings.models import ModelRegistry
 from src.temporal_archaeology import TemporalArchaeologist

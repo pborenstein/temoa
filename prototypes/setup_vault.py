@@ -79,7 +79,7 @@ Next steps:
    uv run main.py process
 
 2. Run performance tests:
-   cd ../..  # back to ixpantilia root
+   cd ../..  # back to temoa root
    python prototypes/test_synthesis_performance.py
 
 3. Investigate performance:
