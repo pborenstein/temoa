@@ -4,7 +4,7 @@
 
 **A local semantic search server that enables vault-first research workflows, making your personal knowledge base the first stop before searching the broader internet.**
 
-[![Status](https://img.shields.io/badge/status-planning-yellow)](docs/IXPANTILIA.md)
+[![Status](https://img.shields.io/badge/status-phase%201%20complete-green)](docs/IMPLEMENTATION.md)
 [![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)
 [![uv](https://img.shields.io/badge/package%20manager-uv-orange.svg)](https://github.com/astral-sh/uv)
 
@@ -48,16 +48,17 @@ Ixpantilia is a **local HTTP server** that provides:
 ┌─────────────────────────────────────────────────────┐
 │ Ixpantilia Server (FastAPI)                         │
 │ - Receives query                                    │
-│ - Calls synthesis subprocess                        │
+│ - Direct imports from Synthesis                     │
+│ - Model loaded ONCE at startup (~400ms searches)    │
 │ - Returns formatted results                         │
 └─────────────────┬───────────────────────────────────┘
-                  │ Subprocess call
+                  │ Direct Python imports (NOT subprocess)
                   ↓
 ┌─────────────────────────────────────────────────────┐
 │ Synthesis (existing semantic search engine)         │
-│ - Loads embeddings (sentence-transformers)          │
-│ - Performs semantic search                          │
-│ - Returns JSON with obsidian:// URIs                │
+│ - Embeddings loaded in memory                       │
+│ - Fast semantic search (~400ms)                     │
+│ - Returns results with obsidian:// URIs             │
 └─────────────────────────────────────────────────────┘
 ```
 
@@ -86,21 +87,26 @@ Ixpantilia is a **local HTTP server** that provides:
 
 ## Project Status
 
-**Current Phase**: Planning / Phase 0 Discovery
+**Current Phase**: Phase 1 Complete ✅
 
-**Completed**:
-- ✅ Problem definition and requirements
-- ✅ Architecture design
-- ✅ Technical stack selection (FastAPI + Synthesis)
-- ✅ Planning documentation (847 lines in `docs/IXPANTILIA.md`)
-- ✅ Analysis of similar tools (Obsidian Copilot learnings)
-- ✅ Existing infrastructure (Synthesis search engine ready)
+**Phase 0 (Discovery) - Complete**:
+- ✅ Synthesis performance validated (~400ms search time)
+- ✅ Bottleneck identified (model loading)
+- ✅ Solution validated (direct imports, model loaded once)
+- ✅ Scaling validated (2,289 files = same speed as 13 files)
+
+**Phase 1 (Minimal Viable Search) - Complete**:
+- ✅ Project setup with uv (FastAPI, sentence-transformers)
+- ✅ Configuration management system
+- ✅ Synthesis direct import wrapper (model in memory)
+- ✅ FastAPI server with `/search`, `/archaeology`, `/stats`, `/health`
+- ✅ Mobile-optimized web UI
+- ✅ Comprehensive test suite (26 tests passing)
+- ✅ API documentation (OpenAPI/Swagger)
 
 **Next Steps**:
-- [ ] Phase 0: Discovery & validation (test Synthesis performance)
-- [ ] Phase 1: Minimal viable search (basic HTTP API + web UI)
 - [ ] Phase 2: Gleanings integration (extraction + indexing)
-- [ ] Phase 3: Enhanced features (better UI, archaeology endpoint)
+- [ ] Phase 3: Enhanced features (filters, PWA, refined UI)
 - [ ] Phase 4: Vault-first LLM (chat with vault context)
 
 See [docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md) for detailed implementation plan.
@@ -114,9 +120,7 @@ See [docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md) for detailed implementation
 - **Deployment**: Tailscale network, systemd service (or Docker)
 - **Frontend**: Vanilla HTML/JS (no framework complexity)
 
-## Quick Start (Future)
-
-> Note: Implementation not yet started. These are planned commands.
+## Quick Start
 
 ```bash
 # Clone the repository
@@ -128,20 +132,43 @@ uv sync
 
 # Configure vault path
 cp config.example.json config.json
-# Edit config.json to point to your vault and synthesis installation
+# Edit config.json with your vault and synthesis paths
 
 # Start the server
-uv run server.py
+uv run python -m ixpantilia
 # Server will run at http://localhost:8080
+# First startup takes ~15s to load the sentence-transformer model
 
-# Or use systemd service
-sudo systemctl start ixpantilia
+# Access the web UI
+open http://localhost:8080
 
-# Access from mobile
+# Access from mobile (via Tailscale)
 # http://<tailscale-ip>:8080
+
+# Run tests
+uv run pytest
 ```
 
-## Planned API Endpoints
+### Configuration
+
+Edit `config.json`:
+```json
+{
+  "vault_path": "~/Obsidian/your-vault",
+  "synthesis_path": "old-ideas/synthesis",
+  "default_model": "all-MiniLM-L6-v2",
+  "server": {
+    "host": "0.0.0.0",
+    "port": 8080
+  },
+  "search": {
+    "default_limit": 10,
+    "max_limit": 50
+  }
+}
+```
+
+## API Endpoints
 
 ### `GET /search?q=<query>&limit=<n>&model=<model>`
 Semantic search across vault.
@@ -285,5 +312,6 @@ Key principles:
 ---
 
 **Created**: 2025-11-17
-**Status**: Planning Phase
-**Next Milestone**: Phase 0 Discovery
+**Last Updated**: 2025-11-18
+**Status**: Phase 1 Complete ✅
+**Next Milestone**: Phase 2 - Gleanings Integration

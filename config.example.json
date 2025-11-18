@@ -1,0 +1,15 @@
+{
+  "vault_path": "~/Obsidian/amoxtli",
+  "synthesis_path": "old-ideas/synthesis",
+  "index_path": null,
+  "default_model": "all-MiniLM-L6-v2",
+  "server": {
+    "host": "0.0.0.0",
+    "port": 8080
+  },
+  "search": {
+    "default_limit": 10,
+    "max_limit": 50,
+    "timeout": 10
+  }
+}
