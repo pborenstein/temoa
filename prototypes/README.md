@@ -53,6 +53,56 @@ After you report the results, I'll:
 
 ---
 
+## 🚨 CRITICAL FINDING: Performance Issue
+
+**Initial test results show 3+ second search time** on a 13-file vault.
+
+- Target: < 1 second (ideally < 500ms)
+- Actual: 3.3 seconds average
+- **This is 6x slower than target**
+
+### What You Need to Do Next
+
+#### Option A: Quick Investigation (Recommended)
+
+Run the performance investigation script:
+
+```bash
+cd /path/to/ixpantilia
+python prototypes/investigate_performance.py
+```
+
+This will help identify WHERE the time is being spent:
+- Subprocess overhead?
+- Python startup time?
+- Synthesis search itself?
+
+#### Option B: Test Real Vault
+
+The initial test used `test-vault` (13 files). Test against your real vault:
+
+```bash
+cd ~/.obsidian/vaults/main/.tools/synthesis  # or wherever your real Synthesis is
+time uv run main.py search "semantic search" --json
+```
+
+Compare timing to the test-vault results.
+
+#### Option C: Both (Best)
+
+Do both A and B, then report all findings.
+
+### Why This Matters
+
+At 3+ seconds per search:
+- ❌ Too slow for mobile use
+- ❌ Won't form habit (too much friction)
+- ❌ May need different architecture (daemon, cache, etc.)
+
+We need to understand the bottleneck before proceeding to Phase 1.
+
+---
+
 ## Communication Pattern
 
 1. I create scripts and push to repo
