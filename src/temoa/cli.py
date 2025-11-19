@@ -216,9 +216,33 @@ def stats(output_json):
             click.echo("\nVault Statistics\n")
             click.echo(f"Vault path: {click.style(str(config.vault_path), fg='cyan')}")
             click.echo(f"Storage: {click.style(str(config.storage_dir), fg='cyan')}")
-            click.echo(f"Model: {click.style(statistics.get('model', 'Unknown'), fg='green')}")
-            click.echo(f"Files indexed: {click.style(str(statistics.get('total_files', 0)), fg='yellow')}")
-            click.echo(f"Total embeddings: {click.style(str(statistics.get('total_embeddings', 0)), fg='yellow')}")
+
+            # Check if embeddings exist
+            total_files = statistics.get('total_files', 0)
+            total_embeddings = statistics.get('total_embeddings', 0)
+            has_error = 'error' in statistics
+
+            if has_error or total_files == 0:
+                click.echo(f"\n{click.style('⚠ No index found', fg='yellow', bold=True)}")
+                click.echo("Run 'temoa index' to build the embedding index for your vault.")
+            elif total_embeddings == 0 and total_files > 0:
+                click.echo(f"\n{click.style('⚠ Index incomplete', fg='yellow', bold=True)}")
+                click.echo(f"Files scanned: {click.style(str(total_files), fg='yellow')}")
+                click.echo(f"Embeddings generated: {click.style('0', fg='red')}")
+                click.echo("\nRun 'temoa index' to generate embeddings for your vault.")
+            else:
+                click.echo(f"Model: {click.style(statistics.get('model', 'Unknown'), fg='green')}")
+                click.echo(f"Files indexed: {click.style(str(total_files), fg='yellow')}")
+                click.echo(f"Embeddings: {click.style(str(total_embeddings), fg='green')}")
+
+                # Show additional stats if available
+                if 'avg_content_length' in statistics:
+                    click.echo(f"Avg content length: {statistics['avg_content_length']:.0f} chars")
+                if 'total_tags' in statistics:
+                    click.echo(f"Total tags: {statistics['total_tags']}")
+                if 'directories' in statistics:
+                    click.echo(f"Directories: {statistics['directories']}")
+
             click.echo()
 
     except Exception as e:
