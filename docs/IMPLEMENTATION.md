@@ -6,7 +6,7 @@
 
 **Project**: Temoa - Local Semantic Search Server for Obsidian Vault
 **Created**: 2025-11-18
-**Status**: Phase 2 ✅ COMPLETE | Phase 3 READY TO START
+**Status**: Phase 2 ✅ COMPLETE + CLI ✅ COMPLETE | Ready for Mobile Testing
 **Last Updated**: 2025-11-19
 **Estimated Timeline**: 4-6 weeks for Phases 0-2, ongoing for Phases 3-4
 
@@ -210,9 +210,75 @@ See [phases/phase-2-gleanings.md](phases/phase-2-gleanings.md)
 
 ---
 
+## CLI Implementation ✅
+
+**Status**: COMPLETE (2025-11-19)
+**Goal**: Easy command-line access for daily use
+**Duration**: 1 day
+
+### What Was Built
+
+**Click-based CLI** (similar to obsidian-tag-tools pattern):
+
+```bash
+temoa config              # Show current configuration
+temoa index               # Build embedding index from scratch
+temoa reindex             # Incremental updates (daily use)
+temoa search "query"      # Quick searches from terminal
+temoa archaeology "topic" # Temporal analysis
+temoa stats               # Vault statistics
+temoa extract             # Extract gleanings from daily notes
+temoa migrate             # Migrate old gleanings
+temoa server              # Start FastAPI server
+```
+
+**Installation**: `uv tool install --editable .`
+
+### Deliverables
+
+- [x] `src/temoa/cli.py` (463 lines) - Complete CLI with all subcommands
+- [x] `[project.scripts]` entry point in pyproject.toml
+- [x] `[tool.uv] package=true` for uv tool install support
+- [x] All commands support `--help` and `--json` flags
+- [x] Proper error handling and user-friendly output
+- [x] Color-coded output for better readability
+
+### Success Criteria
+
+- [x] Can run `temoa` command from any directory
+- [x] All operations work (config, index, search, stats, server)
+- [x] Installation via `uv tool install --editable .`
+- [x] Help text is clear and actionable
+- [x] Performance validated on production vault (2,281 files)
+
+### Bugs Fixed
+
+**Stats Display Issue**:
+- **Problem**: `temoa stats` showed "Embeddings: 0" even though search worked perfectly
+- **Root cause**: CLI looked for `total_embeddings` key, but Synthesis returns `num_embeddings`
+- **Fix**: Updated key name + improved model name extraction from nested dict
+- **Discovery**: Created `debug_stats.py` script to inspect actual JSON structure
+
+### Real-World Validation
+
+**Production test** (user's actual vault):
+- ✅ Index: 2,281 files processed in ~17 seconds
+- ✅ Search: `temoa search "obsidian"` returned accurate results
+- ✅ Stats: Displays correctly (2,281 embeddings, 2,006 tags, 31 directories)
+- ✅ Performance: ~400ms search time (meets <2s target)
+
+### Key Decisions
+
+- **DEC-019**: Use Click framework for familiar UX pattern
+- **DEC-020**: Split `index` vs `reindex` for clear intent
+
+See [docs/CHRONICLES.md Entry 8](CHRONICLES.md#entry-8-cli-implementation-and-first-real-world-testing-2025-11-19) for detailed retrospective.
+
+---
+
 ## Phase 3: Enhanced Features 🔵
 
-**Status**: READY TO START
+**Status**: READY TO START (but recommend mobile testing first)
 **Goal**: Make Temoa indispensable for daily use
 **Duration**: 5-7 days
 

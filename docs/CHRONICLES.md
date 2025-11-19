@@ -1546,6 +1546,112 @@ This is what "vault-first research" means: Your past research becomes the founda
 
 ---
 
+## Entry 8: CLI Implementation and First Real-World Testing (2025-11-19)
+
+### Context
+
+After completing Phase 2 (gleanings integration), we needed a better command-line interface for daily use. The existing `uv run python -m temoa` was too verbose for regular CLI/tmux workflows.
+
+### What Was Built
+
+**Click-based CLI** (similar to obsidian-tag-tools):
+- `temoa config` - Show current configuration
+- `temoa index` - Build embedding index from scratch (first-time setup)
+- `temoa reindex` - Incremental updates (daily use)
+- `temoa search "query"` - Quick searches from terminal
+- `temoa archaeology "topic"` - Temporal analysis
+- `temoa stats` - Vault statistics
+- `temoa extract` - Extract gleanings from daily notes
+- `temoa migrate` - Migrate old gleanings
+- `temoa server` - Start FastAPI server
+
+**Installation**: `uv tool install --editable .` enables global `temoa` command.
+
+### Key Decisions
+
+**DEC-019: Click CLI Over Custom Argument Parsing**
+
+**Date**: 2025-11-19
+**Decision**: Use Click framework for CLI (like obsidian-tag-tools)
+**Rationale**:
+- Familiar pattern from existing tools
+- Subcommands cleanly organized
+- Built-in help, version, options handling
+- `--json` flags for scripting
+- Easy to extend with new commands
+
+**Trade-offs**: Click dependency, but worth it for better UX
+
+---
+
+**DEC-020: Separate `index` vs `reindex` Commands**
+
+**Date**: 2025-11-19
+**Decision**: Split into two commands instead of `--force` flag only
+**Rationale**:
+- Clear intent: `index` = first-time setup, `reindex` = daily updates
+- Prevents accidental full rebuilds (slow for large vaults)
+- Better discoverability in help text
+- `reindex --force` still available for explicit full rebuild
+
+**Trade-offs**: Two commands instead of one, but clearer semantics
+
+### Bugs Fixed
+
+**The Stats Display Bug**:
+
+During real-world testing on production vault (2,281 files), `temoa stats` showed:
+```
+Files indexed: 2281
+Embeddings: 0        ← Wrong!
+```
+
+But search worked perfectly, finding results with good similarity scores.
+
+**Root cause**: CLI was looking for `statistics.get('total_embeddings')` but Synthesis returns `num_embeddings`.
+
+**Fix**: Changed to `statistics.get('num_embeddings', 0)` + improved model name extraction from nested `model_info` dict.
+
+**Discovery method**: Created `debug_stats.py` script which revealed the actual JSON structure Synthesis returns.
+
+### Real-World Validation
+
+**First production test** (2,281 files, 2,006 tags, 31 directories):
+- ✅ Index built successfully in ~17 seconds
+- ✅ Search works: `temoa search "obsidian"` returned relevant results
+- ✅ Stats displays correctly after fix
+- ✅ CLI installed globally and works from any directory
+- ✅ Performance meets targets (~400ms search time)
+
+**Key insight**: The system works! Ready for mobile testing to validate the core behavioral hypothesis: "If vault search is fast enough (<2s from phone), it becomes the first place to check before Googling."
+
+### Commits
+
+CLI implementation and fixes:
+- `396c49e`: feat: add Click-based CLI for easy command-line access
+- `2706f6d`: fix: correct reindex parameter and add clearer index command
+- `61af389`: chore: add [tool.uv] package=true for uv tool install support
+- `272dc5e`: feat: improve stats command to detect missing/incomplete index
+- `3ab7936`: debug: add logging to get_stats to diagnose index location issue
+- `6739f53`: debug: add stats debugging script to diagnose embeddings detection issue
+- `4c25a32`: fix: use correct key 'num_embeddings' from Synthesis stats
+
+### Next Steps
+
+**Ready for Phase 3**: The core functionality works. Before adding enhancements (archaeology UI, PWA, filters), we should:
+
+1. **Test the behavioral hypothesis**: Start `temoa server` and access from mobile via Tailscale
+2. **Measure habit formation**: Is <500ms search fast enough to check vault-first?
+3. **Identify real friction**: What actually prevents usage vs. what we think might help?
+
+**Phase 3 can wait** until we validate that the core workflow (mobile search → vault-first habit) actually works in practice.
+
+---
+
+**Next**: Phase 3 will make this indispensable through archaeology, enhanced UI, and mobile PWA support.
+
+---
+
 ## Meta: How to Use This Document
 
 **When starting a new session:**
