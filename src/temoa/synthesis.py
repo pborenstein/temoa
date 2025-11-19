@@ -6,11 +6,87 @@ This module imports Synthesis code directly (not subprocess) to achieve
 """
 import sys
 import logging
+import re
 from pathlib import Path
 from typing import Dict, Any, List, Optional
 from urllib.parse import quote
 
 logger = logging.getLogger(__name__)
+
+
+def extract_relevant_snippet(content: str, query: str, snippet_length: int = 150) -> str:
+    """
+    Extract a snippet from content that contains query terms.
+
+    Falls back to beginning of content if no query terms found.
+
+    Args:
+        content: Full document content
+        query: Search query
+        snippet_length: Target snippet length in characters
+
+    Returns:
+        Extracted snippet with query context
+    """
+    if not content or not query:
+        return content[:snippet_length] if content else ""
+
+    # Clean query and split into terms
+    query_terms = query.lower().split()
+    content_lower = content.lower()
+
+    # Find first occurrence of any query term
+    best_pos = -1
+    best_term = None
+
+    for term in query_terms:
+        # Skip very short terms
+        if len(term) < 3:
+            continue
+
+        pos = content_lower.find(term)
+        if pos != -1 and (best_pos == -1 or pos < best_pos):
+            best_pos = pos
+            best_term = term
+
+    # If no query terms found, return beginning
+    if best_pos == -1:
+        snippet = content[:snippet_length].strip()
+        if len(content) > snippet_length:
+            snippet += "..."
+        return snippet
+
+    # Extract snippet around the found term
+    # Try to center the term in the snippet
+    half_length = snippet_length // 2
+    start = max(0, best_pos - half_length)
+    end = min(len(content), start + snippet_length)
+
+    # Adjust start if we're at the end
+    if end == len(content) and end - start < snippet_length:
+        start = max(0, end - snippet_length)
+
+    # Try to break at word boundaries
+    snippet = content[start:end]
+
+    # Add ellipsis if we're not at the start/end
+    if start > 0:
+        # Find first space to start cleanly
+        first_space = snippet.find(' ')
+        if first_space > 0 and first_space < 30:
+            snippet = "..." + snippet[first_space:]
+        else:
+            snippet = "..." + snippet
+
+    if end < len(content):
+        # Find last space to end cleanly
+        last_space = snippet.rfind(' ')
+        if last_space > len(snippet) - 30:
+            snippet = snippet[:last_space] + "..."
+        else:
+            snippet = snippet + "..."
+
+    return snippet.strip()
 
 
 class SynthesisError(Exception):
@@ -172,7 +248,7 @@ class SynthesisClient:
                     "model": self.model_name
                 }
 
-            # Enhance results with Obsidian URIs and links
+            # Enhance results with Obsidian URIs, links, and better snippets
             enhanced_results = []
             for result in results:
                 rel_path = result['relative_path']
@@ -187,6 +263,21 @@ class SynthesisClient:
                     "wiki_link": f"[[{title}]]",
                     "file_path": str(self.vault_path / rel_path)
                 })
+
+                # Try to extract a better snippet that shows query context
+                # If the result has full content, extract relevant snippet
+                if 'content' in result and result['content']:
+                    try:
+                        better_snippet = extract_relevant_snippet(
+                            result['content'],
+                            query,
+                            snippet_length=200
+                        )
+                        enhanced_result['description'] = better_snippet
+                    except Exception as e:
+                        logger.debug(f"Could not extract snippet: {e}")
+                        # Keep original description on error
+
                 enhanced_results.append(enhanced_result)
 
             logger.debug(f"Found {len(enhanced_results)} results")
