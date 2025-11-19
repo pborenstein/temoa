@@ -18,6 +18,9 @@ dependencies = [
 [project.scripts]
 temoa = "temoa.cli:main"
 
+[tool.uv]
+package = true
+
 [project.optional-dependencies]
 dev = [
     "pytest>=7.4.0",
