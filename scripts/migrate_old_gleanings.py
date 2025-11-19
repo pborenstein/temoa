@@ -227,9 +227,18 @@ def main():
 
     args = parser.parse_args()
 
-    migrator = OldGleaningMigrator(args.vault_path, args.old_gleanings)
-    migrator.migrate_all(dry_run=args.dry_run)
+    try:
+        migrator = OldGleaningMigrator(args.vault_path, args.old_gleanings)
+        migrator.migrate_all(dry_run=args.dry_run)
+    except (FileNotFoundError, NotADirectoryError) as e:
+        print(f"Error: {e}", file=__import__('sys').stderr)
+        return 1
+    except Exception as e:
+        print(f"Unexpected error: {e}", file=__import__('sys').stderr)
+        return 1
+
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    exit(main())

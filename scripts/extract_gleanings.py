@@ -312,9 +312,18 @@ def main():
 
     args = parser.parse_args()
 
-    extractor = GleaningsExtractor(args.vault_path)
-    extractor.extract_all(incremental=not args.full, dry_run=args.dry_run)
+    try:
+        extractor = GleaningsExtractor(args.vault_path)
+        extractor.extract_all(incremental=not args.full, dry_run=args.dry_run)
+    except (FileNotFoundError, NotADirectoryError) as e:
+        print(f"Error: {e}", file=__import__('sys').stderr)
+        return 1
+    except Exception as e:
+        print(f"Unexpected error: {e}", file=__import__('sys').stderr)
+        return 1
+
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    exit(main())
