@@ -151,11 +151,25 @@ uv run pytest
 
 ### Configuration
 
-Edit `config.json`:
+Temoa looks for config in these locations (in order):
+1. `.temoa/config.json` (vault-local - **recommended**)
+2. `~/.config/temoa/config.json` (global config)
+3. `~/.temoa.json` (simple alternative)
+4. `./config.json` (current directory)
+
+**Vault-local setup (recommended):**
+```bash
+cd ~/Obsidian/your-vault
+mkdir -p .temoa
+cp ~/projects/temoa/config.vault-local.example.json .temoa/config.json
+# Edit .temoa/config.json with your synthesis path
+```
+
+Example `.temoa/config.json`:
 ```json
 {
-  "vault_path": "~/Obsidian/your-vault",
-  "synthesis_path": "old-ideas/synthesis",
+  "vault_path": ".",
+  "synthesis_path": "~/projects/temoa/old-ideas/synthesis",
   "default_model": "all-MiniLM-L6-v2",
   "server": {
     "host": "0.0.0.0",
