@@ -124,7 +124,9 @@ def search(query, limit, model, output_json):
                 click.echo(f"   {result.get('relative_path', 'Unknown path')}")
                 click.echo(f"   Similarity: {result.get('similarity_score', 0):.3f}")
                 if result.get('tags'):
-                    click.echo(f"   Tags: {', '.join(result['tags'])}")
+                    # Convert all tags to strings in case some are integers
+                    tags_str = ', '.join(str(tag) for tag in result['tags'])
+                    click.echo(f"   Tags: {tags_str}")
                 click.echo()
 
     except Exception as e:
