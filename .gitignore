@@ -40,3 +40,10 @@ config.json
 # OS
 .DS_Store
 Thumbs.db
+
+# Test vault generated files
+test-vault/.temoa/
+test-vault/L/Gleanings/
+
+# Test scripts
+test_*.py

@@ -311,3 +311,50 @@ async def health():
         )
 
 
+@app.post("/reindex")
+async def reindex(
+    force: bool = Query(
+        default=True,
+        description="Force rebuild even if embeddings exist"
+    )
+):
+    """
+    Trigger re-indexing of the vault.
+
+    This rebuilds embeddings for all files in the vault. Useful after:
+    - Extracting new gleanings
+    - Modifying existing notes
+    - Adding files to vault
+
+    Example:
+        POST /reindex?force=true
+
+    Returns:
+        {
+            "status": "success",
+            "files_indexed": 516,
+            "model": "all-MiniLM-L6-v2",
+            "message": "Successfully reindexed 516 files"
+        }
+    """
+    try:
+        logger.info(f"Reindex requested (force={force})")
+
+        result = synthesis.reindex(force=force)
+
+        return JSONResponse(content=result)
+
+    except SynthesisError as e:
+        logger.error(f"Reindex error: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Reindexing failed: {str(e)}"
+        )
+    except Exception as e:
+        logger.error(f"Unexpected error during reindex: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Internal server error: {str(e)}"
+        )
+
+

@@ -289,6 +289,56 @@ class SynthesisClient:
             logger.error(f"Failed to get stats: {e}", exc_info=True)
             raise SynthesisError(f"Failed to get stats: {e}")
 
+    def reindex(self, force: bool = True) -> Dict[str, Any]:
+        """
+        Trigger re-indexing of the vault.
+
+        This rebuilds embeddings for all files in the vault. Useful after:
+        - Adding new gleanings
+        - Modifying existing notes
+        - Changing vault structure
+
+        Args:
+            force: Force rebuild even if embeddings exist (default: True)
+
+        Returns:
+            Dict with reindexing results:
+            {
+                "status": "success",
+                "files_processed": int,
+                "files_indexed": int,
+                "model": str
+            }
+
+        Raises:
+            SynthesisError: If reindexing fails
+        """
+        try:
+            logger.info(f"Starting vault reindex (force={force})...")
+
+            # Trigger reindexing
+            success = self.pipeline.process_vault(force_rebuild=force)
+
+            if not success:
+                raise SynthesisError("Reindexing failed (process_vault returned False)")
+
+            # Get updated stats
+            stats = self.pipeline.get_stats()
+            files_indexed = stats.get("total_files") or stats.get("file_count", 0)
+
+            logger.info(f"✓ Reindexing complete: {files_indexed} files indexed")
+
+            return {
+                "status": "success",
+                "files_indexed": files_indexed,
+                "model": self.model_name,
+                "message": f"Successfully reindexed {files_indexed} files"
+            }
+
+        except Exception as e:
+            logger.error(f"Reindexing failed: {e}", exc_info=True)
+            raise SynthesisError(f"Reindexing failed: {e}")
+
     def __repr__(self) -> str:
         return (
             f"SynthesisClient(vault={self.vault_name}, "

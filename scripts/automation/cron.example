@@ -1,0 +1,19 @@
+# Example cron job for automated gleaning extraction
+#
+# This extracts gleanings daily at 11 PM
+#
+# To install:
+#   1. Edit this file with your actual paths
+#   2. Run: crontab -e
+#   3. Add the line below
+#
+# Format: minute hour day month weekday command
+#
+# Daily at 11 PM:
+0 23 * * * /path/to/temoa/scripts/extract_and_reindex.sh >> /path/to/temoa/logs/cron.log 2>&1
+
+# Or every 6 hours:
+# 0 */6 * * * /path/to/temoa/scripts/extract_and_reindex.sh >> /path/to/temoa/logs/cron.log 2>&1
+
+# Or weekly on Sunday at 10 PM:
+# 0 22 * * 0 /path/to/temoa/scripts/extract_and_reindex.sh >> /path/to/temoa/logs/cron.log 2>&1

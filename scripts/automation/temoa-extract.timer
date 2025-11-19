@@ -1,0 +1,17 @@
+[Unit]
+Description=Temoa Gleaning Extraction Timer
+Requires=temoa-extract.service
+
+[Timer]
+# Run daily at 11 PM
+OnCalendar=daily
+OnCalendar=*-*-* 23:00:00
+
+# Wait 5 minutes after boot before first run
+OnBootSec=5min
+
+# Run if missed (e.g., system was off)
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,16 @@
+[Unit]
+Description=Temoa Gleaning Extraction Service
+After=network.target temoa.service
+
+[Service]
+Type=oneshot
+User=youruser
+WorkingDirectory=/path/to/temoa
+Environment="VAULT_PATH=/path/to/vault"
+Environment="TEMOA_URL=http://localhost:8080"
+ExecStart=/path/to/temoa/scripts/extract_and_reindex.sh
+StandardOutput=append:/path/to/temoa/logs/extraction.log
+StandardError=append:/path/to/temoa/logs/extraction.log
+
+[Install]
+WantedBy=multi-user.target
