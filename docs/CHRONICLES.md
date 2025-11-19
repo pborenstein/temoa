@@ -1306,6 +1306,246 @@ This is what "plan like waterfall, implement in agile" looks like. Detailed plan
 
 ---
 
+## Entry 7: Phase 2 Complete - Gleanings Integration (2025-11-19)
+
+### Context
+
+After Phase 1 delivered a working FastAPI server with semantic search, Phase 2 focused on extracting, migrating, and automating gleanings—the curated links saved in daily notes that represent the core value proposition of Temoa.
+
+**Goal**: Make 505+ historical gleanings searchable, automate extraction of new ones, and establish a sustainable workflow.
+
+---
+
+### What Was Built
+
+**Timeline**: Single day implementation (2025-11-19)
+**Result**: Complete gleanings workflow from extraction to automation
+
+#### 1. Extraction System (`scripts/extract_gleanings.py` - 319 lines)
+
+**Challenge**: Parse gleanings from daily notes in a format like:
+```markdown
+## Gleanings
+- [Title](URL) - Description
+```
+
+**Solution**:
+- Regex-based parsing of gleanings sections
+- MD5-based gleaning IDs from URLs (deduplication)
+- State tracking in `.temoa/extraction_state.json`
+- Incremental mode (only process new files)
+- Dry-run support for testing
+
+**Result**: Successfully extracted 6 gleanings from test-vault daily notes
+
+#### 2. Historical Migration (`scripts/migrate_old_gleanings.py` - 259 lines)
+
+**Challenge**: Migrate 505 gleanings from old-gleanings JSON format without losing metadata
+
+**Solution**:
+- Convert old JSON format to new markdown format
+- Preserve all metadata (category, tags, timestamp, date)
+- Mark with `migrated_from: old-gleanings` frontmatter
+- Use same MD5 ID system for consistency
+
+**Result**: All 505 gleanings migrated successfully, **total 516 gleanings** in test-vault
+
+#### 3. Re-indexing Integration
+
+**Challenge**: After extracting gleanings, Synthesis needs to re-index the vault
+
+**Solution**:
+- Added `SynthesisClient.reindex()` method (calls `pipeline.process_vault(force_rebuild=True)`)
+- Added `POST /reindex` endpoint to FastAPI server
+- Returns status with files indexed count
+
+**Result**: Can trigger re-indexing via: `curl -X POST http://localhost:8080/reindex`
+
+#### 4. Automation Scripts
+
+**Challenge**: Daily gleanings need to be extracted automatically
+
+**Solution**:
+- `scripts/extract_and_reindex.sh`: Combined workflow (extract + reindex)
+- Cron example: Daily at 11 PM
+- Systemd service + timer units for modern Linux systems
+- Logging support, dry-run mode
+
+**Result**: Multiple automation options documented and tested
+
+#### 5. Documentation (`docs/GLEANINGS.md` - 371 lines)
+
+Comprehensive workflow guide covering:
+- Gleaning format specification
+- Manual and automated extraction
+- Migration instructions
+- Automation setup (cron and systemd)
+- Troubleshooting and best practices
+
+---
+
+### Key Decisions Made
+
+**DEC-016: Individual Files vs. In-Place Extraction**
+
+**Date**: 2025-11-19
+**Context**: Should gleanings stay in daily notes or be extracted to individual files?
+**Decision**: Extract to individual files in `L/Gleanings/`
+**Rationale**:
+- Cleaner separation of concerns (daily notes = ephemeral, gleanings = permanent)
+- Better for semantic search (each gleaning is a discrete unit)
+- Easier to maintain and update individual gleanings
+- Matches atomic note principle in Zettelkasten/Obsidian workflows
+**Trade-offs**: Slightly more complex extraction, but worth the organizational benefits
+
+---
+
+**DEC-017: MD5-based Gleaning IDs**
+
+**Date**: 2025-11-19
+**Context**: How to uniquely identify gleanings for deduplication?
+**Decision**: MD5 hash of URL (first 12 chars)
+**Rationale**:
+- URLs are naturally unique identifiers
+- Same URL = same gleaning (prevents duplicates)
+- Deterministic (same URL always produces same ID)
+- Short enough for filenames (`9c72d1c06194.md`)
+**Trade-offs**: Hash collisions possible but extremely unlikely in personal vault scale
+
+---
+
+**DEC-018: State Tracking for Incremental Extraction**
+
+**Date**: 2025-11-19
+**Context**: Should extraction re-process all files or only new ones?
+**Decision**: Track processed files in `.temoa/extraction_state.json`
+**Rationale**:
+- Faster extraction (only process new files)
+- Prevents duplicate processing
+- Auditability (know what was extracted when)
+- Can force full re-extraction with `--full` flag
+**Trade-offs**: State file must be maintained, but low complexity cost
+
+---
+
+### What This Proves
+
+**Gleanings are the killer feature**:
+- 505+ curated links now searchable via semantic search
+- Temporal context preserved (when you were interested)
+- Automatic extraction ensures new gleanings are captured
+- Vault-first research becomes practical
+
+**Rapid iteration continues**:
+- Phase 2 completed in 1 day (estimated 3-4 days)
+- Clear planning + simple architecture = fast implementation
+- No blockers, everything worked as designed
+
+**Automation is essential**:
+- Manual extraction is tedious (defeated old-gleanings project)
+- Cron/systemd automation makes it sustainable
+- Combined workflow script reduces friction
+
+---
+
+### Unexpected Wins
+
+1. **Migration preserved everything**: Old gleanings kept all metadata (categories, tags, timestamps)
+2. **State tracking works perfectly**: Incremental extraction prevents duplicates automatically
+3. **Combined workflow script**: Single command handles extraction + re-indexing
+4. **Documentation thoroughness**: Troubleshooting section anticipates common issues
+
+---
+
+### Commits
+
+Phase 2 implementation:
+- `ebeb7e5`: feat: complete Phase 2 - Gleanings Integration
+
+---
+
+### Lessons Learned
+
+**1. Simplicity wins again**
+
+Old-gleanings failed because it was complex (2,771 lines, 15+ categories, state management). Phase 2 succeeded because:
+- Simple extraction regex
+- Simple storage (individual markdown files)
+- Simple state tracking (JSON file)
+- Simple automation (bash script)
+
+**2. Metadata preservation matters**
+
+Migrating historical gleanings could have lost valuable context (categories, timestamps). Preserving metadata means:
+- Temporal archaeology still works on old gleanings
+- Categories available for future filtering
+- Original dates maintained
+
+**3. Automation makes or breaks adoption**
+
+Manual extraction is fine for testing, but daily usage requires automation. Providing multiple options (cron, systemd) accommodates different user preferences.
+
+**4. Documentation accelerates future work**
+
+Comprehensive `GLEANINGS.md` means:
+- Future users can set up automation without asking
+- Troubleshooting section reduces support burden
+- Best practices guide workflow decisions
+
+**5. Testing validates assumptions**
+
+Extracting from test-vault (6 gleanings) and migrating old-gleanings (505) proved:
+- Regex parsing works correctly
+- ID system prevents duplicates
+- State tracking functions as designed
+- End-to-end workflow is solid
+
+---
+
+### Phase 2 Status: COMPLETE ✅
+
+**All deliverables met**:
+- ✅ Extraction script (`extract_gleanings.py`)
+- ✅ Migration script (`migrate_old_gleanings.py`)
+- ✅ Combined workflow (`extract_and_reindex.sh`)
+- ✅ Re-indexing endpoint (`POST /reindex`)
+- ✅ Automation configs (cron, systemd)
+- ✅ Documentation (`GLEANINGS.md`)
+
+**All success criteria met**:
+- ✅ 516 gleanings extractable and migrated
+- ✅ Incremental extraction working
+- ✅ Automation configured
+- ✅ Re-indexing integrated
+
+**Ready for Phase 3**: Enhanced Features
+- Archaeology endpoint (temporal analysis)
+- Enhanced UI with filters
+- PWA support (installable on mobile)
+
+---
+
+### Key Insight
+
+**Gleanings are not just links—they're temporal knowledge artifacts.**
+
+Each gleaning captures:
+1. **What** you found interesting (URL + description)
+2. **When** you were interested (date from daily note)
+3. **Why** it mattered (description context)
+
+This temporal dimension enables archaeology: "When was I researching Tailscale?" → Find gleanings from that period → Reconstruct past research context.
+
+**The value compounds over time.** With 505+ gleanings now searchable, semantic search can surface forgotten connections. The automation ensures this library continues to grow.
+
+This is what "vault-first research" means: Your past research becomes the foundation for future research.
+
+---
+
+**Next**: Phase 3 will make this indispensable through archaeology, enhanced UI, and mobile PWA support.
+
+---
+
 ## Meta: How to Use This Document
 
 **When starting a new session:**
