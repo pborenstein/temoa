@@ -6,7 +6,7 @@
 
 **Project**: Temoa - Local Semantic Search Server for Obsidian Vault
 **Created**: 2025-11-18
-**Status**: Phase 2 ✅ COMPLETE + CLI ✅ COMPLETE | Ready for Mobile Testing
+**Status**: Phase 2 ✅ COMPLETE + CLI ✅ COMPLETE | Phase 2.5 🔵 NEXT (Mobile Validation)
 **Last Updated**: 2025-11-19
 **Estimated Timeline**: 4-6 weeks for Phases 0-2, ongoing for Phases 3-4
 
@@ -19,7 +19,8 @@
 | [Phase 0: Discovery & Validation](phases/phase-0-discovery.md) | ✅ **COMPLETE** | 1 day | None |
 | [Phase 1: Minimal Viable Search](phases/phase-1-mvp.md) | ✅ **COMPLETE** | 1 day | Phase 0 ✅ |
 | [Phase 2: Gleanings Integration](phases/phase-2-gleanings.md) | ✅ **COMPLETE** | 1 day | Phase 1 ✅ |
-| [Phase 3: Enhanced Features](phases/phase-3-enhanced.md) | 🔵 **READY TO START** | 5-7 days | Phase 2 ✅ |
+| **Phase 2.5: Mobile Validation** | 🔵 **NEXT - CRITICAL** | 1-2 weeks | Phase 2 ✅ |
+| [Phase 3: Enhanced Features](phases/phase-3-enhanced.md) | ⏸️ **PAUSED** | 5-7 days | Phase 2.5 validation |
 | [Phase 4: Vault-First LLM](phases/phase-4-llm.md) | ⚪ Future | 7-10 days | Phase 3, Apantli |
 
 ---
@@ -299,11 +300,223 @@ See [docs/CHRONICLES.md Entry 8](CHRONICLES.md#entry-8-cli-implementation-and-fi
 
 ---
 
-## Phase 3: Enhanced Features 🔵
+## Phase 2.5: Mobile Validation 🔵
 
-**Status**: READY TO START (but recommend mobile testing first)
-**Goal**: Make Temoa indispensable for daily use
-**Duration**: 5-7 days
+**Status**: NEXT - CRITICAL PATH (2025-11-19)
+**Goal**: Validate core behavioral hypothesis before building more features
+**Duration**: 1-2 weeks of real usage
+
+### Why This Phase Exists
+
+**From CHRONICLES.md Entry 10:**
+> **Technology works. Behavioral hypothesis untested.**
+
+All engineering is complete. But we haven't validated the core hypothesis:
+
+> **"If I can search my vault from my phone in <2 seconds, I'll check it before Googling. Over time, this habit makes past research compound."**
+
+This is a **behavioral hypothesis**, not a technical one. It requires:
+- Real mobile device (not VM testing)
+- Real vault with your gleanings
+- Real daily usage over time
+- Real measurement of behavior change
+
+**Risk of skipping this phase**: Build Phase 3 features (archaeology UI, PWA, filters) that don't address actual friction points or aren't used.
+
+### Tasks Overview
+
+**Deployment & Setup:**
+- [ ] 2.5.1: Deploy server to always-on machine (desktop/laptop)
+- [ ] 2.5.2: Configure Tailscale for mobile access
+- [ ] 2.5.3: Test from actual mobile device (iOS/Android)
+
+**Usage Tracking (Manual):**
+- [ ] 2.5.4: Use daily for 1-2 weeks
+- [ ] 2.5.5: Track search count, response times, habit formation
+- [ ] 2.5.6: Document friction points and missing features
+
+**Validation:**
+- [ ] 2.5.7: Measure behavioral change (vault-first vs. Google-first)
+- [ ] 2.5.8: Decide Phase 3 scope based on real usage data
+
+### Deliverables
+
+**Quick Start Guides:**
+- [x] `docs/DEPLOYMENT.md` - Step-by-step server deployment
+- [x] `scripts/test_api.sh` - API smoke test harness
+- [x] `docs/MIDCOURSE-2025-11-19.md` - Assessment and rationale
+
+**Usage Documentation:**
+- [ ] Daily usage log (in personal vault, not committed)
+- [ ] Friction points document (what prevented usage)
+- [ ] Feature requests based on real needs
+
+### Success Criteria
+
+**Deployment Working:**
+- [ ] Server accessible from mobile via Tailscale
+- [ ] `http://<tailscale-ip>:8080/health` returns "healthy"
+- [ ] `/search` endpoint returns results
+- [ ] obsidian:// URIs open Obsidian mobile app
+
+**Performance Validated:**
+- [ ] Search responds in <2s from phone (in real network conditions)
+- [ ] Model loads successfully at startup (~13-15s)
+- [ ] 661+ gleanings searchable
+- [ ] UI usable on mobile screen size
+
+**Behavioral Hypothesis:**
+- [ ] Used >3x per day for at least 1 week
+- [ ] Vault-first habit forming (check vault before Google >50% of time)
+- [ ] Finding relevant gleanings regularly
+- [ ] Rediscovering forgotten knowledge
+
+### Failure Indicators (What to watch for)
+
+**Don't use it**:
+- Hypothesis failed, pivot needed
+- Ask: Why didn't I use it? Too slow? Not useful? Forgot it existed?
+
+**Too slow**:
+- Searches take >3s from mobile
+- Need caching or optimization
+- Or: Network issue, not code issue
+
+**obsidian:// URIs broken**:
+- Links don't open Obsidian app
+- Need fallback or different approach
+- Test on both iOS and Android
+
+**UI too clunky**:
+- Hard to use on mobile screen
+- Need UX redesign, not more features
+- Keep it simple
+
+**Results not relevant**:
+- Search doesn't find what you need
+- Improve search quality (better embeddings? different model?)
+- Or: Need better gleanings extraction
+
+### Quick Deployment Checklist
+
+**Server Setup (5 minutes):**
+```bash
+# On always-on machine (desktop/laptop)
+cd ~/projects/temoa
+uv sync
+
+# Create config pointing to your vault
+cat > config.json << 'EOF'
+{
+  "vault_path": "~/Obsidian/your-vault",
+  "synthesis_path": "old-ideas/synthesis",
+  "index_path": null,
+  "default_model": "all-MiniLM-L6-v2",
+  "server": {"host": "0.0.0.0", "port": 8080},
+  "search": {"default_limit": 10, "max_limit": 50, "timeout": 10}
+}
+EOF
+
+# Build index (first time only, ~15-20 seconds)
+uv run temoa index
+
+# Start server
+uv run temoa server
+# Or: nohup uv run temoa server > temoa.log 2>&1 &
+```
+
+**Tailscale Setup (2 minutes):**
+```bash
+# On server machine
+tailscale ip -4  # Note this IP (e.g., 100.x.x.x)
+
+# On mobile device
+# Install Tailscale app
+# Connect to same tailnet
+# Bookmark: http://100.x.x.x:8080
+```
+
+**Quick Test:**
+```bash
+# From mobile browser
+http://100.x.x.x:8080/health
+# Should see: {"status": "healthy", "model": "all-MiniLM-L6-v2", ...}
+
+# Try search
+http://100.x.x.x:8080/search?q=obsidian&limit=5
+# Click a result, should open Obsidian app
+```
+
+### Usage Tracking Template
+
+**Daily Note Entry:**
+```markdown
+## Temoa Usage (Week of YYYY-MM-DD)
+
+### Day 1 (YYYY-MM-DD)
+- Searches performed: X
+- Found what I needed: Y/N
+- Opened in Obsidian: Y/N
+- Response time feel: Fast/OK/Slow
+- Friction points:
+  - [List anything that prevented usage or was annoying]
+- Feature wishes:
+  - [List features you wished existed during usage]
+
+### Day 2 (YYYY-MM-DD)
+...
+```
+
+### What to Do After 1-2 Weeks
+
+**Review your usage log:**
+1. Count total searches
+2. Identify pattern: Did usage increase or decrease?
+3. List friction points that occurred multiple times
+4. Note which features you actually wished for
+
+**Decide Phase 3 scope:**
+
+**If hypothesis validated** (you used it, habit formed):
+- ✅ Proceed to Phase 3
+- Focus on features that reduce friction you experienced
+- Example: If searches often found nothing → improve search quality
+- Example: If opening results was annoying → improve UI
+- Example: If wanted to see temporal patterns → build archaeology UI
+
+**If hypothesis failed** (didn't use it, no habit):
+- ❌ Don't build Phase 3 features yet
+- Investigate root cause:
+  - Too slow? → Optimize, add caching
+  - Not useful? → Improve search algorithm
+  - Forgot it existed? → Add home screen PWA
+  - Results not relevant? → Better embeddings, different model
+- **Fix the blocker**, then retry Phase 2.5
+
+**If partially worked** (used sometimes, inconsistent):
+- 🤔 Identify barriers to consistent usage
+- Example: Only used at desk → need PWA for easier mobile access
+- Example: Only used for specific topics → need better archaeology
+- **Build what removes the barrier**, not what sounds cool
+
+### Key Insight
+
+**From CHRONICLES Entry 1:**
+> This is not a technology problem. It's a **retrieval behavior problem**.
+
+Phase 2.5 answers the critical question: **Does making vault search fast and accessible actually change behavior?**
+
+If yes → Build features to make it indispensable (Phase 3)
+If no → Fix root cause, then retest
+If partially → Remove specific barriers, then retest
+
+---
+
+## Phase 3: Enhanced Features ⏸️
+
+**Status**: PAUSED - DO NOT START until Phase 2.5 validates hypothesis
+**Goal**: Make Temoa indispensable for daily use (after validation)
+**Duration**: 5-7 days (estimate, will adjust based on Phase 2.5 findings)
 
 ### Tasks Overview
 

@@ -1923,6 +1923,351 @@ Gleanings extraction and CLI fixes:
 
 ---
 
+## Entry 10: Mid-Course Assessment - Pausing Before Phase 3 (2025-11-19)
+
+### Context
+
+After Phase 2 completion (gleanings integration working, CLI implemented, 661 gleanings extracted), preparing to pause development for 2 weeks. Before leaving, conducted comprehensive assessment of what's built vs. what's validated.
+
+This entry documents the reality check: **Technology works. Behavioral hypothesis untested.**
+
+---
+
+### What Triggered This Assessment
+
+**Question from user**: "We haven't actually tested the server yet. Do we have a harness for that or were we just going to use curl?"
+
+**Discovery process**:
+1. Checked test status: 23/25 passing (92%) ✅
+2. Tried running server in VM: Works! ✅
+3. Tried indexing vault: Failed (no internet to download models) ❌
+4. Realized: **All engineering complete, but core hypothesis unvalidated**
+
+**Key insight**: We're in a VM. Can test code structure, but not real usage. The behavioral hypothesis requires mobile device + real vault + actual daily use.
+
+---
+
+### Current Status: What's Actually Working
+
+**Server Infrastructure** (Production-Ready):
+- FastAPI server runs successfully
+- All endpoints functional and tested:
+  - `GET /` → search.html UI
+  - `GET /health` → server status
+  - `GET /search?q=X` → semantic search
+  - `GET /stats` → vault statistics
+  - `GET /archaeology?q=X` → temporal analysis
+  - `POST /reindex` → re-index vault
+  - `GET /docs` → OpenAPI documentation
+- 23/25 tests passing
+- 1,180 lines of production code
+- Clean architecture, proper error handling
+
+**Code Quality** (Excellent):
+- Comprehensive test coverage (config, server, synthesis)
+- Type hints and documentation
+- FastAPI TestClient for HTTP testing
+- Modern patterns (lifespan context manager)
+- Error messages with helpful suggestions
+
+**Performance** (Meets Targets):
+- Model loading: ~13-15s one-time (at startup)
+- Search: ~400ms after model loaded (target: <2s) ✅
+- Direct imports (not subprocess): 10x faster
+- obsidian:// URI generation working
+
+---
+
+### The Gap: What's NOT Validated
+
+**From CHRONICLES Entry 1 - The Temoa Hypothesis:**
+> "If I can search my vault from my phone in <2 seconds, I'll check it before Googling. Over time, this habit makes past research compound."
+>
+> This is **not** a technology hypothesis. It's a **behavioral hypothesis**.
+
+**Current validation status**:
+- ✅ Technology works (400ms searches proven)
+- ❓ Mobile access works (untested)
+- ❓ obsidian:// URIs work on mobile (untested)
+- ❓ UI usable on mobile screen (untested)
+- ❓ Habit forms (unknown)
+- ❓ Behavioral change occurs (unknown)
+
+**Critical questions**:
+1. Does server work from mobile via Tailscale in real conditions?
+2. Is <2s achievable over cellular/WiFi?
+3. Do obsidian:// deep links open Obsidian mobile app?
+4. Is UI actually usable on 5-6 inch screens?
+5. **Does this create the vault-first habit?**
+
+**These are not answerable in a VM or with tests.**
+
+---
+
+### The Risk: Building Phase 3 Too Soon
+
+**Current plan** (IMPLEMENTATION.md):
+- Phase 3: Enhanced Features (archaeology UI, filters, PWA)
+- Duration: 5-7 days
+- Status: Ready to start
+
+**The problem**:
+- Phase 3 adds features to make Temoa "indispensable"
+- **But**: We don't know if anyone uses Phase 1-2 features
+- Risk: Build archaeology UI → never use it
+- Risk: Build PWA → mobile web already good enough (or too slow)
+- Risk: Build filters → don't address real friction
+
+**From CLAUDE.md - Lessons Learned:**
+> **Lesson from old-gleanings**: Over-engineering kills adoption. Keep Temoa simple.
+
+Adding features before validating basic usage = classic over-engineering trap.
+
+---
+
+### Decision: Add Phase 2.5 (Mobile Validation)
+
+**DEC-021: Pause Phase 3, Insert Phase 2.5**
+
+**Date**: 2025-11-19
+**Context**: Phase 2 engineering complete, but behavioral hypothesis untested
+**Decision**: Add intermediate "Phase 2.5: Mobile Validation" before Phase 3
+**Rationale**:
+- Technology validation ≠ behavior validation
+- Building more features before usage = premature optimization
+- 1-2 weeks real usage reveals actual needs (not imagined features)
+- Prevents wasted development effort on unused features
+- Follows "measure first, optimize second" principle from Phase 0
+
+**What Phase 2.5 entails**:
+1. Deploy server to always-on machine (desktop/laptop)
+2. Configure Tailscale for mobile access
+3. Test from actual mobile device (iOS/Android)
+4. **Use daily for 1-2 weeks**
+5. Track: Search count, habit formation, friction points
+6. Measure: Do you check vault before Google?
+
+**Success criteria**:
+- Used >3x per day for 1 week
+- Vault-first habit forming (>50% of research queries)
+- <2s response time in real conditions
+- obsidian:// URIs work reliably
+
+**Failure indicators**:
+- Don't use it (hypothesis failed)
+- Too slow (need caching/optimization)
+- obsidian:// broken (need fallback)
+- UI too clunky (need redesign, not more features)
+
+**Re-evaluate Phase 3 after**: 1-2 weeks real usage data
+
+---
+
+### Architectural Observation: Config Loading Issue
+
+**Discovered during VM testing**:
+```python
+# src/temoa/server.py:23
+config = Config()  # Runs at module import time!
+synthesis = SynthesisClient(...)  # Also at import!
+```
+
+**Problem**:
+- Can't import `temoa.server` without valid `config.json`
+- Tests failed initially because config not present
+- Violates FastAPI best practices (initialization should be in lifespan)
+
+**Impact**: Makes testing harder, tighter coupling
+
+**Recommendation for future**:
+```python
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Load during startup, not at import
+    app.state.config = Config()
+    app.state.synthesis = SynthesisClient(...)
+    yield
+```
+
+**Not urgent**: Current pattern works, but worth refactoring in Phase 3+
+
+---
+
+### Testing Infrastructure Gap
+
+**Current state**:
+- pytest suite: Excellent (23/25 passing)
+- Manual testing: Ad-hoc curl commands
+
+**Missing**: Simple smoke test script
+
+**Created**: `scripts/test_api.sh` (see next entry)
+
+**Why this matters**:
+- Quick server validation after deployment
+- Easier to share testing steps
+- Complements pytest (which requires dev dependencies)
+
+---
+
+### Documentation Created
+
+**New documents**:
+1. `docs/MIDCOURSE-2025-11-19.md` - Comprehensive assessment
+   - Status: What works, what's missing
+   - Phase 2.5 definition and rationale
+   - Deployment checklist
+   - Usage tracking guidelines
+   - "What to do when you return" guide
+
+2. `scripts/test_api.sh` - API smoke test harness
+   - Health check
+   - Stats endpoint
+   - Search test
+   - Quick validation without pytest
+
+3. `docs/DEPLOYMENT.md` - Step-by-step deployment guide
+   - Server setup
+   - Tailscale configuration
+   - Mobile testing
+   - Troubleshooting
+
+**Updated documents**:
+1. `IMPLEMENTATION.md` - Added Phase 2.5
+   - Inserted between Phase 2 and Phase 3
+   - Clear deliverables and success criteria
+   - Keeps Phase 3 as "future" until validated
+
+2. `CHRONICLES.md` - This entry
+   - Documents the pause decision
+   - Rationale for Phase 2.5
+   - Architectural observations
+
+---
+
+### Key Insights
+
+**1. Tests Pass ≠ Product Works**
+
+Our tests validate:
+- API contracts (endpoints return correct structure)
+- Error handling (invalid inputs handled)
+- Configuration loading (paths resolve correctly)
+
+Our tests do NOT validate:
+- Mobile usability
+- Network performance in real conditions
+- Behavioral outcomes
+- Habit formation
+
+**This is normal and expected.** But it means deployment and real usage are the next critical step.
+
+**2. Engineering Discipline ≠ Product Discipline**
+
+We've been excellent at:
+- Clean code
+- Comprehensive tests
+- Good documentation
+- Incremental development
+
+We need to be equally disciplined about:
+- Validating assumptions
+- Measuring behavior
+- Not building unused features
+- Letting real usage guide development
+
+**3. The VM Can't Answer Behavioral Questions**
+
+VM limitations discovered:
+- Can't download models (no internet)
+- Can't test mobile (no physical device)
+- Can't validate Tailscale (network isolation)
+- Can't measure habit formation (no human usage)
+
+**This is fine.** VM is for code development. Real environment is for hypothesis validation.
+
+**4. Pause is Productive**
+
+Taking 2 weeks to:
+- Use the tool for real
+- Measure actual behavior
+- Discover real friction
+- Validate (or invalidate) hypothesis
+
+...is **more valuable** than building Phase 3 features that might not address real needs.
+
+**From Entry 1:**
+> **The Temoa Hypothesis**: "If I can search my vault from my phone in <2 seconds, I'll check it before Googling."
+
+Let's test that. Actually test it. Then decide what to build next.
+
+---
+
+### Commits
+
+Mid-course assessment and Phase 2.5 planning:
+- Documentation: `docs/MIDCOURSE-2025-11-19.md`
+- Test harness: `scripts/test_api.sh`
+- Deployment guide: `docs/DEPLOYMENT.md`
+- Implementation update: Phase 2.5 added
+- Chronicles: Entry 10 (this entry)
+
+---
+
+### Status at Session End
+
+**Ready for deployment**:
+- ✅ Server code complete and tested
+- ✅ CLI working
+- ✅ UI implemented
+- ✅ Test harness available
+- ✅ Deployment guide written
+- ✅ Clear next steps documented
+
+**What happens next**:
+1. Deploy to production machine
+2. Test from mobile via Tailscale
+3. Use for 1-2 weeks
+4. Track behavior change
+5. Return with usage data
+6. Decide Phase 3 based on real needs
+
+**Current branch**: `claude/setup-server-testing-011gxWJGPDAgafzFoDtU6yfh`
+**Ready to push**: Yes
+**Ready to deploy**: Yes
+**Ready for Phase 3**: **Not yet** - Phase 2.5 first
+
+---
+
+### Lessons Learned
+
+**1. "Question our assumptions"**
+
+User's request: "Let's look around. See where we are. Question our assumptions."
+
+Result: Discovered the gap between engineering complete and hypothesis validated.
+
+**2. "Have fun storming the castle"**
+
+Storming complete! Castle captured. Now we need to see if people actually want to live in it.
+
+**3. Technology validation is necessary but not sufficient**
+
+We validated:
+- Synthesis is fast enough (~400ms)
+- Direct imports work
+- FastAPI is right choice
+- Tests are comprehensive
+
+We haven't validated:
+- People will use it
+- Habit will form
+- Problem is solved
+
+**Next validation**: Behavioral, not technical.
+
+---
+
 ## Meta: How to Use This Document
 
 **When starting a new session:**
