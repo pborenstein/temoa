@@ -82,9 +82,11 @@ Gleaned from [[{Path(self.source_file).stem}]] on {self.date}
 class GleaningsExtractor:
     """Extracts gleanings from daily notes."""
 
-    # Regex to match gleanings: - [Title](URL) - Description
-    GLEANING_PATTERN = re.compile(
-        r'^-\s+\[([^\]]+)\]\(([^)]+)\)\s*-\s*(.+)$',
+    # Regex to match gleanings: - [Title](URL)  [HH:MM]
+    # Format: - [Title](URL) optionally followed by timestamp
+    # Description may be on next line starting with >
+    GLEANING_LINK_PATTERN = re.compile(
+        r'^-\s+\[([^\]]+)\]\(([^)]+)\)',
         re.MULTILINE
     )
 
@@ -179,21 +181,36 @@ class GleaningsExtractor:
         # Extract date from frontmatter or filename
         date = self._extract_date(note_path, content)
 
+        # Split section into lines for easier processing
+        lines = section_content.split('\n')
+
         # Find all gleanings in section
-        for match in self.GLEANING_PATTERN.finditer(section_content):
-            title = match.group(1).strip()
-            url = match.group(2).strip()
-            description = match.group(3).strip()
+        i = 0
+        while i < len(lines):
+            line = lines[i]
+            match = self.GLEANING_LINK_PATTERN.match(line)
 
-            gleaning = Gleaning(
-                title=title,
-                url=url,
-                description=description,
-                date=date,
-                source_file=str(note_path.relative_to(self.vault_path))
-            )
+            if match:
+                title = match.group(1).strip()
+                url = match.group(2).strip()
 
-            gleanings.append(gleaning)
+                # Check next line for description (starts with >)
+                description = ""
+                if i + 1 < len(lines) and lines[i + 1].strip().startswith('>'):
+                    # Extract description, removing leading > and whitespace
+                    description = lines[i + 1].strip()[1:].strip()
+
+                gleaning = Gleaning(
+                    title=title,
+                    url=url,
+                    description=description,
+                    date=date,
+                    source_file=str(note_path.relative_to(self.vault_path))
+                )
+
+                gleanings.append(gleaning)
+
+            i += 1
 
         return gleanings
 
