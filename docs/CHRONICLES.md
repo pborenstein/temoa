@@ -1636,6 +1636,277 @@ CLI implementation and fixes:
 - `6739f53`: debug: add stats debugging script to diagnose embeddings detection issue
 - `4c25a32`: fix: use correct key 'num_embeddings' from Synthesis stats
 
+---
+
+## Entry 9: Gleanings Extraction Fixes and First Real Extraction (2025-11-19)
+
+### Context
+
+With Phase 2 implementation complete, attempted first real extraction of gleanings from production vault (742 daily notes). Discovered multiple bugs preventing extraction from working correctly.
+
+### Problems Discovered
+
+**1. CLI Argument Mismatch**
+
+`temoa extract` command was passing arguments incorrectly:
+- **Bug**: Passed `vault_path` as positional argument
+- **Expected**: `--vault-path` named argument
+- **Impact**: Script failed immediately with "required: --vault-path" error
+
+Same issue affected `temoa migrate` command.
+
+**2. Extraction Pattern Mismatch**
+
+The extraction regex expected format:
+```markdown
+- [Title](URL) - Description
+```
+
+But production vault used format:
+```markdown
+- [Title](URL)  [HH:MM]
+>  Description
+```
+
+**Result**: Only 4 gleanings found from 742 daily notes (should have been hundreds).
+
+**3. --full Flag Didn't Reset State**
+
+`--full` flag processed all files but still skipped "duplicates" based on existing state:
+- **Expected behavior**: `--full` = start completely fresh
+- **Actual behavior**: `--full` = process all files, but skip gleanings already in state
+- **Impact**: Running `temoa extract --full` after fixing bugs still found only 2 unique gleanings
+
+**4. Search Results Lacked Context**
+
+Search results showed similarity scores but no indication of *why* documents matched:
+```
+1. Some Document
+   Similarity: 0.560
+   Tags: foo, bar
+```
+
+No snippet or content preview to help judge relevance before opening.
+
+**5. Tags Display Error**
+
+Search crashed when displaying results:
+```
+Error: sequence item 0: expected str instance, int found
+```
+
+**Cause**: Synthesis returns some tags as integers (like years), but `', '.join(tags)` expects all strings.
+
+**6. Gleanings Not Indexed After Extraction**
+
+After successfully extracting 661 gleanings:
+- `temoa stats` still showed 2281 files (unchanged)
+- `temoa reindex` ran but didn't pick up new files
+- **Cause**: Incremental reindex without `--force` flag
+
+### Solutions Implemented
+
+**CLI Argument Fixes** (`82afc0d`):
+- Changed `vault_path` to named `--vault-path` argument
+- Changed migrate `json_file` to named `--old-gleanings` argument
+- Removed unsupported `--output` option (scripts hardcode `L/Gleanings/`)
+- Updated docstrings to clarify output location
+
+**Full Mode Reset** (`8f5dba2`):
+- Made `--full` clear extraction state before processing
+- Now truly starts from scratch, not just reprocessing files
+
+**Gleaning Pattern Fix** (`af9004e`):
+- Updated regex to match actual format: `- [Title](URL)` with optional timestamp
+- Parse description from next line if it starts with `>`
+- Handles both inline and multi-line gleaning formats
+
+**Vault-Local Config** (`3158b0f`):
+- Added `.temoa/config.json` as first search location
+- Keeps all temoa state together in one hidden directory
+- Search order: `.temoa/config.json` → `~/.config/temoa/config.json` → `~/.temoa.json` → `./config.json`
+
+**Tags Display Fix** (`46f0f3c`):
+- Convert all tags to strings before joining: `', '.join(str(tag) for tag in tags)`
+- Handles mixed string/integer tags gracefully
+
+**Content Snippets** (`af34ee7`, `71cbf83`):
+- Display `description` field from results (if available)
+- Added `extract_relevant_snippet()` function to find query terms in content
+- Centers snippet around first query term match (~200 chars)
+- Falls back to beginning if no terms found
+
+### Real-World Results
+
+**First successful extraction from production vault**:
+
+```
+Total gleanings found: 1,368
+New gleanings created: 661
+Duplicates skipped: 707
+Files processed: 742
+```
+
+**After `temoa reindex --force`**:
+- Files indexed: 2,942 (2,281 vault files + 661 gleanings)
+- All gleanings now searchable via semantic search
+
+**Search quality validation** (`temoa search "tmux github"`):
+```
+1. e29b189b9758 (How to configure tmux, from scratch)
+   Similarity: 0.633
+
+2. Claude Code SSH/tmux Authentication Issues
+   Similarity: 0.560
+
+3. a92960ea6bd1 (Customizing tmux and making it less dreadful)
+   Similarity: 0.522
+```
+
+**Gleanings now surface in search results**, proving the end-to-end workflow works!
+
+### Key Insights
+
+**1. Real Production Data Reveals Hidden Assumptions**
+
+The regex pattern worked in test vault but not production because:
+- Test data was crafted to match expected format
+- Production data evolved organically with timestamps, multi-line descriptions
+- **Lesson**: Always test against real user data, not idealized examples
+
+**2. "Full" Has Different Meanings in Different Contexts**
+
+- **File processing**: Process all files (not just changed)
+- **State reset**: Clear state and extract everything fresh
+- **Index rebuild**: `--force` required for full reindex
+
+Users expected `--full` to mean "start over completely" but implementation only did partial reset.
+
+**3. Incremental Reindex Doesn't Discover New Files**
+
+`temoa reindex` without `--force`:
+- Updates embeddings for existing tracked files
+- Doesn't scan for new files in vault
+- **Result**: New gleanings invisible to search
+
+**Solution**: Always use `temoa reindex --force` after extraction or migration.
+
+**4. Search Results Without Context Are Useless**
+
+Seeing "Similarity: 0.560" means nothing without knowing *why* it matched. Users need:
+- Content snippets showing query terms
+- Description/summary of document
+- Visual hierarchy (dimmed text for snippets)
+
+**Still needs work**: Current snippets sometimes show random beginning text, not relevant query context. The `extract_relevant_snippet()` function needs access to full document content (currently limited by what Synthesis returns).
+
+### Architecture Decisions
+
+**DEC-009: Config Location Priority**
+
+**Decision**: Prioritize `.temoa/config.json` over global config locations.
+
+**Rationale**:
+- Keeps all temoa state co-located (config, extraction state, embeddings)
+- Makes vault-local setup simpler (`vault_path: "."`)
+- Easier to exclude from sync (one `.temoa/` directory)
+- Still supports global config for multi-vault workflows
+
+**Trade-off**: Need to set up config in each vault, but most users have one vault.
+
+**DEC-010: Gleanings Output Location**
+
+**Decision**: Hardcode gleaning output to `L/Gleanings/`, don't make configurable.
+
+**Rationale**:
+- Follows "avoid over-engineering" principle
+- User has consistent location across vault
+- Reduces configuration complexity
+- Can make configurable later if needed
+
+**Trade-off**: Less flexible, but simpler to implement and explain.
+
+**DEC-011: Reindex Force Default**
+
+**Decision**: Keep `temoa reindex` incremental by default, require `--force` for full rebuild.
+
+**Rationale**:
+- Incremental updates faster for daily use (eventual feature)
+- Explicit `--force` prevents accidental expensive operations
+- Matches user mental model ("reindex" = update, not rebuild)
+
+**Trade-off**: Users must remember `--force` after extraction/migration. Could add reminder message to extraction output.
+
+### Remaining Issues
+
+**1. Snippet Quality Needs Improvement**
+
+Current implementation sometimes shows:
+- Random beginning text instead of query-relevant content
+- Duplicated text from title
+- Full sentences cut mid-word
+
+**Root cause**: Synthesis may not return full `content` field, limiting snippet extraction options.
+
+**Next**: Investigate what fields Synthesis actually returns and improve snippet extraction accordingly.
+
+**2. Duplicate Daily Note Directories**
+
+User has both `Daily/` and `daily/` directories (case-sensitive filesystem):
+```
+Daily/2025/08-August/2025-08-05-Tu.md
+daily/2025/08-August/2025-08-05-Tu.md (duplicate)
+```
+
+Same gleanings appear in both, correctly marked as duplicates after URL hashing. Not a bug, but worth noting for data cleanup.
+
+**3. Gleaning File Names Are MD5 Hashes**
+
+Gleanings named `e29b189b9758.md` instead of human-readable titles:
+- **Pro**: Prevents filename conflicts, stable identifiers
+- **Con**: Harder to browse gleanings directly in file system
+
+**Acceptable trade-off**: Gleanings accessed via search (not browsing), and MD5 prevents title change issues.
+
+### Testing Lessons
+
+**What worked**:
+- Extracting ~1,400 gleanings from production vault proved end-to-end workflow
+- Search returns relevant gleanings with good similarity scores (0.5-0.6 range)
+- Gleanings co-located with notes make sense organizationally
+
+**What needs work**:
+- Result display UX (snippets, relevance indicators, better formatting)
+- Better error messages when config missing or paths wrong
+- More intuitive `--force` behavior
+
+**What surprised us**:
+- Pattern matching failures only discovered in production
+- Incremental reindex subtlety (doesn't find new files)
+- Tags can be integers (from Synthesis parsing years as ints)
+
+### Commits
+
+Gleanings extraction and CLI fixes:
+- `82afc0d`: fix: correct argument passing in extract and migrate CLI commands
+- `8f5dba2`: fix: make --full flag truly start from scratch
+- `af9004e`: fix: update gleaning extraction pattern to match actual format
+- `3158b0f`: feat: add support for vault-local config in .temoa/config.json
+- `46f0f3c`: fix: convert tags to strings before joining in search output
+- `af34ee7`: feat: show content snippets in search results
+- `71cbf83`: feat: extract relevant snippets showing query context
+
+### Status
+
+✅ **Gleanings extraction working**: 661 gleanings successfully extracted from 742 daily notes
+✅ **Gleanings searchable**: Semantic search finds relevant gleanings with good scores
+✅ **End-to-end validated**: Extract → reindex → search workflow proven
+⚠️ **UX needs polish**: Search result snippets need improvement for usefulness
+
+**Next session**: Focus on making search results more useful with better snippets, highlighting, and result formatting.
+
+---
+
 ### Next Steps
 
 **Ready for Phase 3**: The core functionality works. Before adding enhancements (archaeology UI, PWA, filters), we should:

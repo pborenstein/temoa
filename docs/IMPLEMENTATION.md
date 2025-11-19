@@ -204,6 +204,29 @@ See [phases/phase-1-mvp.md](phases/phase-1-mvp.md)
 
 See [docs/CHRONICLES.md Entry 7](#) for detailed retrospective.
 
+### Production Validation (2025-11-19)
+
+**First real extraction from production vault** (742 daily notes):
+
+```
+Total gleanings found: 1,368
+New gleanings created: 661
+Duplicates skipped: 707
+Files processed: 742
+```
+
+**Bugs discovered and fixed**:
+- CLI argument mismatch (positional vs named args)
+- Extraction pattern didn't match production format (`- [Title](URL)  [HH:MM]` + description on next line)
+- `--full` flag didn't clear state (still skipped "duplicates")
+- Tags display error (integers mixed with strings)
+- Reindex didn't discover new files without `--force` flag
+- Search results lacked context (no snippets)
+
+**All issues resolved**. Gleanings now fully functional and searchable.
+
+See [docs/CHRONICLES.md Entry 9](#) for detailed bug analysis and fixes.
+
 ### Detailed Plan
 
 See [phases/phase-2-gleanings.md](phases/phase-2-gleanings.md)
