@@ -254,15 +254,13 @@ def stats(output_json):
 @main.command()
 @click.option('--vault', default=None, type=click.Path(exists=True),
               help='Vault path (default: from config)')
-@click.option('--output', '-o', default='L/Gleanings',
-              help='Output directory for gleanings (default: L/Gleanings)')
 @click.option('--full', is_flag=True, help='Process all files (ignore state tracking)')
 @click.option('--dry-run', is_flag=True, help='Show what would be extracted without writing files')
-def extract(vault, output, full, dry_run):
+def extract(vault, full, dry_run):
     """Extract gleanings from daily notes.
 
     Parses daily notes looking for ## Gleanings sections and extracts
-    individual gleaning entries to separate markdown files.
+    individual gleaning entries to separate markdown files in L/Gleanings/.
 
     Uses incremental extraction by default (only processes new files).
     Use --full to re-process all files.
@@ -279,8 +277,7 @@ def extract(vault, output, full, dry_run):
     cmd = [
         sys.executable,
         str(script),
-        str(vault_path),
-        "--output", output
+        "--vault-path", str(vault_path)
     ]
 
     if full:
@@ -310,14 +307,12 @@ def extract(vault, output, full, dry_run):
               help='Vault path (default: from config)')
 @click.option('--json-file', required=True, type=click.Path(exists=True),
               help='Path to old gleanings JSON file')
-@click.option('--output', '-o', default='L/Gleanings',
-              help='Output directory for gleanings (default: L/Gleanings)')
 @click.option('--dry-run', is_flag=True, help='Show what would be migrated without writing files')
-def migrate(vault, json_file, output, dry_run):
+def migrate(vault, json_file, dry_run):
     """Migrate gleanings from old-gleanings JSON format.
 
-    Converts gleanings from the old JSON format to individual markdown files,
-    preserving all metadata (categories, tags, timestamps).
+    Converts gleanings from the old JSON format to individual markdown files
+    in L/Gleanings/, preserving all metadata (categories, tags, timestamps).
     """
     from .config import Config
     import subprocess
@@ -331,9 +326,8 @@ def migrate(vault, json_file, output, dry_run):
     cmd = [
         sys.executable,
         str(script),
-        json_file,
-        str(vault_path),
-        "--output", output
+        "--vault-path", str(vault_path),
+        "--old-gleanings", json_file
     ]
 
     if dry_run:
