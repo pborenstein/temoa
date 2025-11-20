@@ -12,10 +12,15 @@ import argparse
 import hashlib
 import json
 import re
+import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional
 from urllib.parse import urlparse
+
+# Add src to path so we can import gleanings module
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+from temoa.gleanings import GleaningStatusManager, GleaningStatus
 
 
 class Gleaning:
@@ -28,7 +33,8 @@ class Gleaning:
         description: str,
         date: str,
         source_file: str,
-        gleaning_id: Optional[str] = None
+        gleaning_id: Optional[str] = None,
+        status: GleaningStatus = "active"
     ):
         self.title = title
         self.url = url
@@ -37,6 +43,7 @@ class Gleaning:
         self.source_file = source_file
         self.domain = urlparse(url).netloc
         self.gleaning_id = gleaning_id or self._generate_id()
+        self.status = status
 
     def _generate_id(self) -> str:
         """Generate unique ID from URL."""
@@ -66,6 +73,8 @@ url: {self.url}
 domain: {self.domain}
 date: {self.date}
 source: {self.source_file}
+gleaning_id: {self.gleaning_id}
+status: {self.status}
 tags: [gleaning]
 ---
 
@@ -117,6 +126,9 @@ class GleaningsExtractor:
 
         self.state_file = state_file or (self.vault_path / ".temoa" / "extraction_state.json")
         self.state = self._load_state()
+
+        # Initialize status manager
+        self.status_manager = GleaningStatusManager(self.vault_path / ".temoa")
 
     def _load_state(self) -> Dict:
         """Load extraction state."""
@@ -204,12 +216,18 @@ class GleaningsExtractor:
                     # Extract description, removing leading > and whitespace
                     description = lines[i + 1].strip()[1:].strip()
 
+                # Generate ID to check status
+                gleaning_id = hashlib.md5(url.encode()).hexdigest()[:12]
+                status = self.status_manager.get_status(gleaning_id)
+
                 gleaning = Gleaning(
                     title=title,
                     url=url,
                     description=description,
                     date=date,
-                    source_file=str(note_path.relative_to(self.vault_path))
+                    source_file=str(note_path.relative_to(self.vault_path)),
+                    gleaning_id=gleaning_id,
+                    status=status
                 )
 
                 gleanings.append(gleaning)

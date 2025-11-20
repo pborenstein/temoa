@@ -444,6 +444,151 @@ def reindex(vault, force):
         sys.exit(1)
 
 
+@main.group()
+def gleaning():
+    """Manage gleaning status (mark as active/inactive).
+
+    \b
+    Examples:
+      temoa gleaning mark abc123def456 --status inactive --reason "broken link"
+      temoa gleaning list --status inactive
+      temoa gleaning show abc123def456
+    """
+    pass
+
+
+@gleaning.command(name="mark")
+@click.argument('gleaning_id')
+@click.option('--status', type=click.Choice(['active', 'inactive']), required=True,
+              help='Status to set for the gleaning')
+@click.option('--reason', default=None, help='Optional reason for status change')
+def gleaning_mark(gleaning_id, status, reason):
+    """Mark a gleaning as active or inactive.
+
+    \b
+    Examples:
+      temoa gleaning mark abc123def456 --status inactive --reason "broken link"
+      temoa gleaning mark abc123def456 --status active
+    """
+    from .config import Config
+    from .gleanings import GleaningStatusManager
+
+    try:
+        cfg = Config()
+        manager = GleaningStatusManager(cfg.vault_path / ".temoa")
+
+        record = manager.mark_status(gleaning_id, status, reason)
+
+        click.echo(f"\n{click.style('✓', fg='green')} Gleaning {gleaning_id} marked as {click.style(status, fg='yellow')}")
+        if reason:
+            click.echo(f"  Reason: {reason}")
+        click.echo(f"  Marked at: {record['marked_at']}")
+        click.echo()
+
+    except Exception as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
+
+
+@gleaning.command(name="list")
+@click.option('--status', type=click.Choice(['active', 'inactive', 'all']), default='all',
+              help='Filter by status (default: all)')
+@click.option('--json-output', is_flag=True, help='Output as JSON')
+def gleaning_list(status, json_output):
+    """List gleanings by status.
+
+    \b
+    Examples:
+      temoa gleaning list
+      temoa gleaning list --status inactive
+      temoa gleaning list --status active --json-output
+    """
+    from .config import Config
+    from .gleanings import GleaningStatusManager
+
+    try:
+        cfg = Config()
+        manager = GleaningStatusManager(cfg.vault_path / ".temoa")
+
+        # Get gleanings
+        status_filter = None if status == 'all' else status
+        gleanings = manager.list_gleanings(status_filter)
+
+        if json_output:
+            click.echo(json.dumps(gleanings, indent=2))
+            return
+
+        if not gleanings:
+            click.echo(f"\nNo gleanings found with status: {status}")
+            click.echo()
+            return
+
+        click.echo(f"\nGleanings ({status}):\n")
+        for gleaning_id, record in gleanings.items():
+            click.echo(f"{click.style(gleaning_id, fg='cyan')}")
+            click.echo(f"  Status: {click.style(record['status'], fg='yellow')}")
+            click.echo(f"  Marked: {record.get('marked_at', 'Unknown')}")
+            if 'reason' in record:
+                click.echo(f"  Reason: {record['reason']}")
+            click.echo()
+
+        click.echo(f"Total: {len(gleanings)}")
+        click.echo()
+
+    except Exception as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
+
+
+@gleaning.command(name="show")
+@click.argument('gleaning_id')
+@click.option('--json-output', is_flag=True, help='Output as JSON')
+def gleaning_show(gleaning_id, json_output):
+    """Show details for a specific gleaning.
+
+    \b
+    Example:
+      temoa gleaning show abc123def456
+      temoa gleaning show abc123def456 --json-output
+    """
+    from .config import Config
+    from .gleanings import GleaningStatusManager
+
+    try:
+        cfg = Config()
+        manager = GleaningStatusManager(cfg.vault_path / ".temoa")
+
+        record = manager.get_gleaning_record(gleaning_id)
+
+        if not record:
+            click.echo(f"\nGleaning {gleaning_id} not found (or has default status: active)")
+            click.echo()
+            return
+
+        if json_output:
+            click.echo(json.dumps(record, indent=2))
+            return
+
+        click.echo(f"\nGleaning: {click.style(gleaning_id, fg='cyan')}\n")
+        click.echo(f"Status: {click.style(record['status'], fg='yellow')}")
+        click.echo(f"Marked: {record.get('marked_at', 'Unknown')}")
+        if 'reason' in record:
+            click.echo(f"Reason: {record['reason']}")
+
+        if 'history' in record and len(record['history']) > 1:
+            click.echo("\nHistory:")
+            for i, entry in enumerate(record['history'], 1):
+                click.echo(f"  {i}. {entry['status']} at {entry['marked_at']}")
+                if 'reason' in entry and entry['reason']:
+                    click.echo(f"     Reason: {entry['reason']}")
+
+        click.echo()
+
+    except Exception as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
+
+
 @main.command()
 def config():
     """Show current configuration.
