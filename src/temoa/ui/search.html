@@ -20,7 +20,7 @@
         }
 
         .container {
-            max-width: 900px;
+            max-width: 1000px;
             margin: 0 auto;
         }
 
@@ -47,7 +47,7 @@
         #query {
             width: 100%;
             padding: 14px 16px;
-            font-size: 16px; /* Prevents zoom on iOS */
+            font-size: 16px;
             border: 2px solid #d2d2d7;
             border-radius: 12px;
             background: #fff;
@@ -65,68 +65,55 @@
             margin-bottom: 16px;
             border-radius: 12px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
         }
 
         .control-group {
-            margin-bottom: 12px;
-        }
-
-        .control-group:last-child {
-            margin-bottom: 0;
+            display: flex;
+            flex-direction: column;
         }
 
         .control-label {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
             font-size: 14px;
             color: #6e6e73;
             margin-bottom: 8px;
+            font-weight: 500;
         }
 
-        .control-value {
-            font-weight: 600;
-            color: #007aff;
-        }
-
-        input[type="range"] {
-            width: 100%;
-            height: 4px;
-            border-radius: 2px;
-            background: #d2d2d7;
+        input[type="number"], input[type="text"] {
+            padding: 10px 12px;
+            font-size: 16px;
+            border: 1px solid #d2d2d7;
+            border-radius: 8px;
+            background: #fff;
             outline: none;
-            -webkit-appearance: none;
+            transition: border-color 0.2s;
         }
 
-        input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background: #007aff;
-            cursor: pointer;
-        }
-
-        input[type="range"]::-moz-range-thumb {
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background: #007aff;
-            cursor: pointer;
-            border: none;
+        input[type="number"]:focus, input[type="text"]:focus {
+            border-color: #007aff;
         }
 
         .checkbox-group {
             display: flex;
             align-items: center;
             gap: 8px;
+            padding: 10px 0;
         }
 
         input[type="checkbox"] {
-            width: 20px;
-            height: 20px;
+            width: 18px;
+            height: 18px;
             cursor: pointer;
+        }
+
+        .checkbox-group label {
+            cursor: pointer;
+            user-select: none;
+            font-size: 14px;
+            color: #1d1d1f;
         }
 
         .search-btn {
@@ -236,12 +223,6 @@
             color: #007aff;
         }
 
-        .results-header {
-            color: #6e6e73;
-            font-size: 14px;
-            margin-bottom: 12px;
-        }
-
         .json-viewer {
             background: #1d1d1f;
             color: #f5f5f7;
@@ -259,72 +240,97 @@
             display: block;
         }
 
-        .result {
-            background: white;
-            padding: 16px;
+        .results-header {
+            color: #6e6e73;
+            font-size: 14px;
             margin-bottom: 12px;
+            font-weight: 500;
+        }
+
+        .results-table {
+            background: white;
             border-radius: 12px;
+            overflow: hidden;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            transition: box-shadow 0.2s;
         }
 
-        .result:hover {
-            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        .result-row {
+            padding: 16px;
+            border-bottom: 1px solid #f5f5f7;
+            transition: background 0.2s;
         }
 
-        .result-title {
+        .result-row:last-child {
+            border-bottom: none;
+        }
+
+        .result-row:hover {
+            background: #fafafa;
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+            gap: 16px;
+        }
+
+        .result-title-link {
             font-weight: 600;
             color: #007aff;
             text-decoration: none;
-            display: block;
-            margin-bottom: 6px;
             font-size: 16px;
+            flex: 1;
         }
 
-        .result-title:hover {
+        .result-title-link:hover {
             text-decoration: underline;
         }
 
-        .result-score {
-            color: #6e6e73;
-            font-size: 13px;
-            margin-bottom: 6px;
-        }
-
-        .result-score .score-bar {
-            display: inline-block;
-            width: 60px;
-            height: 4px;
-            background: #e5e5ea;
-            border-radius: 2px;
-            margin-left: 8px;
-            vertical-align: middle;
-            overflow: hidden;
-        }
-
-        .result-score .score-fill {
-            display: block;
-            height: 100%;
+        .result-score-badge {
             background: #007aff;
-            border-radius: 2px;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .result-meta {
+            display: flex;
+            gap: 16px;
+            font-size: 12px;
+            color: #86868b;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+        }
+
+        .result-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
         }
 
         .result-path {
-            color: #86868b;
-            font-size: 12px;
-            margin-bottom: 8px;
-            word-break: break-all;
+            font-family: 'Monaco', 'Menlo', monospace;
+            color: #6e6e73;
         }
 
         .result-description {
             color: #1d1d1f;
             font-size: 14px;
-            line-height: 1.4;
-            margin-top: 8px;
+            line-height: 1.6;
+            margin-top: 12px;
+            padding: 12px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            border-left: 3px solid #007aff;
         }
 
         .result-tags {
-            margin-top: 8px;
+            margin-top: 12px;
             display: flex;
             flex-wrap: wrap;
             gap: 6px;
@@ -374,12 +380,21 @@
                 font-size: 24px;
             }
 
-            .result {
-                padding: 14px;
+            .controls {
+                grid-template-columns: 1fr;
             }
 
             .stats-grid {
                 grid-template-columns: 1fr 1fr;
+            }
+
+            .result-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .result-score-badge {
+                align-self: flex-start;
             }
         }
     </style>
@@ -406,25 +421,19 @@
 
         <div class="controls">
             <div class="control-group">
-                <div class="control-label">
-                    <span>Min Similarity Score</span>
-                    <span class="control-value" id="min-score-value">0.30</span>
-                </div>
-                <input type="range" id="min-score" min="0" max="100" value="30" step="5">
+                <label class="control-label" for="min-score">Min Similarity Score</label>
+                <input type="number" id="min-score" min="0" max="1" step="0.05" value="0.30">
             </div>
 
             <div class="control-group">
-                <div class="control-label">
-                    <span>Result Limit</span>
-                    <span class="control-value" id="limit-value">20</span>
-                </div>
-                <input type="range" id="limit" min="5" max="50" value="20" step="5">
+                <label class="control-label" for="limit">Result Limit</label>
+                <input type="number" id="limit" min="1" max="50" value="20">
             </div>
 
             <div class="control-group">
                 <div class="checkbox-group">
                     <input type="checkbox" id="show-json">
-                    <label for="show-json" style="cursor: pointer; user-select: none;">Show raw JSON</label>
+                    <label for="show-json">Show raw JSON</label>
                 </div>
             </div>
         </div>
@@ -471,10 +480,8 @@
 
     <script>
         const queryInput = document.getElementById('query');
-        const minScoreSlider = document.getElementById('min-score');
-        const minScoreValue = document.getElementById('min-score-value');
-        const limitSlider = document.getElementById('limit');
-        const limitValue = document.getElementById('limit-value');
+        const minScoreInput = document.getElementById('min-score');
+        const limitInput = document.getElementById('limit');
         const showJsonCheckbox = document.getElementById('show-json');
         const resultsDiv = document.getElementById('results');
         const resultsHeader = document.getElementById('results-header');
@@ -483,16 +490,6 @@
         const searchBtn = document.querySelector('.search-btn');
         const statsPanel = document.getElementById('stats-panel');
         const jsonViewer = document.getElementById('json-viewer');
-
-        // Update slider values
-        minScoreSlider.addEventListener('input', (e) => {
-            const value = (e.target.value / 100).toFixed(2);
-            minScoreValue.textContent = value;
-        });
-
-        limitSlider.addEventListener('input', (e) => {
-            limitValue.textContent = e.target.value;
-        });
 
         showJsonCheckbox.addEventListener('change', (e) => {
             if (e.target.checked && window.lastSearchData) {
@@ -522,8 +519,8 @@
                 return;
             }
 
-            const minScore = minScoreSlider.value / 100;
-            const limit = limitSlider.value;
+            const minScore = parseFloat(minScoreInput.value) || 0.3;
+            const limit = parseInt(limitInput.value) || 20;
 
             // Reset state
             errorDiv.classList.remove('active');
@@ -544,7 +541,7 @@
                 }
 
                 const data = await response.json();
-                window.lastSearchData = data; // Store for JSON viewer
+                window.lastSearchData = data;
 
                 displayResults(data);
                 displayStats(data);
@@ -597,31 +594,45 @@
             resultsHeader.textContent = `Found ${total} results for "${query}"`;
             resultsHeader.style.display = 'block';
 
-            // Render results
-            const html = results.map(result => `
-                <div class="result">
-                    <a href="${escapeHtml(result.obsidian_uri)}" class="result-title">
-                        ${escapeHtml(result.title || result.relative_path)}
-                    </a>
-                    <div class="result-score">
-                        Similarity: ${(result.similarity_score * 100).toFixed(1)}%
-                        <span class="score-bar">
-                            <span class="score-fill" style="width: ${result.similarity_score * 100}%"></span>
-                        </span>
-                    </div>
-                    <div class="result-path">${escapeHtml(result.relative_path)}</div>
-                    ${result.description ? `
-                        <div class="result-description">${escapeHtml(truncate(result.description, 200))}</div>
-                    ` : ''}
-                    ${result.tags && result.tags.length ? `
-                        <div class="result-tags">
-                            ${result.tags.map(tag => `<span class="tag">${escapeHtml(tag)}</span>`).join('')}
+            // Render results as table
+            const tableHtml = `
+                <div class="results-table">
+                    ${results.map(result => `
+                        <div class="result-row">
+                            <div class="result-header">
+                                <a href="${escapeHtml(result.obsidian_uri)}" class="result-title-link">
+                                    ${escapeHtml(result.title || result.relative_path)}
+                                </a>
+                                <div class="result-score-badge">
+                                    ${(result.similarity_score * 100).toFixed(1)}%
+                                </div>
+                            </div>
+                            <div class="result-meta">
+                                <div class="result-meta-item">
+                                    <span>📁</span>
+                                    <span class="result-path">${escapeHtml(result.relative_path)}</span>
+                                </div>
+                                ${result.created_date ? `
+                                    <div class="result-meta-item">
+                                        <span>📅</span>
+                                        <span>${escapeHtml(result.created_date)}</span>
+                                    </div>
+                                ` : ''}
+                            </div>
+                            ${result.description ? `
+                                <div class="result-description">${escapeHtml(result.description)}</div>
+                            ` : ''}
+                            ${result.tags && result.tags.length ? `
+                                <div class="result-tags">
+                                    ${result.tags.map(tag => `<span class="tag">#${escapeHtml(tag)}</span>`).join('')}
+                                </div>
+                            ` : ''}
                         </div>
-                    ` : ''}
+                    `).join('')}
                 </div>
-            `).join('');
+            `;
 
-            resultsDiv.innerHTML = html;
+            resultsDiv.innerHTML = tableHtml;
         }
 
         function showError(message) {
@@ -636,11 +647,6 @@
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
-        }
-
-        function truncate(text, maxLength) {
-            if (text.length <= maxLength) return text;
-            return text.substr(0, maxLength) + '...';
         }
     </script>
 </body>
