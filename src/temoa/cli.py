@@ -444,6 +444,230 @@ def reindex(vault, force):
         sys.exit(1)
 
 
+@main.group()
+def gleaning():
+    """Manage gleaning status (mark as active/inactive).
+
+    \b
+    Examples:
+      temoa gleaning mark abc123def456 --status inactive --reason "broken link"
+      temoa gleaning list --status inactive
+      temoa gleaning show abc123def456
+    """
+    pass
+
+
+@gleaning.command(name="mark")
+@click.argument('gleaning_id')
+@click.option('--status', type=click.Choice(['active', 'inactive']), required=True,
+              help='Status to set for the gleaning')
+@click.option('--reason', default=None, help='Optional reason for status change')
+def gleaning_mark(gleaning_id, status, reason):
+    """Mark a gleaning as active or inactive.
+
+    \b
+    Examples:
+      temoa gleaning mark abc123def456 --status inactive --reason "broken link"
+      temoa gleaning mark abc123def456 --status active
+    """
+    from .config import Config
+    from .gleanings import GleaningStatusManager
+
+    try:
+        cfg = Config()
+        manager = GleaningStatusManager(cfg.vault_path / ".temoa")
+
+        record = manager.mark_status(gleaning_id, status, reason)
+
+        click.echo(f"\n{click.style('✓', fg='green')} Gleaning {gleaning_id} marked as {click.style(status, fg='yellow')}")
+        if reason:
+            click.echo(f"  Reason: {reason}")
+        click.echo(f"  Marked at: {record['marked_at']}")
+        click.echo()
+
+    except Exception as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
+
+
+@gleaning.command(name="list")
+@click.option('--status', type=click.Choice(['active', 'inactive', 'all']), default='all',
+              help='Filter by status (default: all)')
+@click.option('--json-output', is_flag=True, help='Output as JSON')
+def gleaning_list(status, json_output):
+    """List all gleanings from vault.
+
+    \b
+    Examples:
+      temoa gleaning list
+      temoa gleaning list --status inactive
+      temoa gleaning list --status active --json-output
+    """
+    from .config import Config
+    from .gleanings import GleaningStatusManager, scan_gleaning_files
+
+    try:
+        cfg = Config()
+        manager = GleaningStatusManager(cfg.vault_path / ".temoa")
+
+        # Scan gleaning files
+        status_filter = None if status == 'all' else status
+        gleanings = scan_gleaning_files(
+            vault_path=cfg.vault_path,
+            status_manager=manager,
+            status_filter=status_filter
+        )
+
+        if json_output:
+            click.echo(json.dumps(gleanings, indent=2))
+            return
+
+        if not gleanings:
+            click.echo(f"\nNo gleanings found{' with status: ' + status if status != 'all' else ''}")
+            click.echo()
+            return
+
+        click.echo(f"\nGleanings ({status}):\n")
+        for gleaning in gleanings:
+            gleaning_id = gleaning['gleaning_id']
+            title = gleaning.get('title', 'Untitled')
+            status_value = gleaning['status']
+            created = gleaning.get('created', 'Unknown')
+            url = gleaning.get('url', '')
+
+            click.echo(f"{click.style(gleaning_id, fg='cyan')} - {title}")
+            click.echo(f"  URL: {url}")
+            click.echo(f"  Status: {click.style(status_value, fg='yellow')}")
+            click.echo(f"  Created: {created}")
+
+            # If marked inactive, check status file for reason
+            if status_value == 'inactive':
+                record = manager.get_gleaning_record(gleaning_id)
+                if record and 'reason' in record:
+                    click.echo(f"  Reason: {record['reason']}")
+
+            click.echo()
+
+        click.echo(f"Total: {len(gleanings)}")
+        click.echo()
+
+    except Exception as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
+
+
+@gleaning.command(name="show")
+@click.argument('gleaning_id')
+@click.option('--json-output', is_flag=True, help='Output as JSON')
+def gleaning_show(gleaning_id, json_output):
+    """Show details for a specific gleaning.
+
+    \b
+    Example:
+      temoa gleaning show abc123def456
+      temoa gleaning show abc123def456 --json-output
+    """
+    from .config import Config
+    from .gleanings import GleaningStatusManager
+
+    try:
+        cfg = Config()
+        manager = GleaningStatusManager(cfg.vault_path / ".temoa")
+
+        record = manager.get_gleaning_record(gleaning_id)
+
+        if not record:
+            click.echo(f"\nGleaning {gleaning_id} not found (or has default status: active)")
+            click.echo()
+            return
+
+        if json_output:
+            click.echo(json.dumps(record, indent=2))
+            return
+
+        click.echo(f"\nGleaning: {click.style(gleaning_id, fg='cyan')}\n")
+        click.echo(f"Status: {click.style(record['status'], fg='yellow')}")
+        click.echo(f"Marked: {record.get('marked_at', 'Unknown')}")
+        if 'reason' in record:
+            click.echo(f"Reason: {record['reason']}")
+
+        if 'history' in record and len(record['history']) > 1:
+            click.echo("\nHistory:")
+            for i, entry in enumerate(record['history'], 1):
+                click.echo(f"  {i}. {entry['status']} at {entry['marked_at']}")
+                if 'reason' in entry and entry['reason']:
+                    click.echo(f"     Reason: {entry['reason']}")
+
+        click.echo()
+
+    except Exception as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
+
+
+@gleaning.command(name="maintain")
+@click.option('--check-links/--no-check-links', default=True,
+              help='Check if URLs are alive (default: true)')
+@click.option('--add-descriptions/--no-add-descriptions', default=True,
+              help='Fetch meta descriptions for missing ones (default: true)')
+@click.option('--mark-dead-inactive/--no-mark-dead-inactive', default=True,
+              help='Mark dead links as inactive (default: true)')
+@click.option('--dry-run', is_flag=True, help='Preview changes without applying them')
+@click.option('--timeout', type=int, default=10, help='HTTP request timeout in seconds (default: 10)')
+@click.option('--rate-limit', type=float, default=1.0, help='Seconds between requests (default: 1.0)')
+def gleaning_maintain(check_links, add_descriptions, mark_dead_inactive, dry_run, timeout, rate_limit):
+    """Maintain gleanings (check links, add descriptions).
+
+    This command:
+    - Checks if gleaning URLs are still alive
+    - Fetches meta descriptions from live URLs if missing
+    - Marks dead links as inactive
+    - Updates frontmatter with new data
+
+    \b
+    Examples:
+      temoa gleaning maintain --dry-run
+      temoa gleaning maintain
+      temoa gleaning maintain --no-mark-dead-inactive
+      temoa gleaning maintain --rate-limit 2.0
+    """
+    from .config import Config
+
+    # Import the maintainer from scripts
+    scripts_path = Path(__file__).parent.parent.parent / "scripts"
+    if str(scripts_path) not in sys.path:
+        sys.path.insert(0, str(scripts_path))
+
+    try:
+        from maintain_gleanings import GleaningMaintainer
+    except ImportError as e:
+        click.echo(f"Error importing maintenance tool: {e}", err=True)
+        sys.exit(1)
+
+    try:
+        cfg = Config()
+
+        maintainer = GleaningMaintainer(
+            vault_path=cfg.vault_path,
+            timeout=timeout
+        )
+
+        maintainer.maintain_all(
+            check_links=check_links,
+            add_descriptions=add_descriptions,
+            mark_dead_inactive=mark_dead_inactive,
+            dry_run=dry_run,
+            rate_limit=rate_limit
+        )
+
+    except KeyboardInterrupt:
+        click.echo("\n\nInterrupted by user")
+        sys.exit(1)
+    except Exception as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
+
+
 @main.command()
 def config():
     """Show current configuration.

@@ -39,11 +39,15 @@ After extraction, each gleaning becomes an individual markdown file in `L/Gleani
 **Content**:
 ```markdown
 ---
+title: "Article Title"
 url: https://example.com/article
 domain: example.com
-date: 2025-11-15
+created: 2025-11-15
 source: Daily/2025/2025-11-15-Fr.md
-tags: [gleaning]
+gleaning_id: 9c72d1c06194
+status: active
+type: gleaning
+description: "Brief description of the article and why it's interesting"
 ---
 
 # Article Title
@@ -199,6 +203,122 @@ Migrated gleanings will have:
 - Original metadata preserved (category, tags, timestamp)
 - `migrated_from: old-gleanings` in frontmatter
 - Original gleaning ID maintained
+
+## Maintaining Gleanings
+
+The maintenance tool checks link health and enriches gleanings with metadata.
+
+### What It Does
+
+```bash
+temoa gleaning maintain
+```
+
+The maintenance tool:
+1. **Checks if URLs are alive** - HEAD/GET requests to verify links
+2. **Fetches meta descriptions** - Extracts `<meta name="description">` from live URLs
+3. **Marks dead links inactive** - Automatically marks broken links as inactive
+4. **Updates frontmatter** - Adds descriptions and status to gleaning files
+
+### Usage Examples
+
+```bash
+# Dry run (preview changes)
+temoa gleaning maintain --dry-run
+
+# Full maintenance (check all gleanings)
+temoa gleaning maintain
+
+# Only check links (skip descriptions)
+temoa gleaning maintain --no-add-descriptions
+
+# Only add descriptions (skip link checking)
+temoa gleaning maintain --no-check-links
+
+# Slow down requests (be nice to servers)
+temoa gleaning maintain --rate-limit 2.0
+
+# Custom timeout
+temoa gleaning maintain --timeout 15
+```
+
+### What Gets Updated
+
+**Description field**:
+- Uses meta description from `<meta name="description">` tag (as-is, no truncation)
+- Falls back to `<meta property="og:description">` if meta description missing
+- Only updates gleanings that don't already have descriptions
+- Preserves manually-written descriptions
+
+**Status field**:
+- Sets `status: inactive` for dead links (404, timeout, connection error)
+- Records reason in `.temoa/gleaning_status.json`
+- Live links remain `status: active`
+
+### Rate Limiting
+
+**Important**: The tool adds a 1-second delay between requests by default. This is respectful to web servers.
+
+- Adjust with `--rate-limit 2.0` for slower checking
+- Use `--timeout 10` to control how long to wait for responses
+
+### Output Example
+
+```
+Maintaining 661 gleanings
+Options:
+  Check links: True
+  Add descriptions: True
+  Mark dead inactive: True
+  Dry run: False
+  Rate limit: 1.0s between requests
+
+  Checking: FastAPI Best Practices
+    ✓ Link alive (200)
+    ✓ Added description (145 chars)
+    ✓ Updated: description
+
+  Checking: Old Tutorial Site
+    ✗ Link dead: HTTP 404
+    → Marked as inactive
+    ✓ Updated: status
+
+============================================================
+Maintenance complete!
+Total gleanings: 661
+Checked: 661
+  Alive: 650
+  Dead: 11
+  Errors: 0
+Descriptions added: 423
+Descriptions skipped: 238
+Marked inactive: 11
+============================================================
+```
+
+### When to Run
+
+- **After initial extraction** - Enrich all gleanings with descriptions
+- **Periodically** (monthly?) - Check for link rot
+- **Before re-indexing** - Ensure metadata is up-to-date
+- **After bulk imports** - Add missing descriptions
+
+### Script Version
+
+You can also run the maintenance tool as a standalone script:
+
+```bash
+python scripts/maintain_gleanings.py \
+  --vault-path ~/Obsidian/vault \
+  --dry-run
+
+python scripts/maintain_gleanings.py \
+  --vault-path ~/Obsidian/vault \
+  --check-links \
+  --add-descriptions \
+  --mark-dead-inactive \
+  --rate-limit 1.0
+```
 
 ## Searching Gleanings
 

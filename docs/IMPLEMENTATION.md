@@ -351,9 +351,54 @@ This is a **behavioral hypothesis**, not a technical one. It requires:
 - [ ] Friction points document (what prevented usage)
 - [ ] Feature requests based on real needs
 
+### Gleaning Status Management (2025-11-20)
+
+**Status**: COMPLETE - Three-status model with auto-restoration
+
+Implemented comprehensive status management for gleanings after real-world usage revealed need:
+
+**Three Status Types:**
+1. **active**: Normal gleanings, included in search
+2. **inactive**: Dead links, excluded from search, auto-restores if link comes back
+3. **hidden**: Manually hidden, never checked by maintenance tool
+
+**Features:**
+- Status persists in `.temoa/gleaning_status.json` and gleaning frontmatter
+- Reason field tracks why status changed
+- Maintenance tool checks links and marks dead ones inactive
+- Auto-restoration when inactive links become alive again
+- Progress tracking with ETA for long maintenance runs
+- Backfill logic for existing inactive gleanings
+
+**Commits:**
+- 8de00f5: Initial status management (active/inactive)
+- 3858429: Frontmatter format changes
+- fbe9701: Fix /gleanings endpoint
+- e60cde5: Add description field and maintenance tool
+- c6e8db3: Add progress tracking
+- b3694aa: Backfill reasons for inactive gleanings
+- 5af166c: Add reason field to frontmatter
+- 95099c6: Add 'hidden' status and auto-restore
+
+**Commands:**
+```bash
+# Mark gleaning status
+temoa gleaning mark <id> --status inactive --reason "dead link"
+temoa gleaning mark <id> --status hidden --reason "duplicate"
+
+# List by status
+temoa gleaning list --status inactive
+temoa gleaning list --status hidden
+
+# Run maintenance (check links, add descriptions)
+temoa gleaning maintain
+```
+
+See [chronicles/phase-2.5-deployment.md Entry 12](CHRONICLES.md) for detailed design rationale.
+
 ### Deployment Shakedown (2025-11-20)
 
-**Status**: IN PROGRESS - Deployment testing revealed and fixed critical bugs
+**Status**: COMPLETE - Deployment testing revealed and fixed critical bugs
 
 During initial deployment testing, discovered and fixed 4 critical bugs:
 

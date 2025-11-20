@@ -12,10 +12,15 @@ import argparse
 import hashlib
 import json
 import re
+import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional
 from urllib.parse import urlparse
+
+# Add src to path so we can import gleanings module
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+from temoa.gleanings import GleaningStatusManager, GleaningStatus
 
 
 class Gleaning:
@@ -28,7 +33,9 @@ class Gleaning:
         description: str,
         date: str,
         source_file: str,
-        gleaning_id: Optional[str] = None
+        gleaning_id: Optional[str] = None,
+        status: GleaningStatus = "active",
+        reason: Optional[str] = None
     ):
         self.title = title
         self.url = url
@@ -37,6 +44,8 @@ class Gleaning:
         self.source_file = source_file
         self.domain = urlparse(url).netloc
         self.gleaning_id = gleaning_id or self._generate_id()
+        self.status = status
+        self.reason = reason
 
     def _generate_id(self) -> str:
         """Generate unique ID from URL."""
@@ -60,13 +69,33 @@ class Gleaning:
         # Quote title for YAML safety (handles colons, quotes, etc.)
         quoted_title = json.dumps(self.title)
 
+        # Quote description for YAML safety
+        quoted_description = json.dumps(self.description) if self.description else '""'
+
+        # Quote reason for YAML safety
+        quoted_reason = json.dumps(self.reason) if self.reason else '""'
+
+        # Build frontmatter
+        frontmatter_lines = [
+            f"title: {quoted_title}",
+            f"url: {self.url}",
+            f"domain: {self.domain}",
+            f"created: {self.date}",
+            f"source: {self.source_file}",
+            f"gleaning_id: {self.gleaning_id}",
+            f"status: {self.status}",
+            f"type: gleaning",
+            f"description: {quoted_description}"
+        ]
+
+        # Add reason only if inactive
+        if self.status == "inactive" and self.reason:
+            frontmatter_lines.append(f"reason: {quoted_reason}")
+
+        frontmatter = "\n".join(frontmatter_lines)
+
         return f"""---
-title: {quoted_title}
-url: {self.url}
-domain: {self.domain}
-date: {self.date}
-source: {self.source_file}
-tags: [gleaning]
+{frontmatter}
 ---
 
 # {self.title}
@@ -117,6 +146,9 @@ class GleaningsExtractor:
 
         self.state_file = state_file or (self.vault_path / ".temoa" / "extraction_state.json")
         self.state = self._load_state()
+
+        # Initialize status manager
+        self.status_manager = GleaningStatusManager(self.vault_path / ".temoa")
 
     def _load_state(self) -> Dict:
         """Load extraction state."""
@@ -204,12 +236,25 @@ class GleaningsExtractor:
                     # Extract description, removing leading > and whitespace
                     description = lines[i + 1].strip()[1:].strip()
 
+                # Generate ID to check status and reason
+                gleaning_id = hashlib.md5(url.encode()).hexdigest()[:12]
+                status = self.status_manager.get_status(gleaning_id)
+
+                # Get reason from status record if exists
+                reason = None
+                status_record = self.status_manager.get_gleaning_record(gleaning_id)
+                if status_record and "reason" in status_record:
+                    reason = status_record["reason"]
+
                 gleaning = Gleaning(
                     title=title,
                     url=url,
                     description=description,
                     date=date,
-                    source_file=str(note_path.relative_to(self.vault_path))
+                    source_file=str(note_path.relative_to(self.vault_path)),
+                    gleaning_id=gleaning_id,
+                    status=status,
+                    reason=reason
                 )
 
                 gleanings.append(gleaning)

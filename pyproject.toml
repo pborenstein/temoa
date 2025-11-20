@@ -13,6 +13,9 @@ dependencies = [
     "scikit-learn>=1.3.0",
     "pyyaml>=6.0",
     "tqdm>=4.64.0",
+    # Gleaning maintenance
+    "requests>=2.31.0",
+    "beautifulsoup4>=4.12.0",
 ]
 
 [project.scripts]

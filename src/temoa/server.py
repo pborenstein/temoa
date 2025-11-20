@@ -11,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .config import Config, ConfigError
 from .synthesis import SynthesisClient, SynthesisError
+from .gleanings import parse_frontmatter_status, GleaningStatusManager, scan_gleaning_files
 
 # Configure logging
 logging.basicConfig(
@@ -53,6 +54,9 @@ except SynthesisError as e:
     logger.error(f"Failed to initialize Synthesis: {e}")
     raise
 
+# Initialize Gleaning status manager
+gleaning_manager = GleaningStatusManager(config.vault_path / ".temoa")
+
 
 # Lifespan context manager for startup/shutdown
 @asynccontextmanager
@@ -71,6 +75,49 @@ async def lifespan(app: FastAPI):
 
     # Shutdown
     logger.info("Temoa server shutting down")
+
+
+def filter_inactive_gleanings(results: list) -> list:
+    """
+    Filter out inactive and hidden gleanings from search results.
+
+    Args:
+        results: List of search result dicts
+
+    Returns:
+        Filtered list with only active gleanings
+    """
+    filtered = []
+
+    for result in results:
+        # Get file path from result
+        file_path = result.get("file_path")
+        if not file_path:
+            # If no file_path, include result (not a gleaning)
+            filtered.append(result)
+            continue
+
+        try:
+            # Read file to check status
+            with open(file_path, "r", encoding="utf-8") as f:
+                content = f.read()
+
+            status = parse_frontmatter_status(content)
+
+            # If no status found or status is active, include result
+            if status is None or status == "active":
+                filtered.append(result)
+            # If status is inactive or hidden, skip this result
+            elif status in ("inactive", "hidden"):
+                logger.debug(f"Filtered out {status} gleaning: {result.get('title', 'Unknown')}")
+                continue
+
+        except Exception as e:
+            # If we can't read file, include it anyway (fail open)
+            logger.warning(f"Error checking status for {file_path}: {e}")
+            filtered.append(result)
+
+    return filtered
 
 
 # Create FastAPI app
@@ -185,6 +232,17 @@ async def search(
 
         # Perform search
         data = synthesis.search(query=q, limit=limit)
+
+        # Filter out inactive gleanings
+        original_count = len(data.get("results", []))
+        data["results"] = filter_inactive_gleanings(data.get("results", []))
+        filtered_count = len(data["results"])
+
+        if filtered_count < original_count:
+            logger.info(f"Filtered {original_count - filtered_count} inactive gleanings from results")
+
+        # Update total count
+        data["total"] = filtered_count
 
         return JSONResponse(content=data)
 
@@ -502,5 +560,143 @@ async def extract_gleanings(
             status_code=500,
             detail=f"Extraction failed: {str(e)}"
         )
+
+
+@app.post("/gleanings/{gleaning_id}/status")
+async def mark_gleaning_status(
+    gleaning_id: str,
+    status: str = Query(..., regex="^(active|inactive)$", description="Status to set"),
+    reason: Optional[str] = Query(None, description="Optional reason for status change")
+):
+    """
+    Mark a gleaning as active or inactive.
+
+    This doesn't modify the source daily note (which is the source of truth),
+    but marks the extracted gleaning file so it can be excluded from searches.
+
+    Example:
+        POST /gleanings/abc123def456/status?status=inactive&reason=broken%20link
+
+    Returns:
+        {
+            "gleaning_id": "abc123def456",
+            "status": "inactive",
+            "marked_at": "2025-11-20T15:30:00Z",
+            "reason": "broken link"
+        }
+    """
+    try:
+        logger.info(f"Marking gleaning {gleaning_id} as {status}")
+
+        record = gleaning_manager.mark_status(gleaning_id, status, reason)
+
+        return JSONResponse(content={
+            "gleaning_id": gleaning_id,
+            **record
+        })
+
+    except Exception as e:
+        logger.error(f"Error marking gleaning status: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to mark gleaning status: {str(e)}"
+        )
+
+
+@app.get("/gleanings")
+async def list_gleanings(
+    status: Optional[str] = Query(
+        None,
+        regex="^(active|inactive)$",
+        description="Filter by status (omit for all)"
+    )
+):
+    """
+    List all gleanings from the vault by scanning L/Gleanings/ directory.
+
+    Example:
+        GET /gleanings
+        GET /gleanings?status=inactive
+        GET /gleanings?status=active
+
+    Returns:
+        {
+            "gleanings": [
+                {
+                    "gleaning_id": "abc123def456",
+                    "title": "Example Title",
+                    "url": "https://example.com",
+                    "status": "inactive",
+                    "created": "2025-11-20",
+                    "file_path": "L/Gleanings/abc123def456.md"
+                },
+                ...
+            ],
+            "total": 5,
+            "filter": "inactive"
+        }
+    """
+    try:
+        gleanings_list = scan_gleaning_files(
+            vault_path=config.vault_path,
+            status_manager=gleaning_manager,
+            status_filter=status
+        )
+
+        return JSONResponse(content={
+            "gleanings": gleanings_list,
+            "total": len(gleanings_list),
+            "filter": status or "all"
+        })
+
+    except Exception as e:
+        logger.error(f"Error listing gleanings: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to list gleanings: {str(e)}"
+        )
+
+
+@app.get("/gleanings/{gleaning_id}")
+async def get_gleaning(gleaning_id: str):
+    """
+    Get status details for a specific gleaning.
+
+    Example:
+        GET /gleanings/abc123def456
+
+    Returns:
+        {
+            "gleaning_id": "abc123def456",
+            "status": "inactive",
+            "marked_at": "2025-11-20T15:30:00Z",
+            "reason": "broken link",
+            "history": [...]
+        }
+    """
+    try:
+        record = gleaning_manager.get_gleaning_record(gleaning_id)
+
+        if not record:
+            return JSONResponse(
+                status_code=404,
+                content={
+                    "error": "Gleaning not found or has default status (active)",
+                    "gleaning_id": gleaning_id
+                }
+            )
+
+        return JSONResponse(content={
+            "gleaning_id": gleaning_id,
+            **record
+        })
+
+    except Exception as e:
+        logger.error(f"Error getting gleaning: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to get gleaning: {str(e)}"
+        )
+
 
 
