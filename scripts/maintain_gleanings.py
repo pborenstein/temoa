@@ -53,7 +53,8 @@ class GleaningMaintainer:
             "errors": 0,
             "descriptions_added": 0,
             "descriptions_skipped": 0,
-            "marked_inactive": 0
+            "marked_inactive": 0,
+            "reasons_added": 0
         }
 
     def check_url(self, url: str) -> Tuple[bool, Optional[str], Optional[int]]:
@@ -262,12 +263,23 @@ class GleaningMaintainer:
             gleaning_id = frontmatter_dict.get("gleaning_id", file_path.stem)
             description = frontmatter_dict.get("description", "")
             title = frontmatter_dict.get("title", "Untitled")
+            current_status = frontmatter_dict.get("status", "active")
 
             updates = {}
 
+            # Check if already inactive but missing reason
+            status_record = self.status_manager.get_gleaning_record(gleaning_id)
+            already_inactive = current_status == "inactive"
+            has_reason = status_record and "reason" in status_record and status_record["reason"]
+
             # Check if URL is alive
             if check_links:
-                print(f"  Checking: {title}")
+                # If already inactive but no reason, check link to add reason
+                if already_inactive and not has_reason:
+                    print(f"  Checking (backfill reason): {title}")
+                else:
+                    print(f"  Checking: {title}")
+
                 is_alive, error_msg, status_code = self.check_url(url)
                 result["checked"] = True
                 result["alive"] = is_alive
@@ -275,6 +287,10 @@ class GleaningMaintainer:
                 if is_alive:
                     print(f"    ✓ Link alive ({status_code})")
                     self.stats["alive"] += 1
+
+                    # If was marked inactive but link is now alive, note it but keep inactive
+                    if already_inactive:
+                        print(f"    ⚠ Link alive but previously marked inactive (keeping inactive)")
 
                     # Fetch description if missing
                     if add_descriptions and not description:
@@ -296,18 +312,25 @@ class GleaningMaintainer:
                     print(f"    ✗ Link dead: {error_msg}")
                     self.stats["dead"] += 1
 
-                    # Mark as inactive
+                    # Mark as inactive (or add reason if already inactive)
                     if mark_dead_inactive:
                         if not dry_run:
+                            # Always update status file to ensure reason is captured
                             self.status_manager.mark_status(
                                 gleaning_id,
                                 "inactive",
                                 f"Dead link: {error_msg}"
                             )
-                        updates["status"] = "inactive"
-                        result["marked_inactive"] = True
-                        self.stats["marked_inactive"] += 1
-                        print(f"    → Marked as inactive")
+
+                        if not already_inactive:
+                            updates["status"] = "inactive"
+                            result["marked_inactive"] = True
+                            self.stats["marked_inactive"] += 1
+                            print(f"    → Marked as inactive")
+                        elif not has_reason:
+                            result["marked_inactive"] = True
+                            self.stats["reasons_added"] += 1
+                            print(f"    → Added reason to existing inactive gleaning")
 
             # Apply updates
             if updates:
@@ -409,6 +432,7 @@ class GleaningMaintainer:
         print(f"Descriptions added: {self.stats['descriptions_added']}")
         print(f"Descriptions skipped: {self.stats['descriptions_skipped']}")
         print(f"Marked inactive: {self.stats['marked_inactive']}")
+        print(f"Reasons added (backfill): {self.stats['reasons_added']}")
         print("=" * 60)
 
 
