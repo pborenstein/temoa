@@ -211,7 +211,7 @@ class GleaningMaintainer:
         new_frontmatter_lines = []
         for key, value in frontmatter_dict.items():
             # Quote values that need it
-            if key in ("title", "description") and value:
+            if key in ("title", "description", "reason") and value:
                 quoted_value = json.dumps(value)
                 new_frontmatter_lines.append(f"{key}: {quoted_value}")
             else:
@@ -314,20 +314,23 @@ class GleaningMaintainer:
 
                     # Mark as inactive (or add reason if already inactive)
                     if mark_dead_inactive:
+                        reason_text = f"Dead link: {error_msg}"
                         if not dry_run:
                             # Always update status file to ensure reason is captured
                             self.status_manager.mark_status(
                                 gleaning_id,
                                 "inactive",
-                                f"Dead link: {error_msg}"
+                                reason_text
                             )
 
                         if not already_inactive:
                             updates["status"] = "inactive"
+                            updates["reason"] = reason_text
                             result["marked_inactive"] = True
                             self.stats["marked_inactive"] += 1
                             print(f"    → Marked as inactive")
                         elif not has_reason:
+                            updates["reason"] = reason_text
                             result["marked_inactive"] = True
                             self.stats["reasons_added"] += 1
                             print(f"    → Added reason to existing inactive gleaning")

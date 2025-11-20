@@ -34,7 +34,8 @@ class Gleaning:
         date: str,
         source_file: str,
         gleaning_id: Optional[str] = None,
-        status: GleaningStatus = "active"
+        status: GleaningStatus = "active",
+        reason: Optional[str] = None
     ):
         self.title = title
         self.url = url
@@ -44,6 +45,7 @@ class Gleaning:
         self.domain = urlparse(url).netloc
         self.gleaning_id = gleaning_id or self._generate_id()
         self.status = status
+        self.reason = reason
 
     def _generate_id(self) -> str:
         """Generate unique ID from URL."""
@@ -70,16 +72,30 @@ class Gleaning:
         # Quote description for YAML safety
         quoted_description = json.dumps(self.description) if self.description else '""'
 
+        # Quote reason for YAML safety
+        quoted_reason = json.dumps(self.reason) if self.reason else '""'
+
+        # Build frontmatter
+        frontmatter_lines = [
+            f"title: {quoted_title}",
+            f"url: {self.url}",
+            f"domain: {self.domain}",
+            f"created: {self.date}",
+            f"source: {self.source_file}",
+            f"gleaning_id: {self.gleaning_id}",
+            f"status: {self.status}",
+            f"type: gleaning",
+            f"description: {quoted_description}"
+        ]
+
+        # Add reason only if inactive
+        if self.status == "inactive" and self.reason:
+            frontmatter_lines.append(f"reason: {quoted_reason}")
+
+        frontmatter = "\n".join(frontmatter_lines)
+
         return f"""---
-title: {quoted_title}
-url: {self.url}
-domain: {self.domain}
-created: {self.date}
-source: {self.source_file}
-gleaning_id: {self.gleaning_id}
-status: {self.status}
-type: gleaning
-description: {quoted_description}
+{frontmatter}
 ---
 
 # {self.title}
@@ -220,9 +236,15 @@ class GleaningsExtractor:
                     # Extract description, removing leading > and whitespace
                     description = lines[i + 1].strip()[1:].strip()
 
-                # Generate ID to check status
+                # Generate ID to check status and reason
                 gleaning_id = hashlib.md5(url.encode()).hexdigest()[:12]
                 status = self.status_manager.get_status(gleaning_id)
+
+                # Get reason from status record if exists
+                reason = None
+                status_record = self.status_manager.get_gleaning_record(gleaning_id)
+                if status_record and "reason" in status_record:
+                    reason = status_record["reason"]
 
                 gleaning = Gleaning(
                     title=title,
@@ -231,7 +253,8 @@ class GleaningsExtractor:
                     date=date,
                     source_file=str(note_path.relative_to(self.vault_path)),
                     gleaning_id=gleaning_id,
-                    status=status
+                    status=status,
+                    reason=reason
                 )
 
                 gleanings.append(gleaning)
