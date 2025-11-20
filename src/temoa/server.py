@@ -32,7 +32,8 @@ try:
     synthesis = SynthesisClient(
         synthesis_path=config.synthesis_path,
         vault_path=config.vault_path,
-        model=config.default_model
+        model=config.default_model,
+        storage_dir=config.storage_dir
     )
     logger.info("✓ Synthesis client ready")
 except SynthesisError as e:
