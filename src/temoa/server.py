@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .config import Config, ConfigError
 from .synthesis import SynthesisClient, SynthesisError
-from .gleanings import parse_frontmatter_status, GleaningStatusManager
+from .gleanings import parse_frontmatter_status, GleaningStatusManager, scan_gleaning_files
 
 # Configure logging
 logging.basicConfig(
@@ -612,7 +612,7 @@ async def list_gleanings(
     )
 ):
     """
-    List gleanings by status.
+    List all gleanings from the vault by scanning L/Gleanings/ directory.
 
     Example:
         GET /gleanings
@@ -621,23 +621,31 @@ async def list_gleanings(
 
     Returns:
         {
-            "gleanings": {
-                "abc123def456": {
+            "gleanings": [
+                {
+                    "gleaning_id": "abc123def456",
+                    "title": "Example Title",
+                    "url": "https://example.com",
                     "status": "inactive",
-                    "marked_at": "2025-11-20T15:30:00Z",
-                    "reason": "broken link"
+                    "created": "2025-11-20",
+                    "file_path": "L/Gleanings/abc123def456.md"
                 },
                 ...
-            },
-            "total": 5
+            ],
+            "total": 5,
+            "filter": "inactive"
         }
     """
     try:
-        gleanings = gleaning_manager.list_gleanings(status_filter=status)
+        gleanings_list = scan_gleaning_files(
+            vault_path=config.vault_path,
+            status_manager=gleaning_manager,
+            status_filter=status
+        )
 
         return JSONResponse(content={
-            "gleanings": gleanings,
-            "total": len(gleanings),
+            "gleanings": gleanings_list,
+            "total": len(gleanings_list),
             "filter": status or "all"
         })
 

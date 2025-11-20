@@ -495,7 +495,7 @@ def gleaning_mark(gleaning_id, status, reason):
               help='Filter by status (default: all)')
 @click.option('--json-output', is_flag=True, help='Output as JSON')
 def gleaning_list(status, json_output):
-    """List gleanings by status.
+    """List all gleanings from vault.
 
     \b
     Examples:
@@ -504,32 +504,48 @@ def gleaning_list(status, json_output):
       temoa gleaning list --status active --json-output
     """
     from .config import Config
-    from .gleanings import GleaningStatusManager
+    from .gleanings import GleaningStatusManager, scan_gleaning_files
 
     try:
         cfg = Config()
         manager = GleaningStatusManager(cfg.vault_path / ".temoa")
 
-        # Get gleanings
+        # Scan gleaning files
         status_filter = None if status == 'all' else status
-        gleanings = manager.list_gleanings(status_filter)
+        gleanings = scan_gleaning_files(
+            vault_path=cfg.vault_path,
+            status_manager=manager,
+            status_filter=status_filter
+        )
 
         if json_output:
             click.echo(json.dumps(gleanings, indent=2))
             return
 
         if not gleanings:
-            click.echo(f"\nNo gleanings found with status: {status}")
+            click.echo(f"\nNo gleanings found{' with status: ' + status if status != 'all' else ''}")
             click.echo()
             return
 
         click.echo(f"\nGleanings ({status}):\n")
-        for gleaning_id, record in gleanings.items():
-            click.echo(f"{click.style(gleaning_id, fg='cyan')}")
-            click.echo(f"  Status: {click.style(record['status'], fg='yellow')}")
-            click.echo(f"  Marked: {record.get('marked_at', 'Unknown')}")
-            if 'reason' in record:
-                click.echo(f"  Reason: {record['reason']}")
+        for gleaning in gleanings:
+            gleaning_id = gleaning['gleaning_id']
+            title = gleaning.get('title', 'Untitled')
+            status_value = gleaning['status']
+            created = gleaning.get('created', 'Unknown')
+            url = gleaning.get('url', '')
+
+            click.echo(f"{click.style(gleaning_id, fg='cyan')} - {title}")
+            click.echo(f"  URL: {url}")
+            click.echo(f"  Status: {click.style(status_value, fg='yellow')}")
+            click.echo(f"  Created: {created}")
+
+            # If marked inactive, check status file for reason
+            if status_value == 'inactive':
+                record = manager.get_gleaning_record(gleaning_id)
+                if record and 'reason' in record:
+                    click.echo(f"  Reason: {record['reason']}")
+
             click.echo()
 
         click.echo(f"Total: {len(gleanings)}")

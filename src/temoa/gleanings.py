@@ -211,3 +211,93 @@ def parse_frontmatter_status(content: str) -> Optional[GleaningStatus]:
                 return status
 
     return None
+
+
+def scan_gleaning_files(
+    vault_path: Path,
+    status_manager: GleaningStatusManager,
+    status_filter: Optional[GleaningStatus] = None
+) -> list[dict]:
+    """
+    Scan all gleaning files in L/Gleanings/ directory.
+
+    Args:
+        vault_path: Path to vault root
+        status_manager: Status manager to check gleaning statuses
+        status_filter: Optional filter (only return gleanings with this status)
+
+    Returns:
+        List of gleaning dicts with metadata
+    """
+    gleanings_dir = vault_path / "L" / "Gleanings"
+
+    if not gleanings_dir.exists():
+        return []
+
+    gleaning_files = list(gleanings_dir.glob("*.md"))
+    gleanings_list = []
+
+    for file_path in gleaning_files:
+        try:
+            # Read file to get frontmatter
+            with open(file_path, "r", encoding="utf-8") as f:
+                content = f.read()
+
+            # Parse frontmatter
+            if not content.startswith("---\n"):
+                continue
+
+            end_idx = content.find("\n---\n", 4)
+            if end_idx == -1:
+                continue
+
+            frontmatter = content[4:end_idx]
+
+            # Extract fields from frontmatter
+            gleaning_data = {}
+            for line in frontmatter.split("\n"):
+                if ":" in line:
+                    key, value = line.split(":", 1)
+                    key = key.strip()
+                    value = value.strip()
+
+                    # Remove quotes from title if present
+                    if key == "title" and value.startswith('"') and value.endswith('"'):
+                        value = value[1:-1]
+
+                    gleaning_data[key] = value
+
+            # Get gleaning_id (from frontmatter or filename)
+            gleaning_id = gleaning_data.get("gleaning_id", file_path.stem)
+
+            # Get status (from frontmatter or status manager)
+            file_status = gleaning_data.get("status")
+            if not file_status:
+                file_status = status_manager.get_status(gleaning_id)
+
+            # Filter by status if requested
+            if status_filter and file_status != status_filter:
+                continue
+
+            # Build gleaning info
+            gleaning_info = {
+                "gleaning_id": gleaning_id,
+                "title": gleaning_data.get("title", "Untitled"),
+                "url": gleaning_data.get("url", ""),
+                "domain": gleaning_data.get("domain", ""),
+                "status": file_status,
+                "created": gleaning_data.get("created", gleaning_data.get("date", "")),
+                "type": gleaning_data.get("type", ""),
+                "file_path": str(file_path.relative_to(vault_path))
+            }
+
+            gleanings_list.append(gleaning_info)
+
+        except Exception:
+            # Skip files that can't be read
+            continue
+
+    # Sort by created date (newest first)
+    gleanings_list.sort(key=lambda x: x.get("created", ""), reverse=True)
+
+    return gleanings_list
