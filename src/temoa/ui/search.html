@@ -20,7 +20,7 @@
         }
 
         .container {
-            max-width: 800px;
+            max-width: 900px;
             margin: 0 auto;
         }
 
@@ -57,6 +57,76 @@
 
         #query:focus {
             border-color: #007aff;
+        }
+
+        .controls {
+            background: white;
+            padding: 16px;
+            margin-bottom: 16px;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .control-group {
+            margin-bottom: 12px;
+        }
+
+        .control-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .control-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+            color: #6e6e73;
+            margin-bottom: 8px;
+        }
+
+        .control-value {
+            font-weight: 600;
+            color: #007aff;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 4px;
+            border-radius: 2px;
+            background: #d2d2d7;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #007aff;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #007aff;
+            cursor: pointer;
+            border: none;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
         }
 
         .search-btn {
@@ -125,10 +195,68 @@
             display: block;
         }
 
+        .stats-panel {
+            background: white;
+            padding: 16px;
+            margin-bottom: 16px;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            display: none;
+        }
+
+        .stats-panel.active {
+            display: block;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 16px;
+        }
+
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #86868b;
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1d1d1f;
+        }
+
+        .stat-value.model {
+            font-size: 14px;
+            color: #007aff;
+        }
+
         .results-header {
             color: #6e6e73;
             font-size: 14px;
             margin-bottom: 12px;
+        }
+
+        .json-viewer {
+            background: #1d1d1f;
+            color: #f5f5f7;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 12px;
+            overflow-x: auto;
+            white-space: pre;
+            display: none;
+        }
+
+        .json-viewer.active {
+            display: block;
         }
 
         .result {
@@ -249,6 +377,10 @@
             .result {
                 padding: 14px;
             }
+
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+            }
         }
     </style>
 </head>
@@ -272,6 +404,31 @@
             >
         </div>
 
+        <div class="controls">
+            <div class="control-group">
+                <div class="control-label">
+                    <span>Min Similarity Score</span>
+                    <span class="control-value" id="min-score-value">0.30</span>
+                </div>
+                <input type="range" id="min-score" min="0" max="100" value="30" step="5">
+            </div>
+
+            <div class="control-group">
+                <div class="control-label">
+                    <span>Result Limit</span>
+                    <span class="control-value" id="limit-value">20</span>
+                </div>
+                <input type="range" id="limit" min="5" max="50" value="20" step="5">
+            </div>
+
+            <div class="control-group">
+                <div class="checkbox-group">
+                    <input type="checkbox" id="show-json">
+                    <label for="show-json" style="cursor: pointer; user-select: none;">Show raw JSON</label>
+                </div>
+            </div>
+        </div>
+
         <button class="search-btn" onclick="search()">Search</button>
 
         <div class="error" id="error"></div>
@@ -280,6 +437,29 @@
             <div class="spinner"></div>
             <div style="margin-top: 8px;">Searching...</div>
         </div>
+
+        <div class="stats-panel" id="stats-panel">
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-label">Model</div>
+                    <div class="stat-value model" id="stat-model">-</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Results</div>
+                    <div class="stat-value" id="stat-total">-</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Filtered (Score)</div>
+                    <div class="stat-value" id="stat-filtered-score">-</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Filtered (Status)</div>
+                    <div class="stat-value" id="stat-filtered-status">-</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="json-viewer" id="json-viewer"></div>
 
         <div id="results-header" class="results-header" style="display: none;"></div>
         <div id="results"></div>
@@ -291,11 +471,36 @@
 
     <script>
         const queryInput = document.getElementById('query');
+        const minScoreSlider = document.getElementById('min-score');
+        const minScoreValue = document.getElementById('min-score-value');
+        const limitSlider = document.getElementById('limit');
+        const limitValue = document.getElementById('limit-value');
+        const showJsonCheckbox = document.getElementById('show-json');
         const resultsDiv = document.getElementById('results');
         const resultsHeader = document.getElementById('results-header');
         const loadingDiv = document.getElementById('loading');
         const errorDiv = document.getElementById('error');
         const searchBtn = document.querySelector('.search-btn');
+        const statsPanel = document.getElementById('stats-panel');
+        const jsonViewer = document.getElementById('json-viewer');
+
+        // Update slider values
+        minScoreSlider.addEventListener('input', (e) => {
+            const value = (e.target.value / 100).toFixed(2);
+            minScoreValue.textContent = value;
+        });
+
+        limitSlider.addEventListener('input', (e) => {
+            limitValue.textContent = e.target.value;
+        });
+
+        showJsonCheckbox.addEventListener('change', (e) => {
+            if (e.target.checked && window.lastSearchData) {
+                displayJson(window.lastSearchData);
+            } else {
+                jsonViewer.classList.remove('active');
+            }
+        });
 
         // Focus on load
         window.addEventListener('load', () => {
@@ -317,15 +522,21 @@
                 return;
             }
 
+            const minScore = minScoreSlider.value / 100;
+            const limit = limitSlider.value;
+
             // Reset state
             errorDiv.classList.remove('active');
             loadingDiv.classList.add('active');
             resultsDiv.innerHTML = '';
             resultsHeader.style.display = 'none';
+            statsPanel.classList.remove('active');
+            jsonViewer.classList.remove('active');
             searchBtn.disabled = true;
 
             try {
-                const response = await fetch(`/search?q=${encodeURIComponent(query)}&limit=20`);
+                const url = `/search?q=${encodeURIComponent(query)}&limit=${limit}&min_score=${minScore}`;
+                const response = await fetch(url);
 
                 if (!response.ok) {
                     const error = await response.json();
@@ -333,7 +544,14 @@
                 }
 
                 const data = await response.json();
+                window.lastSearchData = data; // Store for JSON viewer
+
                 displayResults(data);
+                displayStats(data);
+
+                if (showJsonCheckbox.checked) {
+                    displayJson(data);
+                }
 
             } catch (error) {
                 showError(error.message || 'Failed to search. Please try again.');
@@ -344,8 +562,26 @@
             }
         }
 
+        function displayStats(data) {
+            const { model, total, min_score, filtered_count } = data;
+
+            document.getElementById('stat-model').textContent = model || 'unknown';
+            document.getElementById('stat-total').textContent = total || 0;
+            document.getElementById('stat-filtered-score').textContent =
+                filtered_count?.by_score || 0;
+            document.getElementById('stat-filtered-status').textContent =
+                filtered_count?.by_status || 0;
+
+            statsPanel.classList.add('active');
+        }
+
+        function displayJson(data) {
+            jsonViewer.textContent = JSON.stringify(data, null, 2);
+            jsonViewer.classList.add('active');
+        }
+
         function displayResults(data) {
-            const { query, results, total, model } = data;
+            const { query, results, total } = data;
 
             if (!results || results.length === 0) {
                 resultsDiv.innerHTML = `
