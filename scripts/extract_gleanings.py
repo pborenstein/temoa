@@ -13,14 +13,68 @@ import hashlib
 import json
 import re
 import sys
+import urllib.request
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional
 from urllib.parse import urlparse
+from html.parser import HTMLParser
 
 # Add src to path so we can import gleanings module
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 from temoa.gleanings import GleaningStatusManager, GleaningStatus
+
+
+class TitleParser(HTMLParser):
+    """Simple HTML parser to extract <title> tag."""
+
+    def __init__(self):
+        super().__init__()
+        self.title = None
+        self.in_title = False
+
+    def handle_starttag(self, tag, attrs):
+        if tag == 'title':
+            self.in_title = True
+
+    def handle_data(self, data):
+        if self.in_title:
+            self.title = data.strip()
+            self.in_title = False
+
+
+def fetch_title_from_url(url: str, timeout: int = 5) -> Optional[str]:
+    """
+    Fetch page title from URL.
+
+    Args:
+        url: URL to fetch title from
+        timeout: Request timeout in seconds
+
+    Returns:
+        Page title or None if fetch fails
+    """
+    try:
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (compatible; TemoaGleaningExtractor/0.1)'
+        }
+        request = urllib.request.Request(url, headers=headers)
+
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            # Only read first 8KB to find <title> tag
+            content = response.read(8192).decode('utf-8', errors='ignore')
+
+            parser = TitleParser()
+            parser.feed(content)
+
+            if parser.title:
+                return parser.title
+
+    except Exception:
+        # Silently fail - we'll use URL as title fallback
+        pass
+
+    return None
 
 
 class Gleaning:
@@ -115,13 +169,28 @@ Gleaned from [[{Path(self.source_file).stem}]] on {self.date}
 class GleaningsExtractor:
     """Extracts gleanings from daily notes."""
 
-    # Regex to match gleanings: - [Title](URL)  [HH:MM]
-    # Format: - [Title](URL) optionally followed by timestamp
-    # Description may be on next line starting with >
-    GLEANING_LINK_PATTERN = re.compile(
+    # Regex patterns for different gleaning formats
+
+    # Pattern 1: Markdown link - [Title](URL)  [HH:MM]
+    MARKDOWN_LINK_PATTERN = re.compile(
         r'^-\s+\[([^\]]+)\]\(([^)]+)\)',
         re.MULTILINE
     )
+
+    # Pattern 2: Naked URL with bullet - https://...
+    NAKED_URL_BULLET_PATTERN = re.compile(
+        r'^-\s+(https?://[^\s]+)',
+        re.MULTILINE
+    )
+
+    # Pattern 3: Naked URL bare (no bullet) - https://...
+    NAKED_URL_BARE_PATTERN = re.compile(
+        r'^(https?://[^\s]+)$',
+        re.MULTILINE
+    )
+
+    # Pattern for timestamp - [HH:MM]
+    TIMESTAMP_PATTERN = re.compile(r'\[(\d{2}:\d{2})\]')
 
     # Regex to find Gleanings section
     SECTION_PATTERN = re.compile(
@@ -225,7 +294,7 @@ class GleaningsExtractor:
             section_content = content[section_start:]
 
         # Extract date from frontmatter or filename
-        date = self._extract_date(note_path, content)
+        base_date = self._extract_date(note_path, content)
 
         # Split section into lines for easier processing
         lines = section_content.split('\n')
@@ -233,18 +302,96 @@ class GleaningsExtractor:
         # Find all gleanings in section
         i = 0
         while i < len(lines):
-            line = lines[i]
-            match = self.GLEANING_LINK_PATTERN.match(line)
+            line = lines[i].strip()
 
-            if match:
-                title = match.group(1).strip()
-                url = match.group(2).strip()
+            # Skip empty lines and comment lines (lines starting with >)
+            if not line or (line.startswith('>') and not lines[i-1] if i > 0 else False):
+                i += 1
+                continue
 
-                # Check next line for description (starts with >)
-                description = ""
-                if i + 1 < len(lines) and lines[i + 1].strip().startswith('>'):
-                    # Extract description, removing leading > and whitespace
-                    description = lines[i + 1].strip()[1:].strip()
+            title = None
+            url = None
+            timestamp = None
+
+            # Try Pattern 1: Markdown link - [Title](URL)
+            markdown_match = re.match(r'^-\s+\[([^\]]+)\]\(([^)]+)\)', line)
+            if markdown_match:
+                title = markdown_match.group(1).strip()
+                url = markdown_match.group(2).strip()
+
+                # Extract timestamp if present
+                timestamp_match = self.TIMESTAMP_PATTERN.search(line)
+                if timestamp_match:
+                    timestamp = timestamp_match.group(1)
+
+            # Try Pattern 2: Naked URL with bullet - https://...
+            elif re.match(r'^-\s+(https?://)', line):
+                naked_bullet_match = re.match(r'^-\s+(https?://[^\s]+)', line)
+                if naked_bullet_match:
+                    url = naked_bullet_match.group(1).strip()
+
+                    # Extract timestamp if present
+                    timestamp_match = self.TIMESTAMP_PATTERN.search(line)
+                    if timestamp_match:
+                        timestamp = timestamp_match.group(1)
+
+                    # Fetch title from URL
+                    print(f"  Fetching title for naked URL: {url[:60]}...")
+                    title = fetch_title_from_url(url)
+                    if not title:
+                        # Fallback: use domain or path
+                        parsed = urlparse(url)
+                        title = parsed.netloc or url
+
+            # Try Pattern 3: Naked URL bare (no bullet) - https://...
+            elif re.match(r'^https?://', line):
+                naked_bare_match = re.match(r'^(https?://[^\s]+)', line)
+                if naked_bare_match:
+                    url = naked_bare_match.group(1).strip()
+
+                    # Extract timestamp if present
+                    timestamp_match = self.TIMESTAMP_PATTERN.search(line)
+                    if timestamp_match:
+                        timestamp = timestamp_match.group(1)
+
+                    # Fetch title from URL
+                    print(f"  Fetching title for naked URL: {url[:60]}...")
+                    title = fetch_title_from_url(url)
+                    if not title:
+                        # Fallback: use domain or path
+                        parsed = urlparse(url)
+                        title = parsed.netloc or url
+
+            # If we found a gleaning, extract description and create object
+            if title and url:
+                # Collect ALL consecutive description lines (lines starting with >)
+                description_lines = []
+                j = i + 1
+                while j < len(lines):
+                    desc_line = lines[j].strip()
+                    if desc_line.startswith('>'):
+                        # Remove leading > and whitespace
+                        desc_text = desc_line[1:].strip()
+                        if desc_text:  # Only add non-empty lines
+                            description_lines.append(desc_text)
+                        j += 1
+                    elif not desc_line:
+                        # Empty line - might be continuation, check next line
+                        if j + 1 < len(lines) and lines[j + 1].strip().startswith('>'):
+                            description_lines.append('')  # Preserve paragraph break
+                            j += 1
+                        else:
+                            break
+                    else:
+                        # Non-description line, stop collecting
+                        break
+
+                description = '\n'.join(description_lines)
+
+                # Build date with timestamp if available
+                date = base_date
+                if timestamp:
+                    date = f"{base_date} {timestamp}"
 
                 # Generate ID to check status and reason
                 gleaning_id = hashlib.md5(url.encode()).hexdigest()[:12]
@@ -268,6 +415,10 @@ class GleaningsExtractor:
                 )
 
                 gleanings.append(gleaning)
+
+                # Skip past description lines we already processed
+                i = j
+                continue
 
             i += 1
 
