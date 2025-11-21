@@ -1,5 +1,6 @@
-"""Tests for gleaning status management"""
+"""Tests for gleaning status management and extraction"""
 import json
+import sys
 import tempfile
 from datetime import datetime
 from pathlib import Path
@@ -10,6 +11,10 @@ from temoa.gleanings import (
     GleaningStatusManager,
     parse_frontmatter_status
 )
+
+# Add scripts to path for testing extraction
+sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
+from extract_gleanings import GleaningsExtractor
 
 
 @pytest.fixture
@@ -228,3 +233,62 @@ def test_status_file_format(temp_storage_dir):
     assert data["format123"]["reason"] == "Format test"
     assert "marked_at" in data["format123"]
     assert "history" in data["format123"]
+
+
+@pytest.fixture
+def temp_vault_with_duplicates(tmp_path):
+    """Create a temporary vault with duplicate daily note paths (case variations)"""
+    vault = tmp_path / "vault"
+    vault.mkdir()
+
+    # Create a Daily directory (capital D)
+    daily_dir = vault / "Daily" / "2025"
+    daily_dir.mkdir(parents=True)
+
+    # Create a daily note
+    daily_note = daily_dir / "2025-11-21.md"
+    daily_note.write_text("""---
+date: 2025-11-21
+---
+
+## Gleanings
+
+- [Test Article](https://example.com/test) - A test article
+""")
+
+    return vault
+
+
+def test_find_daily_notes_no_duplicates_on_case_insensitive_fs(temp_vault_with_duplicates):
+    """Test that find_daily_notes doesn't return duplicates on case-insensitive filesystems"""
+    extractor = GleaningsExtractor(temp_vault_with_duplicates)
+
+    # Find daily notes (both "Daily/**/*.md" and "daily/**/*.md" patterns will match on macOS)
+    daily_notes = extractor.find_daily_notes(incremental=False)
+
+    # Should only find each file once, not twice
+    assert len(daily_notes) == 1, f"Expected 1 note, found {len(daily_notes)}: {daily_notes}"
+
+    # Verify it's the correct file
+    assert daily_notes[0].name == "2025-11-21.md"
+
+
+def test_extract_gleanings_no_duplicate_processing(temp_vault_with_duplicates):
+    """Test that gleanings are not processed twice from the same file"""
+    extractor = GleaningsExtractor(temp_vault_with_duplicates)
+
+    # Extract all gleanings
+    gleanings_dir = temp_vault_with_duplicates / "L" / "Gleanings"
+    gleanings_dir.mkdir(parents=True)
+
+    daily_notes = extractor.find_daily_notes(incremental=False)
+    all_gleanings = []
+
+    for note in daily_notes:
+        gleanings = extractor.extract_from_note(note)
+        all_gleanings.extend(gleanings)
+
+    # Should only extract 1 gleaning (not 2 from processing the same file twice)
+    assert len(all_gleanings) == 1, f"Expected 1 gleaning, found {len(all_gleanings)}"
+    assert all_gleanings[0].title == "Test Article"
+    assert all_gleanings[0].url == "https://example.com/test"

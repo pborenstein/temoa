@@ -13,21 +13,70 @@ This document describes how gleanings are extracted, stored, and indexed for sem
 
 ### In Daily Notes
 
-Gleanings are extracted from daily notes using this format:
+Gleanings are extracted from daily notes in **multiple formats**. The extractor is flexible and handles:
 
+#### Format 1: Markdown Link (Recommended)
 ```markdown
 ## Gleanings
 
-- [Title](URL) - Description of why this link matters
-- [Another Link](URL) - More context about this resource
+- [Title](URL) - Brief description
+- [Another Link](URL) - More context
 ```
 
-**Example:**
+#### Format 2: Markdown Link with Timestamp
 ```markdown
 ## Gleanings
 
-- [FastAPI Best Practices](https://github.com/zhanymkanov/fastapi-best-practices) - Async patterns, project structure, testing
-- [Building a Local RAG System](https://news.ycombinator.com/item?id=38309611) - HN discussion on local vs cloud RAG, privacy considerations
+- [Title](URL)  [14:30]
+> Description can be on the next line
+```
+
+#### Format 3: Naked URL with Bullet
+```markdown
+## Gleanings
+
+- https://example.com/article
+```
+**Note:** Title will be fetched from the page's `<title>` tag automatically.
+
+#### Format 4: Naked URL Bare
+```markdown
+## Gleanings
+
+https://example.com/article
+```
+**Note:** Title will be fetched from the page automatically.
+
+#### Format 5: Multi-Line Descriptions
+```markdown
+## Gleanings
+
+- [Article Title](URL)  [15:54]
+> First paragraph of description
+> - Bullet point 1
+> - Bullet point 2
+>
+> Second paragraph with more details
+```
+**Note:** ALL consecutive lines starting with `>` are captured.
+
+**Real Example:**
+```markdown
+## Gleanings
+
+> what did we surf into now?
+
+- [soimort/translate-shell](https://github.com/soimort/translate-shell)  [06:39]
+> Command-line translator using Google Translate, Bing Translator, Yandex.Translate
+
+- https://vrigger.com/info_forces.php?RC=RC0129  [07:42]
+> You can use the vRigger software to calculate forces on rope systems
+
+- [The White Noise Playlist](https://thewhitenoiseplaylist.com/)  [13:40]
+> The White Noise Playlist
+> - Variety of white noise experiences without ads
+> - Extended and uninterrupted noise tracks for focus/sleep
+> - Founded by Dr. Ir. Stéphane Pigeon
 ```
 
 ### As Individual Notes
@@ -65,6 +114,36 @@ Gleaned from [[2025-11-15-Fr]] on 2025-11-15
 
 ## Extraction Workflow
 
+### Diagnostic Analysis (Recommended First Step)
+
+Before extracting, run the diagnostic script to see what formats you're using:
+
+```bash
+python scripts/analyze_gleaning_formats.py ~/Obsidian/vault
+```
+
+This will show:
+- How many markdown links vs naked URLs you have
+- Examples of different formats found
+- How many URLs are currently being missed
+- Percentage breakdown of formats
+
+**Example output:**
+```
+SUMMARY
+======================================================================
+Files with gleanings sections: 742
+Total URLs found: 1450
+
+FORMAT BREAKDOWN:
+  ✓ Markdown links ([Title](URL)):        1200 (SUPPORTED)
+  ✗ Naked URLs with bullet (- https://):   180 (NOT SUPPORTED)
+  ✗ Naked URLs bare (https://):            70 (NOT SUPPORTED)
+
+⚠️  MISSING: 250 URLs not captured by current extraction!
+   That's 17.2% of your gleanings!
+```
+
 ### Manual Extraction
 
 Extract gleanings from daily notes:
@@ -79,6 +158,12 @@ python scripts/extract_gleanings.py --vault-path ~/Obsidian/vault
 # Force re-process all files (not just new ones)
 python scripts/extract_gleanings.py --vault-path ~/Obsidian/vault --full
 ```
+
+**Note about Naked URLs:**
+- Extraction will be slower for naked URLs (fetches page titles from web)
+- Each naked URL adds ~1-2 seconds (5s timeout per URL)
+- Progress is shown: `Fetching title for naked URL: https://...`
+- Falls back to domain name if fetch fails
 
 ### Automated Extraction
 

@@ -476,15 +476,22 @@ def gleaning():
 
 @gleaning.command(name="mark")
 @click.argument('gleaning_id')
-@click.option('--status', type=click.Choice(['active', 'inactive']), required=True,
+@click.option('--status', type=click.Choice(['active', 'inactive', 'hidden']), required=True,
               help='Status to set for the gleaning')
 @click.option('--reason', default=None, help='Optional reason for status change')
 def gleaning_mark(gleaning_id, status, reason):
-    """Mark a gleaning as active or inactive.
+    """Mark a gleaning as active, inactive, or hidden.
+
+    \b
+    Status meanings:
+      active   - Normal gleaning, included in search results
+      inactive - Dead link, excluded from search, auto-restores if link comes back
+      hidden   - Manually hidden, never checked by maintenance tool
 
     \b
     Examples:
       temoa gleaning mark abc123def456 --status inactive --reason "broken link"
+      temoa gleaning mark abc123def456 --status hidden --reason "duplicate"
       temoa gleaning mark abc123def456 --status active
     """
     from .config import Config
@@ -508,7 +515,7 @@ def gleaning_mark(gleaning_id, status, reason):
 
 
 @gleaning.command(name="list")
-@click.option('--status', type=click.Choice(['active', 'inactive', 'all']), default='all',
+@click.option('--status', type=click.Choice(['active', 'inactive', 'hidden', 'all']), default='all',
               help='Filter by status (default: all)')
 @click.option('--json-output', is_flag=True, help='Output as JSON')
 def gleaning_list(status, json_output):
@@ -518,6 +525,7 @@ def gleaning_list(status, json_output):
     Examples:
       temoa gleaning list
       temoa gleaning list --status inactive
+      temoa gleaning list --status hidden
       temoa gleaning list --status active --json-output
     """
     from .config import Config
@@ -557,8 +565,8 @@ def gleaning_list(status, json_output):
             click.echo(f"  Status: {click.style(status_value, fg='yellow')}")
             click.echo(f"  Created: {created}")
 
-            # If marked inactive, check status file for reason
-            if status_value == 'inactive':
+            # If marked inactive or hidden, check status file for reason
+            if status_value in ('inactive', 'hidden'):
                 record = manager.get_gleaning_record(gleaning_id)
                 if record and 'reason' in record:
                     click.echo(f"  Reason: {record['reason']}")

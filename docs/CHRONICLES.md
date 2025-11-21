@@ -23,19 +23,20 @@ The chronicles have been split into chapters for easier navigation:
 - Entry 6: Phase 1 Complete - Production-Ready Server
 
 ### [Phase 2: Gleanings Integration](chronicles/phase-2-gleanings.md)
-**Entries 7-9** | Making Gleanings Searchable
+**Entries 7-10** | Making Gleanings Searchable
 
 - Entry 7: Phase 2 Complete - Gleanings Integration
 - Entry 8: CLI Implementation and Real-World Testing
 - Entry 9: Gleanings Extraction Fixes
+- Entry 10: Extraction Shakedown - Format Flexibility & Filesystem Edge Cases
 
 ### [Phase 2.5: Deployment & Mobile Validation](chronicles/phase-2.5-deployment.md)
-**Entries 10-13** | Real-World Usage and Gleaning Management
+**Entries 11-14** | Real-World Usage and Gleaning Management
 
-- Entry 10: Mid-Course Assessment - Pausing Before Phase 3
-- Entry 11: Deployment Shakedown - Real-World Bugs Surface
-- Entry 12: Gleanings Status Management - Active, Inactive, Hidden
-- Entry 13: Archaeology Shakedown & Feature Discovery
+- Entry 11: Mid-Course Assessment - Pausing Before Phase 3
+- Entry 12: Deployment Shakedown - Real-World Bugs Surface
+- Entry 13: Gleanings Status Management - Active, Inactive, Hidden
+- Entry 14: Archaeology Shakedown & Feature Discovery
 
 ---
 
@@ -48,9 +49,12 @@ The chronicles have been split into chapters for easier navigation:
 | DEC-013: Modern FastAPI lifespan | 6 | Better resource management |
 | DEC-014: Rename from Ixpantilia | 6 | Simpler, more memorable |
 | DEC-015: Split implementation docs | 6 | Clearer phase tracking |
-| DEC-016: Three-status model | 12 | active/inactive/hidden |
-| DEC-017: Auto-restore inactive gleanings | 12 | Links that come back to life |
-| DEC-022: Themes by Period feature | 13 | Document for future, focus on present |
+| DEC-016: Three-status model | 13 | active/inactive/hidden |
+| DEC-017: Auto-restore inactive gleanings | 13 | Links that come back to life |
+| DEC-021: Postel's Law for Gleanings | 10 | Be liberal in input, conservative in output |
+| DEC-022: Title fetching for naked URLs | 10 | Fetch web titles for completeness |
+| DEC-023: Case-sensitive pattern matching | 10 | Only search Daily/Journal (capital-case) |
+| DEC-024: Themes by Period feature | 14 | Document for future, focus on present |
 
 ---
 
@@ -59,13 +63,13 @@ The chronicles have been split into chapters for easier navigation:
 **If you're new to Temoa**, start with:
 1. Entry 1 (The Central Problem) - understand the "why"
 2. Entry 6 (Phase 1 Complete) - see what we built
-3. Entry 10 (Mid-Course Assessment) - understand current status
+3. Entry 11 (Mid-Course Assessment) - understand current status
 
 **If you're debugging**, look for:
 - Performance issues → Entry 4
 - Architecture questions → Entry 2
 - Path/config problems → Entry 3
-- Gleanings bugs → Entries 9, 11
+- Gleanings bugs → Entries 9, 10, 12
 
 **If you're continuing development**, check:
 - Latest entry in Phase 2.5 chapter

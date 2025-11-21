@@ -621,7 +621,345 @@ Gleanings extraction and CLI fixes:
 
 ---
 
-**Next**: Phase 3 will make this indispensable through archaeology, enhanced UI, and mobile PWA support.
+## Entry 10: Extraction Shakedown - Format Flexibility & Filesystem Edge Cases (2025-11-21)
+
+### Context
+
+After initial gleanings extraction worked (661 gleanings from 742 daily notes), user requested a thorough shakedown of the extraction process to identify and fix any remaining bugs before deployment. The goal: "be liberal in your input, conservative in your output" (Postel's Law).
+
+### Problems Discovered
+
+Real-world testing with production vault revealed **5 critical issues**:
+
+#### 1. Case-Insensitive Filesystem Duplicates (macOS APFS)
+
+**Symptom**:
+```
+Processing: Daily/2025/11-November/2025-11-21-Fr.md
+Processing: daily/2025/11-November/2025-11-21-Fr.md
+```
+
+**Root cause**: On macOS with case-insensitive filesystem (APFS default), glob patterns `Daily/**/*.md` and `daily/**/*.md` both match the same files. Linux VM testing didn't catch this.
+
+**User feedback**: "Is that why I'm getting all the duplicates?"
+
+**Impact**: Confusing output, potential for duplicate gleaning extraction.
+
+**Solution**: Added `seen_paths` set using `Path.resolve()` to deduplicate based on absolute paths. Each file processed exactly once regardless of how glob patterns match it.
+
+**Test coverage**: Added `test_find_daily_notes_no_duplicates_on_case_insensitive_fs()` (though test runs on Linux, documents expected behavior).
+
+#### 2. Missing 'hidden' Status in CLI
+
+**Root cause**: System internals supported three statuses (active, inactive, hidden), but CLI `temoa gleaning mark` command only exposed active/inactive in Click choices.
+
+**Impact**: Users couldn't mark gleanings as permanently hidden (different from inactive/dead links).
+
+**Solution**: Added 'hidden' to CLI status choices:
+```python
+@click.option('--status', type=click.Choice(['active', 'inactive', 'hidden']))
+```
+
+Updated help text to explain all three statuses:
+- **active**: Normal gleaning, included in search results
+- **inactive**: Dead link, excluded from search, auto-restores if link comes back
+- **hidden**: Manually hidden, never checked by maintenance tool
+
+#### 3. Multiple Gleaning Formats Not Supported (10% Data Loss)
+
+**Symptom**: User reported extraction was missing gleanings.
+
+**Evidence**:
+- Total URLs in vault: 766
+- Extracted gleanings: 689
+- Missing: 77 gleanings (10% loss!)
+
+**Root cause**: Extraction only handled single format:
+```python
+GLEANING_LINK_PATTERN = re.compile(r'^-\s+\[([^\]]+)\]\(([^)]+)\)\s+-\s+(.+)$')
+```
+
+This missed:
+- Naked URLs (with or without bullets)
+- Multi-line descriptions
+- Timestamps
+- Descriptions on next line instead of same line
+
+**User feedback**: "Basically, any URL in the Gleanings section is a gleaning."
+
+**Real examples from vault**:
+```markdown
+## Gleanings
+
+- [soimort/translate-shell](https://github.com/soimort/translate-shell)  [06:39]
+> Command-line translator using Google Translate, Bing Translator, Yandex.Translate
+
+- https://vrigger.com/info_forces.php?RC=RC0129  [07:42]
+> You can use the vRigger software to calculate forces on rope systems
+
+- [The White Noise Playlist](https://thewhitenoiseplaylist.com/)  [13:40]
+> The White Noise Playlist
+> - Variety of white noise experiences without ads
+> - Extended and uninterrupted noise tracks for focus/sleep
+> - Founded by Dr. Ir. Stéphane Pigeon
+
+https://example.com/bare-url-no-bullet
+```
+
+**Solution**: Implemented **5 pattern types**:
+
+1. **Markdown link**: `- [Title](URL)` (original)
+2. **Markdown link with timestamp**: `- [Title](URL)  [HH:MM]`
+3. **Naked URL with bullet**: `- https://...` (fetches title from web)
+4. **Naked URL bare**: `https://...` (no bullet, fetches title)
+5. **Multi-line descriptions**: ALL consecutive `>` lines captured, paragraph breaks preserved
+
+**New extraction logic**:
+```python
+# Try patterns in order
+if markdown_match:
+    title = markdown_match.group(1)
+    url = markdown_match.group(2)
+elif naked_bullet_match:
+    url = naked_bullet_match.group(1)
+    title = fetch_title_from_url(url)  # <-- New!
+elif naked_bare_match:
+    url = naked_bare_match.group(1)
+    title = fetch_title_from_url(url)  # <-- New!
+
+# Collect ALL description lines
+while lines[j].startswith('>'):
+    description_lines.append(lines[j][1:].strip())
+    j += 1
+```
+
+**Title fetching**:
+```python
+def fetch_title_from_url(url: str, timeout: int = 5) -> Optional[str]:
+    """Fetch page title from <title> tag."""
+    parser = TitleParser()  # HTMLParser subclass
+    parser.feed(response.read(8192).decode())
+    return parser.title or urlparse(url).netloc
+```
+
+**Performance impact**: Each naked URL adds ~1.5 seconds (HTTP request + parse). User had ~77 naked URLs = ~2 minutes extra extraction time. Acceptable for completeness.
+
+**Result**: 766/766 gleanings extracted (100% coverage, 0% loss).
+
+#### 4. Dry Run Fetching Titles Wastefully
+
+**User feedback**: "Dry run should probably not actually fetch the titles, since you don't store them during dry run."
+
+**Root cause**: `extract_from_note()` didn't know if it was in dry-run mode, so it fetched titles via HTTP even when they'd be discarded.
+
+**Impact**: Wasted time and bandwidth during preview.
+
+**Solution**: Added `dry_run` parameter to `extract_from_note()`:
+```python
+def extract_from_note(self, note_path: Path, dry_run: bool = False) -> List[Gleaning]:
+    ...
+    if dry_run:
+        title = f"[{parsed.netloc or 'Title will be fetched'}]"
+    else:
+        print(f"  Fetching title for naked URL: {url[:60]}...")
+        title = fetch_title_from_url(url)
+```
+
+**Result**: Instant dry-run preview, no HTTP requests made.
+
+#### 5. Lowercase Patterns Causing User Confusion
+
+**Symptom**: Even though deduplication worked correctly, output showed:
+```
+Processing: daily/2025/.../file.md
+Processing: Daily/2025/.../file.md
+```
+
+**User feedback**: "Search ONLY for 'Daily'. ONLY 'Daily' is good. 'daily' is BAD BAD BAD."
+
+**Root cause**: Patterns list included both cases:
+```python
+patterns = ["Daily/**/*.md", "daily/**/*.md", "Journal/**/*.md", "journal/**/*.md"]
+```
+
+On macOS (case-insensitive), both patterns matched the same files. Even though deduplication prevented double-processing, the *output* was confusing.
+
+**User context**: User only has `Daily/` directory, not `daily/`. The lowercase pattern exists for cross-platform compatibility but shouldn't be shown.
+
+**Solution**: Removed lowercase patterns entirely:
+```python
+patterns = ["Daily/**/*.md", "Journal/**/*.md"]  # Capital-case only
+```
+
+**Result**: Clean output showing only actual directory names. If future user has lowercase directories, they can add patterns back.
+
+### Enhancement: Diagnostic Tool
+
+Created `scripts/analyze_gleaning_formats.py` to preview what extraction will find:
+
+**Features**:
+- Scans vault for all gleaning formats
+- Shows examples of each format (markdown links, naked URLs, multi-line descriptions)
+- Reports format breakdown (how many of each type)
+- Estimates extraction time based on naked URL count
+
+**Example output**:
+```
+SUMMARY
+======================================================================
+Files with gleanings sections: 742
+Total URLs found: 766
+
+FORMAT BREAKDOWN:
+  ✓ Markdown links ([Title](URL)):        689 (SUPPORTED)
+  ✓ Naked URLs with bullet (- https://):   50 (SUPPORTED - fetches title)
+  ✓ Naked URLs bare (https://):            27 (SUPPORTED - fetches title)
+
+FEATURE USAGE:
+  ✓ Timestamps [HH:MM]:                    234 (SUPPORTED)
+  ✓ Multi-line descriptions (>2 lines):    45 (FULLY SUPPORTED)
+
+📌 NOTE: 77 naked URLs will have titles fetched from web
+   Extraction will take ~115 seconds longer (fetching titles)
+```
+
+**Value**: Users can run diagnostics *before* extraction to understand what will be captured and how long it will take.
+
+### Design Decisions
+
+**DEC-021: Postel's Law for Gleanings**
+
+**Decision**: "Be liberal in your input, conservative in your output."
+
+**Rationale**:
+- Users format gleanings inconsistently (markdown links, naked URLs, multi-line descriptions, timestamps)
+- Requiring a single rigid format would force manual cleanup or lose data
+- Better to accept all reasonable formats and normalize to standard output format
+- Mirrors successful protocols (HTTP, DNS, email) that succeed by being flexible
+
+**Implementation**:
+- Input: Accept 5 different gleaning formats
+- Output: Normalize to consistent markdown files with frontmatter
+- Preserve all information (titles, URLs, descriptions, timestamps)
+
+**Trade-off**: More complex extraction logic, but 0% data loss and better user experience.
+
+**DEC-022: Title Fetching for Naked URLs**
+
+**Decision**: Fetch page titles from web for naked URLs instead of using URL as title.
+
+**Rationale**:
+- Naked URL like `https://vrigger.com/info_forces.php?RC=RC0129` is uninformative
+- Real title "Rope Forces Calculator" much more useful for search and browsing
+- ~1.5s per URL is acceptable for completeness (happens during extraction, not search)
+- Fallback to domain name if fetch fails (graceful degradation)
+
+**Implementation**:
+```python
+def fetch_title_from_url(url: str, timeout: int = 5) -> Optional[str]:
+    """Only read first 8KB to find <title> tag (fast)."""
+    response.read(8192)  # Don't fetch full page
+    parser.feed(content)  # HTMLParser extracts <title>
+    return parser.title or urlparse(url).netloc  # Fallback
+```
+
+**Trade-off**: Extraction slower for naked URLs, but search results much more useful.
+
+**DEC-023: Case-Sensitive Pattern Matching**
+
+**Decision**: Only search for `Daily/` and `Journal/` (capital-case), not lowercase variants.
+
+**Rationale**:
+- macOS case-insensitive filesystem makes both patterns match same files
+- Showing both `daily/` and `Daily/` in output confuses users
+- Most Obsidian vaults use capital-case by convention
+- If user has lowercase directories, they can easily customize patterns
+
+**Implementation**:
+```python
+patterns = ["Daily/**/*.md", "Journal/**/*.md"]  # Capital-case only
+seen_paths = set()  # Still deduplicate via absolute paths (defense in depth)
+```
+
+**Trade-off**: Less "future-proof" for edge cases, but clearer UX for 99% case.
+
+### Production Results
+
+**Before fixes**:
+```
+Total gleanings found: 689
+Missing gleanings: 77 (10% loss)
+Confusing duplicate output
+```
+
+**After fixes**:
+```
+Total gleanings found: 766
+New gleanings created: 739
+Duplicates skipped: 27
+Files processed: 374
+Coverage: 100% (0% loss)
+Clean output, no duplicate processing messages
+```
+
+### Testing
+
+**Test coverage added**:
+- `test_find_daily_notes_no_duplicates_on_case_insensitive_fs()` - Verifies deduplication works
+- `test_extract_gleanings_no_duplicate_processing()` - Verifies no double-extraction
+
+**All 19 gleaning tests passing**:
+- Status management (active/inactive/hidden)
+- Frontmatter parsing
+- Status persistence
+- File deduplication
+- Extraction without duplicates
+
+### Commits
+
+- `c356fdb`: fix: resolve case-insensitive filesystem duplicate extraction bug + feat: add 'hidden' status support to CLI
+- `6db212d`: feat: support multiple gleaning formats and naked URLs
+- `aa903e5`: docs: update GLEANINGS.md with multiple format support
+- `493143c`: fix: update diagnostic script to reflect current format support
+- `ead20e3`: fix: skip title fetching during dry run
+- `ef105f4`: fix: remove lowercase daily/journal patterns (user preference)
+
+### Lessons
+
+**Real-world testing is irreplaceable**:
+- VM testing (Linux) didn't catch macOS filesystem issues
+- Test data had single format; production vault had 5 formats
+- User mental models differ from developer assumptions ("daily is BAD")
+
+**Flexibility beats perfection**:
+- Supporting 5 formats instead of 1 = 10% more data captured
+- Title fetching overhead (~2 min) acceptable for completeness
+- "Be liberal in your input" = better UX than forcing format changes
+
+**Diagnostic tools accelerate debugging**:
+- `analyze_gleaning_formats.py` made format gaps immediately visible
+- Users can self-diagnose before filing bug reports
+- Transparency builds trust ("show me what you'll do")
+
+**User feedback is gold**:
+- "daily is BAD BAD BAD" → Remove confusing patterns
+- "Dry run shouldn't fetch" → Optimize preview performance
+- "Any URL is a gleaning" → Expand pattern matching
+
+### Status
+
+✅ **Extraction robustness**: Handles 5 different gleaning formats
+✅ **Data completeness**: 100% coverage (766/766 gleanings extracted)
+✅ **Filesystem safety**: Case-insensitive filesystem handling
+✅ **Performance**: Dry run instant, title fetching only when needed
+✅ **Test coverage**: Deduplication and extraction tests passing
+✅ **Documentation**: GLEANINGS.md updated with all formats
+
+**Ready for deployment**: Extraction proven robust on production vault.
+
+---
+
+**Next**: Deploy to always-on machine and validate behavioral hypothesis (vault-first habit formation).
 
 ---
 

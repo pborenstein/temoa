@@ -447,6 +447,92 @@ During initial deployment testing, discovered and fixed 4 critical bugs:
 - [x] `/extract` API endpoint added
 - [x] `scripts/add_titles_to_gleanings.py` - Repair tool for existing gleanings
 
+### Extraction Shakedown (2025-11-21)
+
+**Status**: COMPLETE - Real-world extraction revealed format gaps and filesystem edge cases
+
+During production extraction from 742 daily notes, discovered and fixed 5 critical issues:
+
+**Issue 1: Case-Insensitive Filesystem Duplicates**
+- **Problem**: On macOS APFS, both `Daily/**/*.md` and `daily/**/*.md` patterns matched same files
+- **Evidence**: Output showed "Processing: daily/2025/.../file.md" then "Processing: Daily/2025/.../file.md"
+- **Impact**: Confusing output, potential duplicate processing
+- **Fix**: Added `seen_paths` set with `Path.resolve()` deduplication (commit: c356fdb)
+- **Result**: Each file processed exactly once, clean output
+
+**Issue 2: Missing 'hidden' Status in CLI**
+- **Problem**: System supported three statuses (active/inactive/hidden), CLI only exposed active/inactive
+- **Impact**: Users couldn't mark gleanings as permanently hidden
+- **Fix**: Added 'hidden' to CLI choices and help text (commit: c356fdb)
+- **Result**: All three statuses now accessible via `temoa gleaning mark`
+
+**Issue 3: Multiple Gleaning Formats Not Supported**
+- **Problem**: Only markdown links `- [Title](URL)` were extracted
+- **Evidence**: User had 766 gleanings, only 689 extracted (77 missing = 10% loss)
+- **Impact**: Naked URLs, multi-line descriptions completely ignored
+- **Fix**: Implemented comprehensive pattern matching (commit: 6db212d):
+  - Markdown links with timestamps: `- [Title](URL)  [HH:MM]`
+  - Naked URLs with bullet: `- https://...` (fetches title from web)
+  - Naked URLs bare: `https://...` (no bullet, fetches title)
+  - Multi-line descriptions: ALL consecutive `>` lines captured
+  - Timestamps: `[HH:MM]` extracted and preserved in date field
+- **Result**: Now captures 766/766 gleanings (100% coverage)
+- **Performance**: Title fetching adds ~1.5s per naked URL
+
+**Issue 4: Dry Run Fetching Titles Wastefully**
+- **Problem**: `--dry-run` made HTTP requests to fetch titles, then discarded them
+- **Impact**: Wasted time and bandwidth during preview
+- **Fix**: Skip title fetching during dry run, use placeholders (commit: ead20e3)
+- **Result**: Instant dry run preview
+
+**Issue 5: Lowercase Patterns Causing Confusion**
+- **Problem**: Patterns `["Daily/**/*.md", "daily/**/*.md"]` worked on Linux but confused users on macOS
+- **Evidence**: User said "daily is BAD BAD BAD" when seeing `daily/` in output
+- **Impact**: Even though deduplication worked, output was confusing
+- **Fix**: Removed lowercase patterns entirely (commit: ef105f4)
+- **Result**: Clean output showing only actual directory names
+
+**Enhancement: Diagnostic Tool**
+- **Added**: `scripts/analyze_gleaning_formats.py` - Pre-extraction analysis tool
+- **Features**:
+  - Scans vault for all gleaning formats
+  - Shows examples of each format found
+  - Reports coverage statistics
+  - Estimates extraction time for naked URLs
+- **Impact**: Users can preview what will be extracted before running full extraction
+
+**Commits in this session:**
+- c356fdb: fix: resolve case-insensitive filesystem duplicate extraction bug
+- c356fdb: feat: add 'hidden' status support to CLI
+- 6db212d: feat: support multiple gleaning formats and naked URLs
+- aa903e5: docs: update GLEANINGS.md with multiple format support
+- 493143c: fix: update diagnostic script to reflect current format support
+- ead20e3: fix: skip title fetching during dry run
+- ef105f4: fix: remove lowercase daily/journal patterns (user preference)
+
+**Test Coverage Added:**
+- [x] Case-insensitive filesystem deduplication test
+- [x] Extract gleanings without duplicate processing test
+- [x] All 19 gleaning tests passing
+
+**Updated Deliverables:**
+- [x] Multiple format support (5 different formats)
+- [x] Title fetching from web for naked URLs
+- [x] Multi-line description extraction
+- [x] Timestamp preservation
+- [x] Case-insensitive filesystem handling
+- [x] Diagnostic analysis tool
+- [x] Updated documentation (GLEANINGS.md)
+
+**Production Results:**
+```
+Total gleanings found: 766
+New gleanings created: 739
+Duplicates skipped: 27
+Files processed: 374
+Coverage: 100% (was 90% before fixes)
+```
+
 ### Success Criteria
 
 **Deployment Working:**
