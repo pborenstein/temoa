@@ -244,12 +244,12 @@ class GleaningsExtractor:
         daily_notes = []
         seen_paths = set()  # Track unique paths to avoid duplicates on case-insensitive filesystems
 
-        # Search for daily notes (common patterns)
+        # Search for daily notes (capital-case only)
+        # Note: On case-insensitive filesystems (macOS), lowercase patterns
+        # would match the same files, causing confusing output
         patterns = [
             "Daily/**/*.md",
             "Journal/**/*.md",
-            "daily/**/*.md",
-            "journal/**/*.md"
         ]
 
         for pattern in patterns:

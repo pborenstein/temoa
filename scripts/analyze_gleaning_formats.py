@@ -18,7 +18,10 @@ from urllib.parse import urlparse
 
 def find_daily_notes(vault_path: Path):
     """Find all daily notes."""
-    patterns = ["Daily/**/*.md", "Journal/**/*.md"]
+    patterns = [
+        "Daily/**/*.md",
+        "Journal/**/*.md",
+    ]
     daily_notes = []
     seen_paths = set()
 
