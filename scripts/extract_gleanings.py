@@ -270,7 +270,7 @@ class GleaningsExtractor:
 
         return daily_notes
 
-    def extract_from_note(self, note_path: Path) -> List[Gleaning]:
+    def extract_from_note(self, note_path: Path, dry_run: bool = False) -> List[Gleaning]:
         """Extract gleanings from a single note."""
         gleanings = []
 
@@ -335,13 +335,17 @@ class GleaningsExtractor:
                     if timestamp_match:
                         timestamp = timestamp_match.group(1)
 
-                    # Fetch title from URL
-                    print(f"  Fetching title for naked URL: {url[:60]}...")
-                    title = fetch_title_from_url(url)
-                    if not title:
-                        # Fallback: use domain or path
+                    # Fetch title from URL (skip during dry run)
+                    if dry_run:
                         parsed = urlparse(url)
-                        title = parsed.netloc or url
+                        title = f"[{parsed.netloc or 'Title will be fetched'}]"
+                    else:
+                        print(f"  Fetching title for naked URL: {url[:60]}...")
+                        title = fetch_title_from_url(url)
+                        if not title:
+                            # Fallback: use domain or path
+                            parsed = urlparse(url)
+                            title = parsed.netloc or url
 
             # Try Pattern 3: Naked URL bare (no bullet) - https://...
             elif re.match(r'^https?://', line):
@@ -354,13 +358,17 @@ class GleaningsExtractor:
                     if timestamp_match:
                         timestamp = timestamp_match.group(1)
 
-                    # Fetch title from URL
-                    print(f"  Fetching title for naked URL: {url[:60]}...")
-                    title = fetch_title_from_url(url)
-                    if not title:
-                        # Fallback: use domain or path
+                    # Fetch title from URL (skip during dry run)
+                    if dry_run:
                         parsed = urlparse(url)
-                        title = parsed.netloc or url
+                        title = f"[{parsed.netloc or 'Title will be fetched'}]"
+                    else:
+                        print(f"  Fetching title for naked URL: {url[:60]}...")
+                        title = fetch_title_from_url(url)
+                        if not title:
+                            # Fallback: use domain or path
+                            parsed = urlparse(url)
+                            title = parsed.netloc or url
 
             # If we found a gleaning, extract description and create object
             if title and url:
@@ -487,7 +495,7 @@ class GleaningsExtractor:
         duplicate_gleanings = 0
 
         for note_path in daily_notes:
-            gleanings = self.extract_from_note(note_path)
+            gleanings = self.extract_from_note(note_path, dry_run=dry_run)
 
             if gleanings:
                 print(f"Processing: {note_path.relative_to(self.vault_path)} ({len(gleanings)} gleanings)")
