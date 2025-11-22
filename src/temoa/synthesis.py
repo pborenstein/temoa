@@ -264,9 +264,14 @@ class SynthesisClient:
                     "file_path": str(self.vault_path / rel_path)
                 })
 
-                # Try to extract a better snippet that shows query context
-                # If the result has full content, extract relevant snippet
-                if 'content' in result and result['content']:
+                # Use frontmatter description if available, otherwise extract snippet
+                # This preserves curated descriptions from gleanings
+                frontmatter = result.get('frontmatter', {})
+                if frontmatter and frontmatter.get('description'):
+                    # Use curated description from frontmatter (gleanings have this)
+                    enhanced_result['description'] = frontmatter['description']
+                elif 'content' in result and result['content']:
+                    # No frontmatter description, extract query-aware snippet from content
                     try:
                         better_snippet = extract_relevant_snippet(
                             result['content'],

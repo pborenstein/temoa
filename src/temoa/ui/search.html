@@ -439,6 +439,13 @@
 
             <div class="control-group">
                 <div class="checkbox-group">
+                    <input type="checkbox" id="include-daily">
+                    <label for="include-daily">Include daily notes</label>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <div class="checkbox-group">
                     <input type="checkbox" id="show-json">
                     <label for="show-json">Show raw JSON</label>
                 </div>
@@ -472,6 +479,10 @@
                     <div class="stat-label">Filtered (Status)</div>
                     <div class="stat-value" id="stat-filtered-status">-</div>
                 </div>
+                <div class="stat-item">
+                    <div class="stat-label">Filtered (Daily)</div>
+                    <div class="stat-value" id="stat-filtered-daily">-</div>
+                </div>
             </div>
         </div>
 
@@ -501,6 +512,7 @@
         const queryInput = document.getElementById('query');
         const minScoreInput = document.getElementById('min-score');
         const limitInput = document.getElementById('limit');
+        const includeDailyCheckbox = document.getElementById('include-daily');
         const showJsonCheckbox = document.getElementById('show-json');
         const resultsDiv = document.getElementById('results');
         const resultsHeader = document.getElementById('results-header');
@@ -538,6 +550,7 @@
 
             const minScore = parseFloat(minScoreInput.value) || 0.3;
             const limit = parseInt(limitInput.value) || 20;
+            const includeDaily = includeDailyCheckbox.checked;
 
             errorDiv.classList.remove('active');
             loadingDiv.classList.add('active');
@@ -548,7 +561,7 @@
             searchBtn.disabled = true;
 
             try {
-                const url = `/search?q=${encodeURIComponent(query)}&limit=${limit}&min_score=${minScore}`;
+                const url = `/search?q=${encodeURIComponent(query)}&limit=${limit}&min_score=${minScore}&include_daily=${includeDaily}`;
                 const response = await fetch(url);
 
                 if (!response.ok) {
@@ -584,6 +597,8 @@
                 filtered_count?.by_score || 0;
             document.getElementById('stat-filtered-status').textContent =
                 filtered_count?.by_status || 0;
+            document.getElementById('stat-filtered-daily').textContent =
+                filtered_count?.by_daily || 0;
 
             statsPanel.classList.add('active');
         }
@@ -629,6 +644,19 @@
                                         <span>${escapeHtml(result.created_date)}</span>
                                     </div>
                                 ` : ''}
+                                ${result.frontmatter?.project ? (() => {
+                                    const vaultName = result.obsidian_uri.split('/')[3];
+                                    let project = result.frontmatter.project;
+                                    // Handle different project formats (string, array, etc.)
+                                    if (Array.isArray(project)) project = project[0];
+                                    if (typeof project !== 'string') project = String(project);
+                                    const projectName = project.replace(/[\[\]]/g, '');
+                                    const projectUri = `obsidian://vault/${vaultName}/${encodeURIComponent(projectName)}`;
+                                    return `
+                                    <div class="result-meta-item">
+                                        <span>Project: <a href="${projectUri}" style="color: #888888; text-decoration: underline;">${escapeHtml(projectName)}</a></span>
+                                    </div>`;
+                                })() : ''}
                             </div>
                             ${result.description ? `
                                 <div class="result-description">${escapeHtml(result.description)}</div>

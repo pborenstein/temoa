@@ -120,6 +120,34 @@ def filter_inactive_gleanings(results: list) -> list:
     return filtered
 
 
+def filter_daily_notes(results: list) -> list:
+    """
+    Filter out daily notes from search results.
+
+    Daily notes typically contain gleaning links, but the gleanings themselves
+    are extracted into separate files. This prevents duplicate results.
+
+    Args:
+        results: List of search result dicts
+
+    Returns:
+        Filtered list without daily notes
+    """
+    filtered = []
+
+    for result in results:
+        rel_path = result.get("relative_path", "")
+
+        # Skip files in Daily/ folder
+        if rel_path.startswith("Daily/"):
+            logger.debug(f"Filtered out daily note: {rel_path}")
+            continue
+
+        filtered.append(result)
+
+    return filtered
+
+
 # Create FastAPI app
 app = FastAPI(
     title="Temoa",
@@ -181,6 +209,10 @@ async def search(
         ge=0.0,
         le=1.0
     ),
+    include_daily: bool = Query(
+        default=False,
+        description="Include daily notes in results (default: False)"
+    ),
     model: Optional[str] = Query(
         default=None,
         description="Embedding model to use (optional)"
@@ -222,7 +254,7 @@ async def search(
         limit = config.search_max_limit
 
     try:
-        logger.info(f"Search: query='{q}', limit={limit}, min_score={min_score}, model={model or 'default'}")
+        logger.info(f"Search: query='{q}', limit={limit}, min_score={min_score}, include_daily={include_daily}, model={model or 'default'}")
 
         # Note: model parameter not supported yet in current wrapper
         # Would require reinitializing Synthesis with different model
@@ -256,6 +288,16 @@ async def search(
         if status_removed > 0:
             logger.info(f"Filtered {status_removed} inactive gleanings from results")
 
+        # Filter out daily notes (unless explicitly requested)
+        daily_removed = 0
+        if not include_daily:
+            daily_count = len(filtered_results)
+            filtered_results = filter_daily_notes(filtered_results)
+            daily_removed = daily_count - len(filtered_results)
+
+            if daily_removed > 0:
+                logger.info(f"Filtered {daily_removed} daily notes from results")
+
         # Apply final limit
         filtered_results = filtered_results[:limit] if limit else filtered_results
 
@@ -266,7 +308,8 @@ async def search(
         data["filtered_count"] = {
             "by_score": score_removed,
             "by_status": status_removed,
-            "total_removed": score_removed + status_removed
+            "by_daily": daily_removed,
+            "total_removed": score_removed + status_removed + daily_removed
         }
 
         return JSONResponse(content=data)
