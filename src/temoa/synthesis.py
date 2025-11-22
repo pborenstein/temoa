@@ -446,25 +446,31 @@ class SynthesisClient:
             # Merge using Reciprocal Rank Fusion
             merged_results = reciprocal_rank_fusion([semantic_results, bm25_results])
 
-            # IMPORTANT: Boost top BM25 results by giving them artificial RRF scores
-            # This ensures keyword matches don't get buried by semantic-only results
-            merged_paths = {r.get('relative_path') for r in merged_results}
+            # IMPORTANT: Boost top BM25 results that don't appear in semantic results
+            # RRF penalizes documents that only appear in one list, but high BM25 matches
+            # (exact keyword mentions) should still rank well even without semantic match
+            semantic_paths = {r.get('relative_path') for r in semantic_results}
 
             # Get max RRF score to understand the scale
             max_rrf = max((r.get('rrf_score', 0) for r in merged_results), default=0.1)
 
-            # Add top BM25 results that are missing from merged results
+            # Boost top BM25 results that are missing from semantic results
             for idx, bm25_result in enumerate(bm25_results[:5]):  # Top 5 BM25
                 path = bm25_result.get('relative_path')
-                if path not in merged_paths:
-                    # Give it an artificial RRF score HIGHER than existing results
-                    # Top BM25 results should beat low-ranking merged results
-                    # Rank 1 gets max_rrf * 1.5, rank 2 gets max_rrf * 1.4, etc.
-                    artificial_rrf = max_rrf * (1.5 - idx * 0.1)
-                    bm25_result['rrf_score'] = artificial_rrf
 
-                    logger.debug(f"Boosting BM25-only result: {bm25_result.get('title')} (BM25: {bm25_result.get('bm25_score')}, artificial RRF: {artificial_rrf:.4f})")
-                    merged_results.append(bm25_result)
+                # Only boost if this is a BM25-only result (not in semantic)
+                if path not in semantic_paths:
+                    # Find this result in merged_results and boost it
+                    for merged_result in merged_results:
+                        if merged_result.get('relative_path') == path:
+                            old_rrf = merged_result.get('rrf_score', 0)
+                            # Give it an artificial RRF score HIGHER than existing results
+                            # Rank 1 gets max_rrf * 1.5, rank 2 gets max_rrf * 1.4, etc.
+                            artificial_rrf = max_rrf * (1.5 - idx * 0.1)
+                            merged_result['rrf_score'] = artificial_rrf
+
+                            logger.debug(f"Boosting BM25-only result: {merged_result.get('title')} (BM25: {bm25_result.get('bm25_score')}, old RRF: {old_rrf:.4f}, new RRF: {artificial_rrf:.4f})")
+                            break
 
             # Re-sort by RRF score
             merged_results.sort(key=lambda x: x.get('rrf_score', 0), reverse=True)
