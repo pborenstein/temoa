@@ -2,330 +2,379 @@
 
 > [Temoa](https://nahuatl.wired-humanities.org/content/temoa) (Nahuatl): To search for, to seek
 
-**A local semantic search server that enables vault-first research workflows, making your personal knowledge base the first stop before searching the broader internet.**
+A local semantic search server for your Obsidian vault. Search by meaning, not keywords. Access from mobile via HTTP.
 
-[![Status](https://img.shields.io/badge/status-phase%201%20complete-green)](docs/IMPLEMENTATION.md)
 [![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)
 [![uv](https://img.shields.io/badge/package%20manager-uv-orange.svg)](https://github.com/astral-sh/uv)
 
-## The Problem
+## What it does
 
-**Current Research Workflow (Broken)**:
-```
-Question → Perplexity/Claude/GPT → Save link to daily note → Never see it again
-```
+- **Semantic search**: Find notes by meaning, not exact keywords
+- **Mobile access**: Search from your phone via HTTP
+- **Local processing**: All embeddings and search happen on your machine
+- **Obsidian integration**: Results open directly in Obsidian app
+- **Gleaning extraction**: Automatically extract saved links from daily notes
 
-**Pain Points**:
-- Saved links (gleanings) accumulate but are never surfaced when needed
-- No way to check "what do I already know about X?" before searching externally
-- Obsidian Copilot semantic search is slow and unusable on mobile
-- Mobile is the primary research environment, but search is friction-full
-- Native Obsidian search only works if you know exact keywords
-
-## The Solution
-
-**Vault-First Research Workflow**:
-```
-Question → Temoa (semantic search) → [if relevant found: build on it]
-                                   → [if not: external search → save → connect to vault]
-```
-
-Temoa is a **local HTTP server** that provides:
-- Fast semantic search across your entire Obsidian vault (~1,900 files)
-- Mobile-first design (server does the heavy lifting)
-- Private and local (runs on your network via Tailscale)
-- Automatic surfacing of gleanings (saved links) when contextually relevant
-- Sub-2-second response times from mobile devices
-
-## Architecture
-
-```
-┌─────────────────────────────────────────────────────┐
-│ Mobile (Browser / Obsidian / API client)            │
-└─────────────────┬───────────────────────────────────┘
-                  │ HTTP Request: /search?q=semantic+search
-                  ↓
-┌─────────────────────────────────────────────────────┐
-│ Temoa Server (FastAPI)                              │
-│ - Receives query                                    │
-│ - Direct imports from Synthesis                     │
-│ - Model loaded ONCE at startup (~400ms searches)    │
-│ - Returns formatted results                         │
-└─────────────────┬───────────────────────────────────┘
-                  │ Direct Python imports (NOT subprocess)
-                  ↓
-┌─────────────────────────────────────────────────────┐
-│ Synthesis (existing semantic search engine)         │
-│ - Embeddings loaded in memory                       │
-│ - Fast semantic search (~400ms)                     │
-│ - Returns results with obsidian:// URIs             │
-└─────────────────────────────────────────────────────┘
-```
-
-### Key Components
-
-1. **Synthesis** (existing): Local semantic search engine using sentence-transformers
-   - 5 embedding models to choose from
-   - 1,899 vault files already indexed
-   - Supports search, archaeology (temporal analysis), and statistics
-   - Located at `.tools/synthesis/` in main Obsidian vault
-
-2. **Temoa Server** (to be built): FastAPI HTTP wrapper around Synthesis
-   - Provides `/search`, `/archaeology`, `/stats` endpoints
-   - Serves mobile-friendly web UI
-   - Handles authentication via Tailscale network
-
-3. **Mobile Interface**: Simple HTML/JS search interface
-   - Clean, minimal design optimized for phone screens
-   - Click results to open directly in Obsidian mobile app
-   - Progressive Web App (PWA) support for installation
-
-4. **Gleanings**: Individual notes for saved links
-   - Extracted from daily notes `## Gleanings` sections
-   - Each gleaning becomes a searchable note in `L/Gleanings/`
-   - Automatically indexed by Synthesis for semantic search
-
-## Project Status
-
-**Current Phase**: Phase 1 Complete ✅
-
-**Phase 0 (Discovery) - Complete**:
-- ✅ Synthesis performance validated (~400ms search time)
-- ✅ Bottleneck identified (model loading)
-- ✅ Solution validated (direct imports, model loaded once)
-- ✅ Scaling validated (2,289 files = same speed as 13 files)
-
-**Phase 1 (Minimal Viable Search) - Complete**:
-- ✅ Project setup with uv (FastAPI, sentence-transformers)
-- ✅ Configuration management system
-- ✅ Synthesis direct import wrapper (model in memory)
-- ✅ FastAPI server with `/search`, `/archaeology`, `/stats`, `/health`
-- ✅ Mobile-optimized web UI
-- ✅ Comprehensive test suite (26 tests passing)
-- ✅ API documentation (OpenAPI/Swagger)
-
-**Next Steps**:
-- [ ] Phase 2: Gleanings integration (extraction + indexing)
-- [ ] Phase 3: Enhanced features (filters, PWA, refined UI)
-- [ ] Phase 4: Vault-first LLM (chat with vault context)
-
-See [docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md) for detailed implementation plan.
-
-## Tech Stack
-
-- **Language**: Python 3.11+ with [uv](https://github.com/astral-sh/uv) package manager
-- **Web Framework**: FastAPI (async, OpenAPI docs, easy testing)
-- **Search Engine**: Synthesis (sentence-transformers, local embeddings)
-- **Embeddings**: 5 models available, default `all-MiniLM-L6-v2` (384d, fast)
-- **Deployment**: Tailscale network, systemd service (or Docker)
-- **Frontend**: Vanilla HTML/JS (no framework complexity)
-
-## Quick Start
+## Installation
 
 ```bash
-# Clone the repository
+# Clone repository
 git clone https://github.com/pborenstein/temoa
 cd temoa
 
-# Install dependencies with uv
+# Install with uv
 uv sync
 
-# Configure vault path
-cp config.example.json config.json
-# Edit config.json with your vault and synthesis paths
-
-# Start the server
-uv run python -m temoa
-# Server will run at http://localhost:8080
-# First startup takes ~15s to load the sentence-transformer model
-
-# Access the web UI
-open http://localhost:8080
-
-# Access from mobile (via Tailscale)
-# http://<tailscale-ip>:8080
-
-# Run tests
-uv run pytest
+# Install CLI globally (optional)
+uv tool install --editable .
 ```
 
-### Configuration
+## Configuration
 
-Temoa looks for config in these locations (in order):
-1. `.temoa/config.json` (vault-local - **recommended**)
-2. `~/.config/temoa/config.json` (global config)
-3. `~/.temoa.json` (simple alternative)
-4. `./config.json` (current directory)
+Create a config file at `~/.config/temoa/config.json`:
 
-**Vault-local setup (recommended):**
 ```bash
-cd ~/Obsidian/your-vault
-mkdir -p .temoa
-cp ~/projects/temoa/config.vault-local.example.json .temoa/config.json
-# Edit .temoa/config.json with your synthesis path
-```
-
-Example `.temoa/config.json`:
-```json
+mkdir -p ~/.config/temoa
+cat > ~/.config/temoa/config.json << 'EOF'
 {
-  "vault_path": ".",
+  "vault_path": "~/Obsidian/your-vault",
   "synthesis_path": "~/projects/temoa/old-ideas/synthesis",
-  "default_model": "all-MiniLM-L6-v2",
+  "storage_dir": null,
+  "default_model": "all-mpnet-base-v2",
   "server": {
     "host": "0.0.0.0",
     "port": 8080
   },
   "search": {
     "default_limit": 10,
-    "max_limit": 50
+    "max_limit": 50,
+    "timeout": 10
   }
 }
+EOF
 ```
 
-## API Endpoints
+**Config search order:**
+1. `~/.config/temoa/config.json` (recommended)
+2. `~/.temoa.json` (alternative)
+3. `./config.json` (development)
 
-### `GET /search?q=<query>&limit=<n>&model=<model>`
-Semantic search across vault.
+**Config fields:**
+- `vault_path`: Path to your Obsidian vault
+- `synthesis_path`: Path to Synthesis engine (bundled in `old-ideas/synthesis/`)
+- `storage_dir`: Where to store embeddings index (default: `vault/.temoa/`)
+- `default_model`: Embedding model (see Available Models below)
+- `server`: HTTP server settings
+- `search`: Search defaults and limits
 
-**Example**:
+## Quick Start
+
+```bash
+# Build embedding index (first time only)
+temoa index
+
+# Start server
+temoa server
+
+# Access web UI
+open http://localhost:8080
+
+# Or search from CLI
+temoa search "semantic search"
+
+# Access from mobile (via Tailscale)
+# http://<tailscale-ip>:8080
+```
+
+**First startup**: Model download takes 30-60s (one-time). Subsequent starts: ~15s.
+
+## CLI Commands
+
+```bash
+# Configuration
+temoa config              # Show current config
+
+# Indexing
+temoa index               # Build index from scratch (first time)
+temoa reindex             # Update index (daily use)
+
+# Searching
+temoa search "query"      # Quick search from terminal
+temoa archaeology "topic" # Temporal analysis (when was I interested in X?)
+temoa stats               # Vault statistics
+
+# Gleanings
+temoa extract             # Extract gleanings from daily notes
+temoa migrate             # Migrate old gleanings
+
+# Gleaning management
+temoa gleaning list                           # List all gleanings
+temoa gleaning show <id>                      # Show gleaning details
+temoa gleaning mark <id> --status inactive    # Mark gleaning status
+temoa gleaning maintain                       # Check links, add descriptions
+
+# Server
+temoa server              # Start HTTP server (port 8080)
+temoa server --reload     # Start with auto-reload (dev)
+```
+
+## HTTP API
+
+### Search
+```bash
+GET /search?q=<query>&limit=10&min_score=0.3&include_daily=false
+```
+
+**Parameters:**
+- `q`: Search query (required)
+- `limit`: Max results (default: 10, max: 50)
+- `min_score`: Minimum similarity score 0-1 (default: 0.3)
+- `include_daily`: Include daily notes in results (default: false)
+
+**Example:**
 ```bash
 curl "http://localhost:8080/search?q=semantic+search&limit=5"
 ```
 
-**Response**:
+**Response:**
 ```json
 {
   "query": "semantic search",
   "results": [
     {
-      "relative_path": "L/Gleanings/2025-11-11-semantic-search.md",
       "title": "Semantic Search Tools",
+      "relative_path": "L/Gleanings/abc123.md",
       "similarity_score": 0.847,
-      "obsidian_uri": "obsidian://vault/amoxtli/L/Gleanings/2025-11-11-semantic-search",
-      "wiki_link": "[[Semantic Search Tools]]",
-      "file_path": "~/Obsidian/amoxtli/L/Gleanings/2025-11-11-semantic-search.md"
+      "obsidian_uri": "obsidian://open?vault=...",
+      "description": "Overview of semantic search implementations",
+      "tags": ["search", "ai"]
     }
   ],
   "total": 15,
-  "model": "all-MiniLM-L6-v2"
+  "model": "all-mpnet-base-v2"
 }
 ```
 
-### `GET /archaeology?q=<topic>&threshold=<n>`
-Temporal analysis showing when you were interested in a topic.
-
-**Example**:
+### Archaeology (Temporal Analysis)
 ```bash
-curl "http://localhost:8080/archaeology?q=AI&threshold=0.2"
+GET /archaeology?q=<topic>&threshold=0.2
 ```
 
-**Response**: JSON with timeline entries showing interest over time.
+Shows when you were interested in a topic over time.
 
-### `GET /stats`
-Vault statistics and server health.
+### Statistics
+```bash
+GET /stats
+```
 
-### `POST /chat` (Phase 4)
-Vault-first LLM chat - searches vault before calling external LLM.
+Vault statistics (file count, embeddings, tags).
 
-## Example Queries
+### Health Check
+```bash
+GET /health
+```
 
-**Gleanings-focused**:
-- "GitHub LLM projects"
-- "semantic search implementations"
-- "obsidian copilot alternatives"
+Server health and model status.
 
-**General vault**:
-- "writing about trust"
-- "notes on retirement planning"
-- "productivity systems"
+### Extract Gleanings
+```bash
+POST /extract?incremental=true&auto_reindex=true
+```
 
-**MOC discovery**:
-- "knowledge management"
-- "personal knowledge base patterns"
+Extract gleanings from daily notes and optionally reindex.
 
-**Temporal**:
-- "when was I interested in AI agents?"
-- "timeline of my productivity experiments"
+### Reindex
+```bash
+POST /reindex?force=false
+```
+
+Update embedding index with new/modified files.
+
+## Available Models
+
+| Model | Dimensions | Speed | Quality | Use Case |
+|-------|-----------|-------|---------|----------|
+| `all-MiniLM-L6-v2` | 384 | Fast | Good | Quick searches |
+| `all-MiniLM-L12-v2` | 384 | Medium | Better | Balanced |
+| `all-mpnet-base-v2` | 768 | Slower | Best | Default (quality) |
+| `multi-qa-mpnet-base-cos-v1` | 768 | Slower | Best | Q&A optimized |
+| `paraphrase-albert-small-v2` | 768 | Slower | Good | Paraphrasing |
+
+Default: `all-mpnet-base-v2`
+
+Change model in config or via `--model` flag.
+
+## Gleanings
+
+**Gleanings** are saved links extracted from your daily notes.
+
+### Format in Daily Notes
+
+```markdown
+## Gleanings
+
+- [Article Title](https://example.com) - Description here
+- https://example.com (naked URLs work too)
+```
+
+### Extraction
+
+```bash
+# Extract new gleanings from daily notes
+temoa extract
+
+# Full re-extraction (process all files)
+temoa extract --full
+
+# Dry run (preview what would be extracted)
+temoa extract --dry-run
+```
+
+**Multiple formats supported:**
+- Markdown links: `- [Title](URL) - Description`
+- Naked URLs with bullet: `- https://...`
+- Naked URLs bare: `https://...`
+- Multi-line descriptions (lines starting with `>`)
+- Timestamps: `[HH:MM]` preserved in date field
+
+### Gleaning Management
+
+```bash
+# List inactive gleanings (dead links)
+temoa gleaning list --status inactive
+
+# Mark gleaning as hidden
+temoa gleaning mark abc123 --status hidden --reason "duplicate"
+
+# Check all gleaning links, mark dead ones inactive
+temoa gleaning maintain --check-links --mark-dead-inactive
+```
+
+**Three status types:**
+- `active`: Normal, included in search
+- `inactive`: Dead link, excluded from search, auto-restores if link comes back
+- `hidden`: Manually hidden, never auto-restored
+
+## Mobile Access via Tailscale
+
+Temoa runs on your local network. Access from mobile using Tailscale:
+
+1. **Install Tailscale** on server and mobile device
+2. **Start server**: `temoa server`
+3. **Get server IP**: `tailscale ip -4` (e.g., `100.x.x.x`)
+4. **Access from mobile**: `http://100.x.x.x:8080`
+
+**Security**: Tailscale encrypts all traffic. No HTTPS needed. No public exposure.
+
+## Deployment
+
+### Background Process (Mac/Linux)
+
+```bash
+# Start server in background
+nohup temoa server > ~/temoa.log 2>&1 &
+echo $! > ~/temoa.pid
+
+# View logs
+tail -f ~/temoa.log
+
+# Stop server
+kill $(cat ~/temoa.pid)
+```
+
+### System Service (Linux)
+
+```bash
+# Create systemd service
+sudo tee /etc/systemd/system/temoa.service << 'EOF'
+[Unit]
+Description=Temoa Semantic Search Server
+After=network.target
+
+[Service]
+Type=simple
+User=youruser
+WorkingDirectory=/home/youruser/projects/temoa
+ExecStart=/home/youruser/.local/bin/temoa server
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# Enable and start
+sudo systemctl daemon-reload
+sudo systemctl enable temoa
+sudo systemctl start temoa
+```
+
+### Automation
+
+```bash
+# Daily gleaning extraction (add to crontab)
+0 23 * * * cd ~/projects/temoa && temoa extract
+```
+
+See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for complete deployment guide.
+
+## Architecture
+
+```
+Mobile Browser
+    ↓ HTTP over Tailscale VPN
+FastAPI Server (temoa)
+    ↓ Direct Python imports
+Synthesis Engine (sentence-transformers)
+    ↓ Embeddings
+Obsidian Vault + .temoa/index
+```
+
+**Key components:**
+- **FastAPI server**: HTTP API, web UI, request handling
+- **Synthesis engine**: Semantic search, embeddings, similarity calculation
+- **sentence-transformers**: Pre-trained embedding models
+- **Storage**: `.temoa/` directory in vault (embeddings index, state)
+
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed architecture documentation.
+
+## Performance
+
+**Search**: ~400ms average (2,000+ files)
+**Memory**: ~600 MB (model loaded in RAM)
+**Startup**: ~15s (model loading)
+**Scales**: Linear to 10,000+ files
 
 ## Documentation
 
-- **[docs/TEMOA.md](docs/TEMOA.md)**: Comprehensive project plan (847 lines)
-- **[docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md)**: Detailed waterfall implementation plan
-- **[docs/CHRONICLES.md](docs/CHRONICLES.md)**: Design discussions and decision log
-- **[docs/copilot-learnings.md](docs/copilot-learnings.md)**: Analysis of Obsidian Copilot architecture
-- **[CLAUDE.md](CLAUDE.md)**: Development guide for Claude AI sessions
+- **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**: System architecture with diagrams
+- **[docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md)**: Implementation progress and plans
+- **[docs/CHRONICLES.md](docs/CHRONICLES.md)**: Design decisions and history
+- **[docs/GLEANINGS.md](docs/GLEANINGS.md)**: Gleaning extraction guide
+- **[CLAUDE.md](CLAUDE.md)**: Development guide for AI sessions
 
-## Related Projects
+## Project Status
 
-- **[Synthesis](old-ideas/synthesis/)**: Semantic search engine (production-ready)
-  - Powers the actual search functionality
-  - 5 embedding models, multi-modal support
-  - Currently indexes 1,899 vault files
-
-- **[Apantli](https://github.com/pborenstein/apantli)**: LLM proxy server
-  - May be integrated with Temoa in Phase 4
-  - Provider-agnostic, usage tracking
-
-- **[Old Gleanings](old-ideas/old-gleanings/)**: Previous gleaning management system (abandoned)
-  - Contains 505 historical gleanings to migrate
-  - Reference for extraction patterns
-  - Example of over-engineering to avoid
+See [docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md) for current phase and progress.
 
 ## Philosophy
 
-> **You don't have an organization problem. You have a surfacing problem.**
+> You don't have an organization problem. You have a surfacing problem.
 
-This project rejects the complexity trap of categorization, tagging systems, and manual curation. Instead:
+- **Simple over complex**: Individual files, not state management
+- **Semantic search**: Let embeddings find connections
+- **Mobile-first**: Optimize for phone use
+- **Local processing**: Privacy, no external APIs
+- **Vault-first habit**: Check your vault before searching the internet
 
-- **Gleanings as notes**: Simple individual files, not state management
-- **Semantic search**: Let embeddings find connections, not manual categories
-- **Mobile-first**: Research happens on the phone, so optimize for that
-- **Integration**: Lives inside Obsidian workflow, not separate app
-- **Vault-first habit**: Check what you know before external search
+## Tech Stack
 
-## Success Metrics
-
-**Quantitative**:
-- Response time: < 2 seconds from mobile search to results
-- Relevance: Top 3 results useful for 80%+ of queries
-- Coverage: All 505+ gleanings searchable
-- Usage: 5+ searches per day
-
-**Qualitative**:
-- Lower friction than opening Obsidian + manual search
-- More useful than Obsidian Copilot on mobile
-- Check vault before googling (vault-first habit formed)
-- Finding forgotten gleanings regularly
-
-**Behavioral**:
-- Reduced external searches for known topics
-- More connections between new findings and existing notes
-- Actually using saved links instead of hoarding
-- Building on past knowledge instead of starting from scratch
-
-## Contributing
-
-This is a personal knowledge management project, but the architecture and learnings may be useful for others building similar systems.
-
-Key principles:
-- **uv shop**: We use uv for dependency management, not pip or poetry
-- **Plan like waterfall, implement in agile**: Detailed upfront planning, iterative execution
-- **Mobile-first**: If it doesn't work on the phone, it doesn't work
-- **Privacy**: All processing local, no external APIs (except LLM in Phase 4)
-
-## License
-
-[To be determined]
-
-## Acknowledgments
-
-- **Synthesis project**: Provides the semantic search foundation
-- **Obsidian Copilot**: Architecture patterns and learnings
-- **Nahuatl language**: Beautiful word meanings for project names
+- Python 3.11+ with [uv](https://github.com/astral-sh/uv)
+- FastAPI (async HTTP server)
+- sentence-transformers (embeddings)
+- Click (CLI)
+- Vanilla HTML/CSS/JS (web UI)
 
 ---
 
 **Created**: 2025-11-17
-**Last Updated**: 2025-11-18
-**Status**: Phase 1 Complete ✅
-**Next Milestone**: Phase 2 - Gleanings Integration
+**Last Updated**: 2025-11-22
