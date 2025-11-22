@@ -454,9 +454,13 @@ class SynthesisClient:
             # Get max RRF score to understand the scale
             max_rrf = max((r.get('rrf_score', 0) for r in merged_results), default=0.1)
 
+            # Get max BM25 score for relative scoring
+            max_bm25 = bm25_results[0].get('bm25_score', 1.0) if bm25_results else 1.0
+
             # Boost top BM25 results that are missing from semantic results
-            for idx, bm25_result in enumerate(bm25_results[:5]):  # Top 5 BM25
+            for idx, bm25_result in enumerate(bm25_results[:10]):  # Top 10 BM25
                 path = bm25_result.get('relative_path')
+                bm25_score = bm25_result.get('bm25_score', 0)
 
                 # Only boost if this is a BM25-only result (not in semantic)
                 if path not in semantic_paths:
@@ -464,12 +468,15 @@ class SynthesisClient:
                     for merged_result in merged_results:
                         if merged_result.get('relative_path') == path:
                             old_rrf = merged_result.get('rrf_score', 0)
-                            # Give it an artificial RRF score HIGHER than existing results
-                            # Rank 1 gets max_rrf * 1.5, rank 2 gets max_rrf * 1.4, etc.
-                            artificial_rrf = max_rrf * (1.5 - idx * 0.1)
+
+                            # Boost proportional to BM25 score, but BELOW max_rrf
+                            # This ensures results in both lists still rank highest
+                            # Scale: 0.5 to 0.95 of max_rrf based on BM25 score
+                            score_ratio = bm25_score / max_bm25
+                            artificial_rrf = max_rrf * score_ratio * 0.95
                             merged_result['rrf_score'] = artificial_rrf
 
-                            logger.debug(f"Boosting BM25-only result: {merged_result.get('title')} (BM25: {bm25_result.get('bm25_score')}, old RRF: {old_rrf:.4f}, new RRF: {artificial_rrf:.4f})")
+                            logger.debug(f"Boosting BM25-only result: {merged_result.get('title')} (BM25: {bm25_score:.3f}, ratio: {score_ratio:.2f}, old RRF: {old_rrf:.4f}, new RRF: {artificial_rrf:.4f})")
                             break
 
             # Re-sort by RRF score
