@@ -41,7 +41,7 @@
 - Tailscale network for secure access
 
 ### 5. Avoid Over-Engineering
-- Learn from old-gleanings failure (2,771 lines of complexity)
+- Keep solutions simple and focused
 - No categories, no complex state management
 - Simple individual files, semantic search finds connections
 
@@ -101,13 +101,12 @@ temoa/
 │   ├── CHRONICLES.md     # Design discussions & decision log
 │   ├── IXPANTILIA.md    # Original 847-line plan
 │   └── copilot-learnings.md  # Obsidian Copilot analysis
-├── old-ideas/           # Reference implementations
-│   ├── synthesis/       # Production search engine (DO NOT MODIFY)
-│   └── old-gleanings/   # Abandoned project (reference only)
-├── src/                 # Temoa source code (to be created)
-├── tests/               # Test suite (to be created)
-├── config.example.json  # Configuration template (to be created)
-└── pyproject.toml       # uv dependencies (to be created)
+├── synthesis/           # Production search engine (DO NOT MODIFY)
+├── src/                 # Temoa source code
+├── scripts/             # Extraction and maintenance scripts
+├── tests/               # Test suite
+├── config.example.json  # Configuration template
+└── pyproject.toml       # uv dependencies
 ```
 
 ---
@@ -116,7 +115,7 @@ temoa/
 
 ### The Synthesis Project
 
-**Location**: `old-ideas/synthesis/` (mirrored here for reference)
+**Location**: `synthesis/` (bundled with Temoa)
 **Actual Location**: `.tools/synthesis/` in main Obsidian vault
 
 **Status**: Production-ready, do NOT modify
@@ -146,25 +145,7 @@ uv run main.py models
 
 **Current Coverage**: 1,899 vault files
 
-**Temoa's Role**: Call Synthesis via subprocess, parse JSON output, serve via HTTP
-
-### Old Gleanings Project
-
-**Location**: `old-ideas/old-gleanings/`
-**Status**: Abandoned (over-engineered)
-
-**Useful Parts**:
-- 505 gleanings in `gleanings_state.json` (migration source)
-- Extraction regex patterns for parsing daily notes
-- Understanding of gleaning formats
-
-**Avoid**:
-- Complex categorization system (15+ categories)
-- State management complexity
-- Web application approach
-- Manual script regeneration workflow
-
-**Lesson**: Over-engineering kills adoption. Keep Temoa simple.
+**Temoa's Role**: Import Synthesis modules directly, call functions via Python API, serve via HTTP
 
 ---
 
@@ -631,7 +612,7 @@ uv run mypy src/
 
 ### Test Synthesis Directly
 ```bash
-cd old-ideas/synthesis/
+cd synthesis/
 uv run main.py search "semantic search" --json
 uv run main.py archaeology "AI" --json
 uv run main.py stats
@@ -660,7 +641,7 @@ git push -u origin claude/semantic-search-server-<session-id>
 - [docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md) - Detailed waterfall plan
 - [docs/CHRONICLES.md](docs/CHRONICLES.md) - Design discussions & decision log
 - [docs/copilot-learnings.md](docs/copilot-learnings.md) - Obsidian Copilot analysis (1119 lines)
-- [old-ideas/synthesis/CLAUDE.md](old-ideas/synthesis/CLAUDE.md) - Synthesis project guide
+- [synthesis/CLAUDE.md](synthesis/CLAUDE.md) - Synthesis project guide
 
 ### External Links
 - [uv documentation](https://github.com/astral-sh/uv)

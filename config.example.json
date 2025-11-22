@@ -1,6 +1,6 @@
 {
   "vault_path": "~/Obsidian/amoxtli",
-  "synthesis_path": "old-ideas/synthesis",
+  "synthesis_path": "synthesis",
   "index_path": null,
   "default_model": "all-MiniLM-L6-v2",
   "server": {

@@ -233,7 +233,7 @@ The `extract_and_reindex.sh` script does both automatically:
 
 If running Synthesis directly (not via Temoa server):
 ```bash
-cd old-ideas/synthesis
+cd synthesis
 uv run main.py reindex
 ```
 
@@ -266,28 +266,6 @@ This ensures:
 - **No duplicates**: Same gleaning URL won't be extracted twice
 - **Incremental extraction**: Only new files processed by default
 - **Auditability**: Track what was extracted and when
-
-## Migration from Old Gleanings
-
-If you have historical gleanings from the old `old-gleanings` project:
-
-```bash
-# Preview migration
-python scripts/migrate_old_gleanings.py \
-  --vault-path ~/Obsidian/vault \
-  --old-gleanings old-ideas/old-gleanings/gleanings_state.json \
-  --dry-run
-
-# Migrate all historical gleanings
-python scripts/migrate_old_gleanings.py \
-  --vault-path ~/Obsidian/vault \
-  --old-gleanings old-ideas/old-gleanings/gleanings_state.json
-```
-
-Migrated gleanings will have:
-- Original metadata preserved (category, tags, timestamp)
-- `migrated_from: old-gleanings` in frontmatter
-- Original gleaning ID maintained
 
 ## Maintaining Gleanings
 
@@ -417,7 +395,7 @@ curl "http://localhost:8080/search?q=FastAPI&limit=10"
 open http://localhost:8080/
 
 # Via Synthesis directly
-cd old-ideas/synthesis
+cd synthesis
 uv run main.py search "FastAPI best practices" --json
 ```
 

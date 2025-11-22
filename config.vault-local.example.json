@@ -1,6 +1,6 @@
 {
   "vault_path": ".",
-  "synthesis_path": "~/projects/temoa/old-ideas/synthesis",
+  "synthesis_path": "~/projects/temoa/synthesis",
   "index_path": null,
   "default_model": "all-MiniLM-L6-v2",
   "server": {

@@ -10,7 +10,7 @@ import json
 import sys
 from pathlib import Path
 
-SYNTHESIS_DIR = Path("old-ideas/synthesis")
+SYNTHESIS_DIR = Path("synthesis")
 CONFIG_FILE = SYNTHESIS_DIR / "synthesis_config.json"
 
 
@@ -75,7 +75,7 @@ def main():
 Next steps:
 
 1. Process the vault (create embeddings):
-   cd old-ideas/synthesis
+   cd synthesis
    uv run main.py process
 
 2. Run performance tests:

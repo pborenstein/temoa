@@ -67,7 +67,7 @@
 │                              ▼                                  │
 │  ┌───────────────────────────────────────────────────────────┐  │
 │  │              Synthesis Engine                             │  │
-│  │          (old-ideas/synthesis/)                           │  │
+│  │              (synthesis/)                                 │  │
 │  │  ┌─────────────────────────────────────────────────────┐  │  │
 │  │  │  Core Components:                                   │  │  │
 │  │  │  1. sentence-transformers (HuggingFace)             │  │  │

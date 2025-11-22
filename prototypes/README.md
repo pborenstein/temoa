@@ -16,11 +16,11 @@ This directory contains test scripts for Phase 0: Discovery & Validation.
    python prototypes/setup_vault.py ~/Obsidian/toy-vault
    ```
 
-   This updates `old-ideas/synthesis/synthesis_config.json` to point at your vault.
+   This updates `synthesis/synthesis_config.json` to point at your vault.
 
 3. **Process the vault** (create embeddings - may take a few minutes):
    ```bash
-   cd old-ideas/synthesis
+   cd synthesis
    uv run main.py process
    ```
 
@@ -95,7 +95,7 @@ This will help identify WHERE the time is being spent:
 You can also test Synthesis directly from its directory:
 
 ```bash
-cd old-ideas/synthesis
+cd synthesis
 time uv run main.py search "semantic search" --json
 ```
 

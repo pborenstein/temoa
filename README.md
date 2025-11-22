@@ -38,7 +38,7 @@ mkdir -p ~/.config/temoa
 cat > ~/.config/temoa/config.json << 'EOF'
 {
   "vault_path": "~/Obsidian/your-vault",
-  "synthesis_path": "~/projects/temoa/old-ideas/synthesis",
+  "synthesis_path": "~/projects/temoa/synthesis",
   "storage_dir": null,
   "default_model": "all-mpnet-base-v2",
   "server": {
@@ -61,7 +61,7 @@ EOF
 
 **Config fields:**
 - `vault_path`: Path to your Obsidian vault
-- `synthesis_path`: Path to Synthesis engine (bundled in `old-ideas/synthesis/`)
+- `synthesis_path`: Path to Synthesis engine (bundled in `synthesis/`)
 - `storage_dir`: Where to store embeddings index (default: `vault/.temoa/`)
 - `default_model`: Embedding model (see Available Models below)
 - `server`: HTTP server settings
@@ -105,7 +105,6 @@ temoa stats               # Vault statistics
 
 # Gleanings
 temoa extract             # Extract gleanings from daily notes
-temoa migrate             # Migrate old gleanings
 
 # Gleaning management
 temoa gleaning list                           # List all gleanings

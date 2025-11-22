@@ -72,7 +72,7 @@ class Config:
             "  cat > ~/.config/temoa/config.json << 'EOF'\n"
             "{\n"
             '  "vault_path": "~/Obsidian/your-vault",\n'
-            '  "synthesis_path": "~/projects/temoa/old-ideas/synthesis",\n'
+            '  "synthesis_path": "~/projects/temoa/synthesis",\n'
             '  "index_path": null,\n'
             '  "default_model": "all-mpnet-base-v2",\n'
             '  "server": {"host": "0.0.0.0", "port": 8080},\n'

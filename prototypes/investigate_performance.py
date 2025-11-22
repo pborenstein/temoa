@@ -9,7 +9,7 @@ import subprocess
 import time
 from pathlib import Path
 
-SYNTHESIS_PATH = Path("old-ideas/synthesis/")
+SYNTHESIS_PATH = Path("synthesis/")
 
 
 def test_direct_synthesis():

@@ -602,7 +602,7 @@ uv sync
 cat > config.json << 'EOF'
 {
   "vault_path": "~/Obsidian/your-vault",
-  "synthesis_path": "old-ideas/synthesis",
+  "synthesis_path": "synthesis",
   "index_path": null,
   "default_model": "all-MiniLM-L6-v2",
   "server": {"host": "0.0.0.0", "port": 8080},

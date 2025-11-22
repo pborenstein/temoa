@@ -16,8 +16,8 @@ import time
 from pathlib import Path
 
 # Adjust this to point to your actual Synthesis location
-# Could be: old-ideas/synthesis/ OR ~/.obsidian/vaults/main/.tools/synthesis
-SYNTHESIS_PATH = Path("old-ideas/synthesis/")
+# Could be: synthesis/ OR ~/.obsidian/vaults/main/.tools/synthesis
+SYNTHESIS_PATH = Path("synthesis/")
 
 
 def run_synthesis_command(args: list, timeout: int = 30) -> tuple[bool, str, str, float]:

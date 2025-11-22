@@ -91,7 +91,7 @@ Edit your config file (usually `~/.config/temoa/config.json`):
 ```json
 {
   "vault_path": "~/Obsidian/your-vault",
-  "synthesis_path": "~/projects/temoa/old-ideas/synthesis",
+  "synthesis_path": "~/projects/temoa/synthesis",
   "index_path": null,
   "default_model": "all-mpnet-base-v2",  ← Change this line
   "server": {...},

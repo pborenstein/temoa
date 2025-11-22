@@ -68,7 +68,7 @@ mkdir -p ~/.config/temoa
 cat > ~/.config/temoa/config.json << 'EOF'
 {
   "vault_path": "~/Obsidian/your-vault",
-  "synthesis_path": "~/projects/temoa/old-ideas/synthesis",
+  "synthesis_path": "~/projects/temoa/synthesis",
   "storage_dir": null,
   "default_model": "all-mpnet-base-v2",
   "server": {

@@ -8,7 +8,7 @@ echo
 
 # Navigate to synthesis directory (relative to script location)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$SCRIPT_DIR/old-ideas/synthesis"
+cd "$SCRIPT_DIR/synthesis"
 
 # Remove old venv if it exists
 if [ -d ".venv" ]; then
@@ -28,7 +28,7 @@ echo
 echo "✅ Setup complete!"
 echo
 echo "To use Synthesis:"
-echo "  cd old-ideas/synthesis"
+echo "  cd synthesis"
 echo "  uv run main.py --help"
 echo
 echo "To run Phase 0 tests:"

@@ -113,7 +113,7 @@ class SynthesisClient:
         Initialize Synthesis client with direct imports.
 
         Args:
-            synthesis_path: Path to Synthesis directory (old-ideas/synthesis)
+            synthesis_path: Path to Synthesis directory (synthesis/)
             vault_path: Path to Obsidian vault
             model: Model name to load (default: all-MiniLM-L6-v2)
             storage_dir: Where embeddings are stored (default: synthesis_path/embeddings)
