@@ -59,8 +59,8 @@
 │  │  ┌─────────────────────────────────────────────────────┐  │  │
 │  │  │       SynthesisClient (wrapper)                     │  │  │
 │  │  │  - Direct Python imports (not subprocess)           │  │  │
-│  │  │  - One-time model loading at startup               │  │  │
-│  │  │  - Caches loaded model in memory                   │  │  │
+│  │  │  - One-time model loading at startup                │  │  │
+│  │  │  - Caches loaded model in memory                    │  │  │
 │  │  └─────────────────────────────────────────────────────┘  │  │
 │  └───────────────────────────────────────────────────────────┘  │
 │                              │                                  │
@@ -81,14 +81,14 @@
 │  │              Obsidian Vault                               │  │
 │  │          (~/Obsidian/vault-name/)                         │  │
 │  │                                                           │  │
-│  │  ├── Daily/                 (daily notes)                │  │
-│  │  ├── Journal/               (journal entries)            │  │
-│  │  ├── L/                                                  │  │
-│  │  │   └── Gleanings/         (extracted gleanings)       │  │
-│  │  └── .temoa/                (Temoa data)                 │  │
-│  │      ├── embeddings.pkl     (vector index)               │  │
-│  │      ├── config.json        (local config)               │  │
-│  │      └── extraction_state.json  (gleaning tracking)      │  │
+│  │  ├── Daily/                 (daily notes)                 │  │
+│  │  ├── Journal/               (journal entries)             │  │
+│  │  ├── L/                                                   │  │
+│  │  │   └── Gleanings/         (extracted gleanings)         │  │
+│  │  └── .temoa/                (Temoa data)                  │  │
+│  │      ├── embeddings.pkl     (vector index)                │  │
+│  │      ├── config.json        (local config)                │  │
+│  │      └── extraction_state.json  (gleaning tracking)       │  │
 │  └───────────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -114,13 +114,13 @@ Traditional Keyword Search:
 │  Query: "machine learning"                                  │
 │  Matches: Documents containing exact words "machine" AND    │
 │           "learning"                                        │
-│  Misses:  "neural networks", "deep learning", "AI models"  │
+│  Misses:  "neural networks", "deep learning", "AI models"   │
 └─────────────────────────────────────────────────────────────┘
 
 Semantic Search with Embeddings:
 ┌─────────────────────────────────────────────────────────────┐
 │  Query: "machine learning"                                  │
-│  Embedding: [0.42, -0.13, 0.87, ..., 0.21]  (384 numbers)  │
+│  Embedding: [0.42, -0.13, 0.87, ..., 0.21]  (384 numbers)   │
 │  Finds:  "neural networks"    (similar vector)              │
 │          "deep learning"      (similar vector)              │
 │          "AI models"          (similar vector)              │
@@ -192,7 +192,7 @@ Semantic Search with Embeddings:
    │  Doc 1:    [0.21, 0.53, -0.19, ..., 0.47] → 0.92 ✓      │
    │  Doc 2:    [0.89, -0.12, 0.67, ..., 0.03] → 0.34        │
    │  Doc 3:    [0.15, 0.61, -0.28, ..., 0.51] → 0.95 ✓✓     │
-   │            ↑                                             │
+   │            ↑                                            │
    │       Similarity scores (0-1)                           │
    └─────────────────────────────────────────────────────────┘
                               │
@@ -246,12 +246,12 @@ Where:
 
 ### Model Options in Temoa
 
-| Model | Dimensions | Speed | Quality | Use Case |
-|-------|-----------|-------|---------|----------|
-| `all-MiniLM-L6-v2` | 384 | Fast | Good | Default (fast mobile search) |
-| `all-MiniLM-L12-v2` | 384 | Medium | Better | More nuanced search |
-| `all-mpnet-base-v2` | 768 | Slower | Best | Highest quality results |
-| `multi-qa-mpnet-base-cos-v1` | 768 | Slower | Best | Optimized for Q&A |
+| Model                        | Dimensions | Speed  | Quality | Use Case                     |
+| ---------------------------- | ---------- | ------ | ------- | ---------------------------- |
+| `all-MiniLM-L6-v2`           | 384        | Fast   | Good    | Default (fast mobile search) |
+| `all-MiniLM-L12-v2`          | 384        | Medium | Better  | More nuanced search          |
+| `all-mpnet-base-v2`          | 768        | Slower | Best    | Highest quality results      |
+| `multi-qa-mpnet-base-cos-v1` | 768        | Slower | Best    | Optimized for Q&A            |
 
 **Current Default**: `all-MiniLM-L6-v2` (good balance for mobile use)
 
@@ -353,9 +353,9 @@ Optimization Opportunities:
 ### Startup Flow
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│ Server Startup (one-time, ~15 seconds)                          │
-└─────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────┐
+│ Server Startup (one-time, ~15 seconds)                  │
+└─────────────────────────────────────────────────────────┘
 
 1. Load Configuration
    config.json → Config object (10ms)
@@ -367,10 +367,10 @@ Optimization Opportunities:
                               ▼
 3. Load Transformer Model (THIS IS THE SLOW PART)
    ┌─────────────────────────────────────────────────────────┐
-   │  sentence-transformers downloads/caches model            │
-   │  - First run: Download ~80MB (one-time, 30-60s)          │
-   │  - Subsequent: Load from cache (~2-3s)                   │
-   │  - Initialize neural network (~10-12s)                   │
+   │  sentence-transformers downloads/caches model           │
+   │  - First run: Download ~80MB (one-time, 30-60s)         │
+   │  - Subsequent: Load from cache (~2-3s)                  │
+   │  - Initialize neural network (~10-12s)                  │
    └─────────────────────────────────────────────────────────┘
                               │
                               ▼
@@ -471,8 +471,8 @@ A comprehensive guide to using the Dataview plugin for querying your Obsidian va
 
 ```
 Global Config (~/.config/temoa/config.json):
-┌─────────────────────────────────────────────────────────┐
-│ {                                                       │
+┌────────────────────────────────────────────────────────┐
+│ {                                                      │
 │   "vault_path": "~/Obsidian/vault-name",               │
 │   "synthesis_path": "old-ideas/synthesis",             │
 │   "storage_dir": null,     // Use .temoa/ in vault     │
@@ -487,15 +487,15 @@ Global Config (~/.config/temoa/config.json):
 │     "timeout": 10                                      │
 │   }                                                    │
 │ }                                                      │
-└─────────────────────────────────────────────────────────┘
+└────────────────────────────────────────────────────────┘
 
 Vault-Local Config (vault/.temoa/config.json):
 ┌─────────────────────────────────────────────────────────┐
 │ {                                                       │
 │   "storage_dir": "~/custom-index-location",  // Override│
-│   "excluded_paths": ["Private/", "Archive/"],          │
-│   "custom_patterns": ["Notes/**/*.md"]                 │
-│ }                                                      │
+│   "excluded_paths": ["Private/", "Archive/"],           │
+│   "custom_patterns": ["Notes/**/*.md"]                  │
+│ }                                                       │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -503,25 +503,25 @@ Vault-Local Config (vault/.temoa/config.json):
 
 ```
 .temoa/embeddings.pkl (pickle format):
-┌─────────────────────────────────────────────────────────┐
-│ {                                                       │
-│   "embeddings": [                                       │
-│     {                                                   │
-│       "file_path": "L/Gleanings/abc123.md",            │
-│       "embedding": [0.42, -0.13, ..., 0.21],  // 384 floats│
-│       "metadata": {                                    │
-│         "title": "Plugin Guide",                       │
-│         "tags": ["obsidian", "plugins"],               │
-│         "modified": "2025-11-22T10:00:00"              │
-│       }                                                │
-│     },                                                 │
-│     { ... },  // 2000+ more entries                    │
-│   ],                                                   │
-│   "model_name": "all-MiniLM-L6-v2",                    │
-│   "indexed_at": "2025-11-22T09:00:00",                 │
-│   "total_files": 2281                                  │
-│ }                                                      │
-└─────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────┐
+│ {                                                         │
+│   "embeddings": [                                         │
+│     {                                                     │
+│       "file_path": "L/Gleanings/abc123.md",               │
+│       "embedding": [0.42, -0.13, ..., 0.21], // 384 floats│
+│       "metadata": {                                       │
+│         "title": "Plugin Guide",                          │
+│         "tags": ["obsidian", "plugins"],                  │
+│         "modified": "2025-11-22T10:00:00"                 │
+│       }                                                   │
+│     },                                                    │
+│     { ... },  // 2000+ more entries                       │
+│   ],                                                      │
+│   "model_name": "all-MiniLM-L6-v2",                       │
+│   "indexed_at": "2025-11-22T09:00:00",                    │
+│   "total_files": 2281                                     │
+│ }                                                         │
+└───────────────────────────────────────────────────────────┘
 
 File Size Estimates:
 - 1000 files: ~5 MB
@@ -580,11 +580,11 @@ Key Responsibilities:
 
 Key Methods:
 ┌────────────────────────────────────────────────────────┐
-│ search(query, limit) → List[SearchResult]             │
+│ search(query, limit) → List[SearchResult]              │
 │ archaeology(topic, limit) → List[TemporalResult]       │
 │ reindex(force=False) → IndexStats                      │
-│ get_stats() → VaultStats                              │
-│ health_check() → HealthStatus                         │
+│ get_stats() → VaultStats                               │
+│ health_check() → HealthStatus                          │
 └────────────────────────────────────────────────────────┘
 ```
 
@@ -747,8 +747,8 @@ Option 2: Background (long-running)
 Option 3: Systemd (production)
 ┌────────────────────────────────────────────────────────┐
 │ $ sudo systemctl start temoa                           │
-│ $ sudo systemctl enable temoa  # Start on boot        │
-│ $ journalctl -u temoa -f       # View logs            │
+│ $ sudo systemctl enable temoa  # Start on boot         │
+│ $ journalctl -u temoa -f       # View logs             │
 └────────────────────────────────────────────────────────┘
 
 Option 4: Docker (containerized)
