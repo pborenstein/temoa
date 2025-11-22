@@ -12,6 +12,17 @@
 
 ---
 
+## Core Documentation
+
+| Document | Purpose |
+|----------|---------|
+| [ARCHITECTURE.md](ARCHITECTURE.md) | System architecture, embeddings explanation, data flow |
+| [CHRONICLES.md](CHRONICLES.md) | Design discussions and decision history |
+| [CLAUDE.md](../CLAUDE.md) | Development guide for AI sessions |
+| This file | Implementation progress tracking |
+
+---
+
 ## Phase Overview
 
 | Phase | Status | Duration | Dependencies |
