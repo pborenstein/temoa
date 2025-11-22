@@ -9,6 +9,7 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
+from .__version__ import __version__
 from .config import Config, ConfigError
 from .synthesis import SynthesisClient, SynthesisError
 from .gleanings import parse_frontmatter_status, GleaningStatusManager, scan_gleaning_files
@@ -152,7 +153,7 @@ def filter_daily_notes(results: list) -> list:
 app = FastAPI(
     title="Temoa",
     description="Local semantic search server for Obsidian vault",
-    version="0.1.0",
+    version=__version__,
     docs_url="/docs",
     redoc_url="/redoc",
     lifespan=lifespan
@@ -175,7 +176,7 @@ async def root():
 
     if not ui_path.exists():
         # Return basic HTML if UI file doesn't exist yet
-        return HTMLResponse(content="""
+        return HTMLResponse(content=f"""
 <!DOCTYPE html>
 <html>
 <head>
@@ -186,11 +187,14 @@ async def root():
     <h1>🔍 Temoa</h1>
     <p>Semantic search server is running!</p>
     <p>UI coming soon. Try <a href="/docs">/docs</a> for API documentation.</p>
+    <p>Version: {__version__}</p>
 </body>
 </html>
         """)
 
     html_content = ui_path.read_text()
+    # Inject version into HTML
+    html_content = html_content.replace("{{VERSION}}", __version__)
     return HTMLResponse(content=html_content)
 
 
