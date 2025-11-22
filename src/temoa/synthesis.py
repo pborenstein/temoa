@@ -551,55 +551,66 @@ class SynthesisClient:
         try:
             logger.info(f"Starting vault reindex (force={force})...")
 
-            # Trigger semantic embedding reindexing
-            success = self.pipeline.process_vault(force_rebuild=force)
+            # Read vault content once for both indexes
+            logger.info("Reading vault files...")
+            vault_content = self.pipeline.reader.read_vault()
 
-            if not success:
-                raise SynthesisError("Reindexing failed (process_vault returned False)")
+            if not vault_content:
+                logger.error("No content found in vault")
+                raise SynthesisError("No content found in vault")
 
-            # Get updated stats
-            stats = self.pipeline.get_stats()
-            files_indexed = stats.get("total_files") or stats.get("file_count", 0)
+            logger.info(f"Read {len(vault_content)} files from vault")
 
-            logger.info(f"✓ Semantic indexing complete: {files_indexed} files indexed")
-
-            # Build BM25 index if available
+            # Build BM25 index FIRST (fast - takes seconds)
             if self.bm25_index is not None:
                 logger.info("Building BM25 keyword index...")
                 try:
-                    # Get all documents with content
-                    embeddings, metadata, _ = self.pipeline.store.load_embeddings()
+                    documents = []
+                    for content_obj in vault_content:
+                        doc = {
+                            'relative_path': content_obj.relative_path,
+                            'title': content_obj.title,
+                            'content': content_obj.content,
+                            'tags': content_obj.tags,
+                            'frontmatter': content_obj.frontmatter
+                        }
+                        documents.append(doc)
 
-                    if metadata:
-                        # Read content for each document
-                        from .synthesis import SynthesisClient
-                        documents = []
-
-                        for meta in metadata:
-                            # Load file content
-                            file_path = self.vault_path / meta['relative_path']
-                            try:
-                                content_obj = self.pipeline.reader.read_file(file_path)
-                                if content_obj and content_obj.content:
-                                    doc = {
-                                        'relative_path': meta['relative_path'],
-                                        'title': meta.get('title', ''),
-                                        'content': content_obj.content,
-                                        'tags': meta.get('tags', []),
-                                        'frontmatter': meta.get('frontmatter', {})
-                                    }
-                                    documents.append(doc)
-                            except Exception as e:
-                                logger.debug(f"Could not read {meta['relative_path']}: {e}")
-                                continue
-
-                        # Build BM25 index
-                        self.bm25_index.build(documents)
-                        logger.info(f"✓ BM25 index built: {len(documents)} documents")
-
+                    self.bm25_index.build(documents)
+                    logger.info(f"✓ BM25 index built: {len(documents)} documents")
                 except Exception as e:
                     logger.warning(f"BM25 indexing failed: {e}")
 
+            # Build semantic embeddings SECOND (slow - takes minutes)
+            logger.info("Building semantic embeddings (this may take several minutes)...")
+
+            if force:
+                self.pipeline.store.clear()
+
+            texts = [content.content for content in vault_content]
+            embeddings = self.pipeline.engine.embed_texts(texts, show_progress=True)
+
+            metadata = []
+            for content in vault_content:
+                metadata.append({
+                    "relative_path": content.relative_path,
+                    "title": content.title,
+                    "tags": content.tags,
+                    "created_date": content.created_date,
+                    "modified_date": content.modified_date,
+                    "content_length": len(content.content),
+                    "frontmatter": content.frontmatter
+                })
+
+            model_info = {
+                "model_name": self.pipeline.engine.model_name,
+                "embedding_dim": embeddings.shape[1] if len(embeddings.shape) > 1 else 0
+            }
+
+            self.pipeline.store.save_embeddings(embeddings, metadata, model_info)
+
+            files_indexed = len(vault_content)
+            logger.info(f"✓ Semantic indexing complete: {files_indexed} files indexed")
             logger.info(f"✓ Full reindexing complete: {files_indexed} files")
 
             return {
