@@ -526,9 +526,9 @@ def grep_filter(query: str, vault_path: Path) -> list[Path]:
 - [ ] Should search history be tracked?
 
 ### Deployment
-- [ ] Same server as Apantli or separate?
-- [ ] Systemd vs Docker vs simple script?
-- [ ] Where should Temoa code live?
+- [x] Same server as Apantli or separate? → **Separate service**
+- [x] Systemd vs simple script? → **Manual/nohup for dev, systemd for production**
+- [x] Where should Temoa code live? → **~/projects/temoa (separate repo)**
 - [ ] How to handle Synthesis updates/re-indexing?
 
 ---
