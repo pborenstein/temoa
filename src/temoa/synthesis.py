@@ -514,11 +514,17 @@ class SynthesisClient:
                 semantic_match = next((r for r in semantic_results if r.get('relative_path') == path), None)
                 if semantic_match:
                     result['similarity_score'] = semantic_match.get('similarity_score', 0.0)
+                else:
+                    # BM25-only result: set similarity_score to 0.0
+                    result['similarity_score'] = 0.0
 
                 # Find this result in BM25 results
                 bm25_match = next((r for r in bm25_results if r.get('relative_path') == path), None)
                 if bm25_match:
                     result['bm25_score'] = bm25_match.get('bm25_score', 0.0)
+                else:
+                    # Semantic-only result: set bm25_score to 0.0
+                    result['bm25_score'] = 0.0
 
             # Limit final results
             merged_results = merged_results[:limit]
