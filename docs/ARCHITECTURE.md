@@ -750,12 +750,6 @@ Option 3: Systemd (production)
 │ $ sudo systemctl enable temoa  # Start on boot         │
 │ $ journalctl -u temoa -f       # View logs             │
 └────────────────────────────────────────────────────────┘
-
-Option 4: Docker (containerized)
-┌────────────────────────────────────────────────────────┐
-│ $ docker-compose up -d                                 │
-│ $ docker logs -f temoa                                 │
-└────────────────────────────────────────────────────────┘
 ```
 
 ### Automation

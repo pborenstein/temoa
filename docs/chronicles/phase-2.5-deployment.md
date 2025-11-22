@@ -1566,11 +1566,6 @@ Security:
    sudo systemctl enable temoa  # Start on boot
    ```
 
-4. **Docker** (containerized):
-   ```bash
-   docker-compose up -d
-   ```
-
 **Daily automation:**
 - Cron job: Extract gleanings daily at 11 PM
 - Auto-reindex after extraction
@@ -1693,7 +1688,6 @@ Not everyone uses the same workflow:
 - Manual (development)
 - Background (personal use)
 - Systemd (always-on)
-- Docker (containerized)
 
 All are valid, all documented.
 

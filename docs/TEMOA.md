@@ -501,18 +501,14 @@ Should this be:
 **Where does Temoa run?**
 - Same server as Apantli (local machine, always on?)
 - Raspberry Pi / home server?
-- Docker container?
 
 **How to start**:
 ```bash
 # Option A: systemd service
-sudo systemctl start Temoa
+sudo systemctl start temoa
 
-# Option B: Docker
-docker run -d -p 8080:8080 Temoa
-
-# Option C: Simple script
-cd /path/to/Temoa
+# Option B: Simple script
+cd /path/to/temoa
 uv run server.py
 ```
 
@@ -709,8 +705,8 @@ uv run server.py
 - [ ] How to coordinate between services?
 
 ### Deployment
-- [ ] Same server as Apantli or separate?
-- [ ] Systemd vs Docker vs simple script?
+- [x] Same server as Apantli or separate? → **Separate service**
+- [x] Systemd vs simple script? → **Manual/systemd, no Docker**
 - [ ] How to handle updates/restarts?
 - [ ] Backup strategy for gleanings?
 
