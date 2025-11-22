@@ -18,6 +18,8 @@ dependencies = [
     "beautifulsoup4>=4.12.0",
     # BM25 for hybrid search
     "rank-bm25>=0.2.2",
+    # Frontmatter parsing for type filtering
+    "python-frontmatter>=1.0.0",
 ]
 
 [project.scripts]
