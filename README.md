@@ -366,11 +366,6 @@ See [docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md) for current phase and progr
 - **Local processing**: Privacy, no external APIs
 - **Vault-first habit**: Check your vault before searching the internet
 
-## Related Projects
-
-- **[Synthesis](old-ideas/synthesis/)**: Semantic search engine that powers Temoa
-- **[Apantli](https://github.com/pborenstein/apantli)**: LLM proxy server
-
 ## Tech Stack
 
 - Python 3.11+ with [uv](https://github.com/astral-sh/uv)
@@ -378,10 +373,6 @@ See [docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md) for current phase and progr
 - sentence-transformers (embeddings)
 - Click (CLI)
 - Vanilla HTML/CSS/JS (web UI)
-
-## License
-
-[To be determined]
 
 ---
 
