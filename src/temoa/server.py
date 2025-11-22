@@ -149,6 +149,77 @@ def filter_daily_notes(results: list) -> list:
     return filtered
 
 
+def filter_by_type(
+    results: list,
+    include_types: list[str] | None = None,
+    exclude_types: list[str] | None = None
+) -> tuple[list, int]:
+    """
+    Filter results by type field in frontmatter.
+
+    Args:
+        results: Search results from Synthesis
+        include_types: If set, only include results with these types (OR logic)
+        exclude_types: If set, exclude results with these types (OR logic)
+
+    Returns:
+        (filtered_results, num_filtered_out)
+
+    Logic:
+        - If include_types: Keep only if ANY type matches
+        - If exclude_types: Remove if ANY type matches
+        - If both: Apply include first, then exclude
+        - If neither: Return all results
+        - Files with no type field are treated as empty list []
+    """
+    import frontmatter
+    from .gleanings import parse_type_field
+
+    if not include_types and not exclude_types:
+        return results, 0
+
+    filtered = []
+
+    for result in results:
+        file_path = result.get("file_path")
+        if not file_path:
+            # If no file_path, include result (can't check type)
+            filtered.append(result)
+            continue
+
+        try:
+            # Read frontmatter to get type field
+            with open(file_path, "r", encoding="utf-8") as f:
+                post = frontmatter.load(f)
+                types = parse_type_field(post.metadata)
+
+        except Exception as e:
+            # If can't read frontmatter, treat as no type
+            logger.warning(f"Error reading frontmatter for {file_path}: {e}")
+            types = []
+
+        # Apply inclusive filter
+        if include_types:
+            if not types:
+                # No type field - skip when using include filter
+                continue
+            if not any(t in include_types for t in types):
+                # No matching types - skip
+                continue
+
+        # Apply exclusive filter
+        if exclude_types:
+            if any(t in exclude_types for t in types):
+                # Has excluded type - skip
+                logger.debug(f"Filtered out type {types}: {result.get('title', 'Unknown')}")
+                continue
+
+        filtered.append(result)
+
+    num_filtered = len(results) - len(filtered)
+    return filtered, num_filtered
+
+
 # Create FastAPI app
 app = FastAPI(
     title="Temoa",
@@ -217,6 +288,14 @@ async def search(
         default=False,
         description="Include daily notes in results (default: False)"
     ),
+    include_types: Optional[str] = Query(
+        default=None,
+        description="Comma-separated list of types to include (e.g., 'gleaning,article')"
+    ),
+    exclude_types: Optional[str] = Query(
+        default="daily",
+        description="Comma-separated list of types to exclude (default: 'daily')"
+    ),
     hybrid: Optional[bool] = Query(
         default=None,
         description="Use hybrid search (BM25 + semantic). Defaults to config setting."
@@ -262,10 +341,19 @@ async def search(
         limit = config.search_max_limit
 
     try:
+        # Parse type filters
+        include_type_list = None
+        if include_types:
+            include_type_list = [t.strip() for t in include_types.split(",") if t.strip()]
+
+        exclude_type_list = None
+        if exclude_types:
+            exclude_type_list = [t.strip() for t in exclude_types.split(",") if t.strip()]
+
         # Determine whether to use hybrid search
         use_hybrid = hybrid if hybrid is not None else config.hybrid_search_enabled
 
-        logger.info(f"Search: query='{q}', limit={limit}, min_score={min_score}, include_daily={include_daily}, hybrid={use_hybrid}, model={model or 'default'}")
+        logger.info(f"Search: query='{q}', limit={limit}, min_score={min_score}, include_daily={include_daily}, include_types={include_type_list}, exclude_types={exclude_type_list}, hybrid={use_hybrid}, model={model or 'default'}")
 
         # Note: model parameter not supported yet in current wrapper
         # Would require reinitializing Synthesis with different model
@@ -317,6 +405,16 @@ async def search(
         if status_removed > 0:
             logger.info(f"Filtered {status_removed} inactive gleanings from results")
 
+        # Filter by type
+        filtered_results, type_removed = filter_by_type(
+            filtered_results,
+            include_types=include_type_list,
+            exclude_types=exclude_type_list
+        )
+
+        if type_removed > 0:
+            logger.info(f"Filtered {type_removed} results by type (include={include_type_list}, exclude={exclude_type_list})")
+
         # Filter out daily notes (unless explicitly requested)
         daily_removed = 0
         if not include_daily:
@@ -337,8 +435,9 @@ async def search(
         data["filtered_count"] = {
             "by_score": score_removed,
             "by_status": status_removed,
+            "by_type": type_removed,
             "by_daily": daily_removed,
-            "total_removed": score_removed + status_removed + daily_removed
+            "total_removed": score_removed + status_removed + type_removed + daily_removed
         }
 
         return JSONResponse(content=data)

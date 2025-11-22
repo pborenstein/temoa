@@ -82,11 +82,14 @@ def server(host, port, reload, log_level):
 @click.argument('query')
 @click.option('--limit', '-n', default=10, type=int, help='Number of results (default: 10)')
 @click.option('--min-score', '-s', default=0.3, type=float, help='Minimum similarity score (0.0-1.0, default: 0.3)')
+@click.option('--include-daily', is_flag=True, help='Include daily notes in results')
+@click.option('--type', '-t', 'include_types', default=None, help='Include only these types (comma-separated, e.g., "gleaning,article")')
+@click.option('--exclude-type', '-x', 'exclude_types', default='daily', help='Exclude these types (comma-separated, default: "daily")')
 @click.option('--hybrid', is_flag=True, default=None, help='Use hybrid search (BM25 + semantic)')
 @click.option('--bm25-only', is_flag=True, help='Use BM25 keyword search only (for debugging)')
 @click.option('--model', '-m', default=None, help='Embedding model to use')
 @click.option('--json', 'output_json', is_flag=True, help='Output as JSON')
-def search(query, limit, min_score, hybrid, bm25_only, model, output_json):
+def search(query, limit, min_score, include_daily, include_types, exclude_types, hybrid, bm25_only, model, output_json):
     """Search the vault for similar content.
 
     \b
@@ -97,11 +100,24 @@ def search(query, limit, min_score, hybrid, bm25_only, model, output_json):
       temoa search "Joan Doe" --hybrid
       temoa search "Joan Doe" --bm25-only
       temoa search "obsidian" --json
+      temoa search "topic" --type gleaning,article
+      temoa search "topic" --exclude-type daily,note
+      temoa search "topic" --include-daily
     """
     from .config import Config
     from .synthesis import SynthesisClient
+    from .server import filter_inactive_gleanings, filter_daily_notes, filter_by_type
 
     config = Config()
+
+    # Parse type filters
+    include_type_list = None
+    if include_types:
+        include_type_list = [t.strip() for t in include_types.split(",") if t.strip()]
+
+    exclude_type_list = None
+    if exclude_types:
+        exclude_type_list = [t.strip() for t in exclude_types.split(",") if t.strip()]
 
     try:
         client = SynthesisClient(
@@ -121,7 +137,7 @@ def search(query, limit, min_score, hybrid, bm25_only, model, output_json):
             use_hybrid = hybrid if hybrid is not None else config.hybrid_search_enabled
 
             # Request more results to account for filtering
-            search_limit = limit * 2 if limit else 50
+            search_limit = limit * 3 if limit else 100
 
             # Choose search method
             if use_hybrid:
@@ -132,19 +148,49 @@ def search(query, limit, min_score, hybrid, bm25_only, model, output_json):
             results = result_data.get('results', [])
 
             # Filter by minimum similarity score (but not in hybrid mode)
+            score_removed = 0
             if use_hybrid:
                 # In hybrid mode, RRF has already ranked results appropriately
                 # Don't filter by similarity score since BM25-only results may not have one
-                filtered_results = results[:limit]
+                filtered_results = results
             else:
                 # In semantic-only mode, filter by similarity threshold
                 filtered_results = [r for r in results if r.get('similarity_score', 0) >= min_score]
-                filtered_results = filtered_results[:limit]
+                score_removed = len(results) - len(filtered_results)
+
+            # Filter out inactive gleanings
+            status_count = len(filtered_results)
+            filtered_results = filter_inactive_gleanings(filtered_results)
+            status_removed = status_count - len(filtered_results)
+
+            # Filter by type
+            filtered_results, type_removed = filter_by_type(
+                filtered_results,
+                include_types=include_type_list,
+                exclude_types=exclude_type_list
+            )
+
+            # Filter out daily notes (unless explicitly requested)
+            daily_removed = 0
+            if not include_daily:
+                daily_count = len(filtered_results)
+                filtered_results = filter_daily_notes(filtered_results)
+                daily_removed = daily_count - len(filtered_results)
+
+            # Apply final limit
+            filtered_results = filtered_results[:limit]
 
             # Update result data
             result_data['results'] = filtered_results
             result_data['total'] = len(filtered_results)
             result_data['min_score'] = min_score
+            result_data['filtered_count'] = {
+                'by_score': score_removed,
+                'by_status': status_removed,
+                'by_type': type_removed,
+                'by_daily': daily_removed,
+                'total_removed': score_removed + status_removed + type_removed + daily_removed
+            }
 
             results = filtered_results
 
@@ -156,6 +202,37 @@ def search(query, limit, min_score, hybrid, bm25_only, model, output_json):
             search_mode = result_data.get('search_mode', 'semantic')
             mode_str = f" ({search_mode})" if search_mode else ""
             click.echo(f"\nSearch results for: {click.style(query, fg='cyan', bold=True)}{mode_str}\n")
+
+            # Show applied filters
+            if not include_daily or include_type_list or exclude_type_list:
+                filters_applied = []
+                if not include_daily:
+                    filters_applied.append("excluding daily notes")
+                if include_type_list:
+                    filters_applied.append(f"types: {', '.join(include_type_list)}")
+                if exclude_type_list and exclude_type_list != ['daily']:
+                    filters_applied.append(f"excluding: {', '.join(exclude_type_list)}")
+
+                if filters_applied:
+                    click.echo(click.style(f"Filters: {', '.join(filters_applied)}", dim=True))
+
+            # Show filtered count
+            if 'filtered_count' in result_data:
+                fc = result_data['filtered_count']
+                total = fc.get('total_removed', 0)
+                if total > 0:
+                    parts = []
+                    if fc.get('by_score', 0) > 0:
+                        parts.append(f"{fc['by_score']} by score")
+                    if fc.get('by_status', 0) > 0:
+                        parts.append(f"{fc['by_status']} by status")
+                    if fc.get('by_type', 0) > 0:
+                        parts.append(f"{fc['by_type']} by type")
+                    if fc.get('by_daily', 0) > 0:
+                        parts.append(f"{fc['by_daily']} daily notes")
+
+                    click.echo(click.style(f"Filtered: {', '.join(parts)} ({total} total)", dim=True))
+                    click.echo()
 
             if not results:
                 click.echo("No results found.")

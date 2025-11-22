@@ -123,6 +123,56 @@
             color: #e0e0e0;
         }
 
+        /* Type Filter Controls */
+        .type-filter-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .type-select {
+            flex: 1;
+            border: 1px solid #404040;
+            border-radius: 6px;
+            background: #1a1a1a;
+            color: #e0e0e0;
+            padding: 6px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .type-select:focus {
+            border-color: #666666;
+        }
+
+        .type-select option {
+            padding: 4px;
+        }
+
+        .clear-btn {
+            padding: 6px 12px;
+            font-size: 13px;
+            background: #2a2a2a;
+            color: #e0e0e0;
+            border: 1px solid #404040;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s;
+            white-space: nowrap;
+        }
+
+        .clear-btn:hover {
+            background: #333333;
+        }
+
+        .help-text {
+            font-size: 12px;
+            color: #666666;
+            font-style: italic;
+            margin-top: 4px;
+        }
+
         .search-btn {
             width: 100%;
             padding: 14px;
@@ -353,6 +403,16 @@
             font-size: 12px;
         }
 
+        .type-badge {
+            background: #2a4a2a;
+            color: #88cc88;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+            text-transform: capitalize;
+        }
+
         .empty-state {
             text-align: center;
             padding: 48px 24px;
@@ -451,6 +511,41 @@
                 </div>
             </div>
 
+            <!-- Type Filtering Controls -->
+            <div class="control-group">
+                <label class="control-label" for="include-types">Include Types</label>
+                <div class="type-filter-row">
+                    <select id="include-types" multiple size="4" class="type-select">
+                        <option value="gleaning">Gleaning</option>
+                        <option value="writering">Writering</option>
+                        <option value="llmering">LLMering</option>
+                        <option value="article">Article</option>
+                        <option value="reference">Reference</option>
+                        <option value="note">Note</option>
+                        <option value="daily">Daily</option>
+                    </select>
+                    <button type="button" class="clear-btn" onclick="clearSelect('include-types')">Clear</button>
+                </div>
+                <div class="help-text">Hold Ctrl/Cmd to select multiple. Empty = include all.</div>
+            </div>
+
+            <div class="control-group">
+                <label class="control-label" for="exclude-types">Exclude Types</label>
+                <div class="type-filter-row">
+                    <select id="exclude-types" multiple size="4" class="type-select">
+                        <option value="gleaning">Gleaning</option>
+                        <option value="writering">Writering</option>
+                        <option value="llmering">LLMering</option>
+                        <option value="article">Article</option>
+                        <option value="reference">Reference</option>
+                        <option value="note">Note</option>
+                        <option value="daily" selected>Daily</option>
+                    </select>
+                    <button type="button" class="clear-btn" onclick="clearSelect('exclude-types')">Clear</button>
+                </div>
+                <div class="help-text">Default: excludes daily type.</div>
+            </div>
+
             <div class="control-group">
                 <div class="checkbox-group">
                     <input type="checkbox" id="show-json">
@@ -485,6 +580,10 @@
                 <div class="stat-item">
                     <div class="stat-label">Filtered (Status)</div>
                     <div class="stat-value" id="stat-filtered-status">-</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Filtered (Type)</div>
+                    <div class="stat-value" id="stat-filtered-type">-</div>
                 </div>
                 <div class="stat-item">
                     <div class="stat-label">Filtered (Daily)</div>
@@ -523,6 +622,8 @@
         const limitInput = document.getElementById('limit');
         const hybridSearchCheckbox = document.getElementById('hybrid-search');
         const includeDailyCheckbox = document.getElementById('include-daily');
+        const includeTypesSelect = document.getElementById('include-types');
+        const excludeTypesSelect = document.getElementById('exclude-types');
         const showJsonCheckbox = document.getElementById('show-json');
         const resultsDiv = document.getElementById('results');
         const resultsHeader = document.getElementById('results-header');
@@ -531,6 +632,19 @@
         const searchBtn = document.querySelector('.search-btn');
         const statsPanel = document.getElementById('stats-panel');
         const jsonViewer = document.getElementById('json-viewer');
+
+        // Helper function to get selected values from multi-select
+        function getSelectedValues(selectElement) {
+            return Array.from(selectElement.selectedOptions)
+                .map(opt => opt.value)
+                .join(',');
+        }
+
+        // Helper function to clear select
+        function clearSelect(selectId) {
+            const select = document.getElementById(selectId);
+            Array.from(select.options).forEach(opt => opt.selected = false);
+        }
 
         showJsonCheckbox.addEventListener('change', (e) => {
             if (e.target.checked && window.lastSearchData) {
@@ -562,6 +676,8 @@
             const limit = parseInt(limitInput.value) || 20;
             const hybrid = hybridSearchCheckbox.checked;
             const includeDaily = includeDailyCheckbox.checked;
+            const includeTypes = getSelectedValues(includeTypesSelect);
+            const excludeTypes = getSelectedValues(excludeTypesSelect);
 
             errorDiv.classList.remove('active');
             loadingDiv.classList.add('active');
@@ -572,7 +688,15 @@
             searchBtn.disabled = true;
 
             try {
-                const url = `/search?q=${encodeURIComponent(query)}&limit=${limit}&min_score=${minScore}&hybrid=${hybrid}&include_daily=${includeDaily}`;
+                let url = `/search?q=${encodeURIComponent(query)}&limit=${limit}&min_score=${minScore}&hybrid=${hybrid}&include_daily=${includeDaily}`;
+
+                if (includeTypes) {
+                    url += `&include_types=${encodeURIComponent(includeTypes)}`;
+                }
+                if (excludeTypes) {
+                    url += `&exclude_types=${encodeURIComponent(excludeTypes)}`;
+                }
+
                 const response = await fetch(url);
 
                 if (!response.ok) {
@@ -614,6 +738,8 @@
                 filtered_count?.by_score || 0;
             document.getElementById('stat-filtered-status').textContent =
                 filtered_count?.by_status || 0;
+            document.getElementById('stat-filtered-type').textContent =
+                filtered_count?.by_type || 0;
             document.getElementById('stat-filtered-daily').textContent =
                 filtered_count?.by_daily || 0;
 
@@ -664,6 +790,19 @@
                                         <span>${escapeHtml(result.created_date)}</span>
                                     </div>
                                 ` : ''}
+                                ${result.frontmatter?.type ? (() => {
+                                    let type = result.frontmatter.type;
+                                    // Handle different type formats (string, array)
+                                    if (Array.isArray(type)) {
+                                        type = type.join(', ');
+                                    } else {
+                                        type = String(type);
+                                    }
+                                    return `
+                                    <div class="result-meta-item">
+                                        <span class="type-badge">${escapeHtml(type)}</span>
+                                    </div>`;
+                                })() : ''}
                                 ${result.frontmatter?.project ? (() => {
                                     const vaultName = result.obsidian_uri.split('/')[3];
                                     let project = result.frontmatter.project;
