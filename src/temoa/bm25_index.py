@@ -82,9 +82,13 @@ class BM25Index:
         corpus = []
         for doc in documents:
             # Combine title and content for better matching
-            # Handle None values explicitly
-            title = doc.get('title') or ''
-            content = doc.get('content') or ''
+            # Convert to string explicitly to handle any type (date, list, None, etc.)
+            title_raw = doc.get('title')
+            content_raw = doc.get('content')
+
+            title = str(title_raw) if title_raw is not None else ''
+            content = str(content_raw) if content_raw is not None else ''
+
             text = title + ' ' + content
             tokens = self.tokenize(text)
             corpus.append(tokens)
