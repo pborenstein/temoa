@@ -446,21 +446,28 @@ class SynthesisClient:
             # Merge using Reciprocal Rank Fusion
             merged_results = reciprocal_rank_fusion([semantic_results, bm25_results])
 
-            # IMPORTANT: Add top BM25 results that might have been ranked low by RRF
+            # IMPORTANT: Boost top BM25 results by giving them artificial RRF scores
             # This ensures keyword matches don't get buried by semantic-only results
-            top_bm25_paths = {r.get('relative_path') for r in bm25_results[:10]}  # Top 10 BM25
             merged_paths = {r.get('relative_path') for r in merged_results}
 
-            # Find BM25 results missing from merged results
-            for bm25_result in bm25_results[:10]:
+            # Get max RRF score to understand the scale
+            max_rrf = max((r.get('rrf_score', 0) for r in merged_results), default=0.1)
+
+            # Add top BM25 results that are missing from merged results
+            for idx, bm25_result in enumerate(bm25_results[:5]):  # Top 5 BM25
                 path = bm25_result.get('relative_path')
                 if path not in merged_paths:
-                    # High BM25 score but not in merged results - add it
-                    logger.debug(f"Boosting BM25-only result: {bm25_result.get('title')} (BM25: {bm25_result.get('bm25_score')})")
+                    # Give it an artificial RRF score HIGHER than existing results
+                    # Top BM25 results should beat low-ranking merged results
+                    # Rank 1 gets max_rrf * 1.5, rank 2 gets max_rrf * 1.4, etc.
+                    artificial_rrf = max_rrf * (1.5 - idx * 0.1)
+                    bm25_result['rrf_score'] = artificial_rrf
+
+                    logger.debug(f"Boosting BM25-only result: {bm25_result.get('title')} (BM25: {bm25_result.get('bm25_score')}, artificial RRF: {artificial_rrf:.4f})")
                     merged_results.append(bm25_result)
 
-            # Re-sort by RRF score (or BM25 for BM25-only results)
-            merged_results.sort(key=lambda x: x.get('rrf_score', x.get('bm25_score', 0)), reverse=True)
+            # Re-sort by RRF score
+            merged_results.sort(key=lambda x: x.get('rrf_score', 0), reverse=True)
 
             # Enrich merged results with individual scores for debugging
             for result in merged_results:
