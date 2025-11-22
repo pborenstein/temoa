@@ -446,6 +446,22 @@ class SynthesisClient:
             # Merge using Reciprocal Rank Fusion
             merged_results = reciprocal_rank_fusion([semantic_results, bm25_results])
 
+            # IMPORTANT: Add top BM25 results that might have been ranked low by RRF
+            # This ensures keyword matches don't get buried by semantic-only results
+            top_bm25_paths = {r.get('relative_path') for r in bm25_results[:10]}  # Top 10 BM25
+            merged_paths = {r.get('relative_path') for r in merged_results}
+
+            # Find BM25 results missing from merged results
+            for bm25_result in bm25_results[:10]:
+                path = bm25_result.get('relative_path')
+                if path not in merged_paths:
+                    # High BM25 score but not in merged results - add it
+                    logger.debug(f"Boosting BM25-only result: {bm25_result.get('title')} (BM25: {bm25_result.get('bm25_score')})")
+                    merged_results.append(bm25_result)
+
+            # Re-sort by RRF score (or BM25 for BM25-only results)
+            merged_results.sort(key=lambda x: x.get('rrf_score', x.get('bm25_score', 0)), reverse=True)
+
             # Enrich merged results with individual scores for debugging
             for result in merged_results:
                 path = result.get('relative_path')
