@@ -7,6 +7,7 @@ This module imports Synthesis code directly (not subprocess) to achieve
 import sys
 import logging
 import re
+from datetime import datetime, date
 from pathlib import Path
 from typing import Dict, Any, List, Optional
 from urllib.parse import quote
@@ -14,6 +15,26 @@ from urllib.parse import quote
 from .bm25_index import BM25Index, reciprocal_rank_fusion
 
 logger = logging.getLogger(__name__)
+
+
+def serialize_datetime_values(obj: Any) -> Any:
+    """
+    Recursively convert datetime/date objects to ISO format strings for JSON serialization.
+
+    Args:
+        obj: Object to serialize (dict, list, or primitive)
+
+    Returns:
+        Object with datetime/date values converted to ISO strings
+    """
+    if isinstance(obj, (datetime, date)):
+        return obj.isoformat()
+    elif isinstance(obj, dict):
+        return {k: serialize_datetime_values(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [serialize_datetime_values(item) for item in obj]
+    else:
+        return obj
 
 
 def extract_relevant_snippet(content: str, query: str, snippet_length: int = 150) -> str:
@@ -297,12 +318,14 @@ class SynthesisClient:
 
             logger.debug(f"Found {len(enhanced_results)} results")
 
-            return {
+            # Serialize datetime values to ISO strings for JSON compatibility
+            response = {
                 "query": query,
                 "results": enhanced_results,
                 "total": len(enhanced_results),
                 "model": self.model_name
             }
+            return serialize_datetime_values(response)
 
         except Exception as e:
             logger.error(f"Search failed: {e}", exc_info=True)
@@ -351,13 +374,14 @@ class SynthesisClient:
                     "file_path": str(self.vault_path / rel_path)
                 })
 
-            return {
+            response = {
                 "query": query,
                 "results": bm25_results,
                 "total": len(bm25_results),
                 "model": self.model_name,
                 "search_mode": "bm25"
             }
+            return serialize_datetime_values(response)
 
         except Exception as e:
             logger.error(f"BM25 search failed: {e}", exc_info=True)
@@ -501,13 +525,14 @@ class SynthesisClient:
 
             logger.debug(f"Hybrid search merged {len(merged_results)} results")
 
-            return {
+            response = {
                 "query": query,
                 "results": merged_results,
                 "total": len(merged_results),
                 "model": self.model_name,
                 "search_mode": "hybrid"
             }
+            return serialize_datetime_values(response)
 
         except Exception as e:
             logger.error(f"Hybrid search failed: {e}", exc_info=True)
@@ -563,7 +588,7 @@ class SynthesisClient:
             )
 
             # Convert NamedTuple to dict for JSON serialization
-            return {
+            response = {
                 "query": timeline.query,
                 "threshold": threshold,
                 "entries": [
@@ -583,6 +608,7 @@ class SynthesisClient:
                 "dormant_periods": timeline.dormant_periods,
                 "model": self.model_name
             }
+            return serialize_datetime_values(response)
 
         except Exception as e:
             logger.error(f"Archaeology failed: {e}", exc_info=True)
