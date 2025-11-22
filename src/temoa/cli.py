@@ -3,10 +3,21 @@
 Temoa CLI - Command-line interface for Temoa semantic search server
 """
 import json
+import logging
 import sys
 from pathlib import Path
 import click
 import uvicorn
+
+# Configure logging for CLI - quiet down noisy synthesis internals
+logging.basicConfig(
+    level=logging.WARNING,
+    format="%(message)s"
+)
+# Only show warnings from synthesis/embeddings
+logging.getLogger("temoa.synthesis").setLevel(logging.WARNING)
+logging.getLogger("src.embeddings").setLevel(logging.WARNING)
+logging.getLogger("sentence_transformers").setLevel(logging.WARNING)
 
 
 @click.group()
