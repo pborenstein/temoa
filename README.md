@@ -268,9 +268,24 @@ Temoa runs on your local network. Access from mobile using Tailscale:
 
 ## Deployment
 
-### Systemd Service
+### Background Process (Mac/Linux)
 
 ```bash
+# Start server in background
+nohup temoa server > ~/temoa.log 2>&1 &
+echo $! > ~/temoa.pid
+
+# View logs
+tail -f ~/temoa.log
+
+# Stop server
+kill $(cat ~/temoa.pid)
+```
+
+### System Service (Linux)
+
+```bash
+# Create systemd service
 sudo tee /etc/systemd/system/temoa.service << 'EOF'
 [Unit]
 Description=Temoa Semantic Search Server
@@ -287,23 +302,20 @@ Restart=always
 WantedBy=multi-user.target
 EOF
 
+# Enable and start
 sudo systemctl daemon-reload
 sudo systemctl enable temoa
 sudo systemctl start temoa
 ```
 
-### Background Process
+### Automation
 
 ```bash
-nohup temoa server > temoa.log 2>&1 &
+# Daily gleaning extraction (add to crontab)
+0 23 * * * cd ~/projects/temoa && temoa extract
 ```
 
-### Automation (Daily Gleaning Extraction)
-
-```bash
-# Add to crontab (daily at 11 PM)
-0 23 * * * cd ~/projects/temoa && temoa extract --auto-reindex
-```
+See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for complete deployment guide.
 
 ## Architecture
 
