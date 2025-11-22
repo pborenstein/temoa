@@ -70,16 +70,15 @@ embeddings/multi-qa-mpnet-base-cos-v1/  # Another alternative
 ## Directory Structure
 
 ```
-.tools/synthesis/
+synthesis/
 ├── CLAUDE.md              # This file - project overview
-├── SYNTHESIS_IDEAS.md     # Complete brainstorming of 10 synthesis tools
-├── session_memory.json    # Session-to-session state persistence  
+├── README.md              # User-facing documentation
+├── main.py                # CLI entry point
+├── pyproject.toml         # Dependencies
+├── synthesis_config.json  # Configuration
 ├── doc/                   # Decision documentation
-│   └── embeddings-decision.md
 ├── src/                   # Source code - complete embedding system
-├── embeddings/            # Embedding storage - 1899 ultra-clean vault files processed
-├── visualizations/        # Interactive HTML outputs
-└── doc/                   # Decision documentation and technical guides
+└── embeddings/            # Embedding storage (generated)
 ```
 
 ## Development Approach

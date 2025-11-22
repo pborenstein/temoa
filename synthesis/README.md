@@ -3,7 +3,7 @@
 ## Quick Start
 
 ```bash
-cd .tools/synthesis/
+cd synthesis/
 ```
 
 ## Commands
@@ -97,9 +97,9 @@ Both `search` and `archaeology` commands now provide enhanced JSON output with t
       "relative_path": "Daily/2024/2024-03-15.md",
       "title": "Daily Note - March 15",
       "similarity_score": 0.847,
-      "obsidian_uri": "obsidian://vault/amoxtli/Daily/2024/2024-03-15",
+      "obsidian_uri": "obsidian://vault/your-vault/Daily/2024/2024-03-15",
       "wiki_link": "[[Daily Note - March 15]]",
-      "file_path": "~/Obsidian/amoxtli/Daily/2024/2024-03-15.md"
+      "file_path": "~/Obsidian/your-vault/Daily/2024/2024-03-15.md"
     }
   ]
 }
@@ -118,9 +118,9 @@ The archaeology command returns timeline entries with enhanced references:
       {
         "date": "2024-03-15",
         "similarity_score": 0.723,
-        "obsidian_uri": "obsidian://vault/amoxtli/Daily/2024/2024-03-15",
+        "obsidian_uri": "obsidian://vault/your-vault/Daily/2024/2024-03-15",
         "wiki_link": "[[2024-03-15]]",
-        "file_path": "~/Obsidian/amoxtli/Daily/2024/2024-03-15.md"
+        "file_path": "~/Obsidian/your-vault/Daily/2024/2024-03-15.md"
       }
     ]
   }
