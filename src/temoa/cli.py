@@ -82,9 +82,10 @@ def server(host, port, reload, log_level):
 @click.argument('query')
 @click.option('--limit', '-n', default=10, type=int, help='Number of results (default: 10)')
 @click.option('--min-score', '-s', default=0.3, type=float, help='Minimum similarity score (0.0-1.0, default: 0.3)')
+@click.option('--hybrid', is_flag=True, default=None, help='Use hybrid search (BM25 + semantic)')
 @click.option('--model', '-m', default=None, help='Embedding model to use')
 @click.option('--json', 'output_json', is_flag=True, help='Output as JSON')
-def search(query, limit, min_score, model, output_json):
+def search(query, limit, min_score, hybrid, model, output_json):
     """Search the vault for similar content.
 
     \b
@@ -92,6 +93,7 @@ def search(query, limit, min_score, model, output_json):
       temoa search "semantic search"
       temoa search "tailscale networking" --limit 5
       temoa search "AI tools" --min-score 0.5
+      temoa search "Joan Doe" --hybrid
       temoa search "obsidian" --json
     """
     from .config import Config
@@ -107,9 +109,18 @@ def search(query, limit, min_score, model, output_json):
             storage_dir=config.storage_dir
         )
 
+        # Determine whether to use hybrid search
+        use_hybrid = hybrid if hybrid is not None else config.hybrid_search_enabled
+
         # Request more results to account for filtering
         search_limit = limit * 2 if limit else 50
-        result_data = client.search(query, limit=search_limit)
+
+        # Choose search method
+        if use_hybrid:
+            result_data = client.hybrid_search(query, limit=search_limit)
+        else:
+            result_data = client.search(query, limit=search_limit)
+
         results = result_data.get('results', [])
 
         # Filter by minimum similarity score
@@ -130,7 +141,9 @@ def search(query, limit, min_score, model, output_json):
             click.echo(json.dumps(result_data, indent=2))
         else:
             # Human-readable output
-            click.echo(f"\nSearch results for: {click.style(query, fg='cyan', bold=True)}\n")
+            search_mode = result_data.get('search_mode', 'semantic')
+            mode_str = f" ({search_mode})" if search_mode else ""
+            click.echo(f"\nSearch results for: {click.style(query, fg='cyan', bold=True)}{mode_str}\n")
 
             if not results:
                 click.echo("No results found.")

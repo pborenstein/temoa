@@ -439,6 +439,13 @@
 
             <div class="control-group">
                 <div class="checkbox-group">
+                    <input type="checkbox" id="hybrid-search">
+                    <label for="hybrid-search">Hybrid search (BM25 + semantic)</label>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <div class="checkbox-group">
                     <input type="checkbox" id="include-daily">
                     <label for="include-daily">Include daily notes</label>
                 </div>
@@ -514,6 +521,7 @@
         const queryInput = document.getElementById('query');
         const minScoreInput = document.getElementById('min-score');
         const limitInput = document.getElementById('limit');
+        const hybridSearchCheckbox = document.getElementById('hybrid-search');
         const includeDailyCheckbox = document.getElementById('include-daily');
         const showJsonCheckbox = document.getElementById('show-json');
         const resultsDiv = document.getElementById('results');
@@ -552,6 +560,7 @@
 
             const minScore = parseFloat(minScoreInput.value) || 0.3;
             const limit = parseInt(limitInput.value) || 20;
+            const hybrid = hybridSearchCheckbox.checked;
             const includeDaily = includeDailyCheckbox.checked;
 
             errorDiv.classList.remove('active');
@@ -563,7 +572,7 @@
             searchBtn.disabled = true;
 
             try {
-                const url = `/search?q=${encodeURIComponent(query)}&limit=${limit}&min_score=${minScore}&include_daily=${includeDaily}`;
+                const url = `/search?q=${encodeURIComponent(query)}&limit=${limit}&min_score=${minScore}&hybrid=${hybrid}&include_daily=${includeDaily}`;
                 const response = await fetch(url);
 
                 if (!response.ok) {
@@ -591,9 +600,15 @@
         }
 
         function displayStats(data) {
-            const { model, total, min_score, filtered_count } = data;
+            const { model, total, min_score, filtered_count, search_mode } = data;
 
-            document.getElementById('stat-model').textContent = model || 'unknown';
+            // Show model and search mode
+            let modelText = model || 'unknown';
+            if (search_mode) {
+                modelText += ` (${search_mode})`;
+            }
+            document.getElementById('stat-model').textContent = modelText;
+
             document.getElementById('stat-total').textContent = total || 0;
             document.getElementById('stat-filtered-score').textContent =
                 filtered_count?.by_score || 0;

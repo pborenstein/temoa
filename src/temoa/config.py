@@ -190,6 +190,12 @@ class Config:
         """Search timeout in seconds"""
         return self._config["search"]["timeout"]
 
+    @property
+    def hybrid_search_enabled(self) -> bool:
+        """Whether hybrid search (BM25 + semantic) is enabled by default"""
+        # Default to False if not specified for backwards compatibility
+        return self._config.get("search", {}).get("hybrid_enabled", False)
+
     def __repr__(self) -> str:
         return (
             f"Config(vault={self.vault_path}, "

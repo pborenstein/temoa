@@ -10,6 +10,7 @@
   "search": {
     "default_limit": 10,
     "max_limit": 50,
-    "timeout": 10
+    "timeout": 10,
+    "hybrid_enabled": false
   }
 }

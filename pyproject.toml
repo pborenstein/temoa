@@ -16,6 +16,8 @@ dependencies = [
     # Gleaning maintenance
     "requests>=2.31.0",
     "beautifulsoup4>=4.12.0",
+    # BM25 for hybrid search
+    "rank-bm25>=0.2.2",
 ]
 
 [project.scripts]
