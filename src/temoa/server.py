@@ -172,7 +172,6 @@ def filter_by_type(
         - If neither: Return all results
         - Files with no type field are treated as empty list []
     """
-    import frontmatter
     from .gleanings import parse_type_field
 
     if not include_types and not exclude_types:
@@ -181,22 +180,28 @@ def filter_by_type(
     filtered = []
 
     for result in results:
-        file_path = result.get("file_path")
-        if not file_path:
-            # If no file_path, include result (can't check type)
-            filtered.append(result)
-            continue
+        # Try to get type from cached frontmatter in results first
+        frontmatter_data = result.get("frontmatter")
 
-        try:
-            # Read frontmatter to get type field
-            with open(file_path, "r", encoding="utf-8") as f:
-                post = frontmatter.load(f)
-                types = parse_type_field(post.metadata)
+        if frontmatter_data is not None:
+            # Use cached frontmatter from Synthesis results (no file I/O!)
+            types = parse_type_field(frontmatter_data)
+        else:
+            # Fallback: read file if no frontmatter in results
+            # This shouldn't happen often since Synthesis includes frontmatter
+            file_path = result.get("file_path")
+            if not file_path:
+                filtered.append(result)
+                continue
 
-        except Exception as e:
-            # If can't read frontmatter, treat as no type
-            logger.warning(f"Error reading frontmatter for {file_path}: {e}")
-            types = []
+            try:
+                import frontmatter
+                with open(file_path, "r", encoding="utf-8") as f:
+                    post = frontmatter.load(f)
+                    types = parse_type_field(post.metadata)
+            except Exception as e:
+                logger.debug(f"Error reading frontmatter for {file_path}: {e}")
+                types = []
 
         # Apply inclusive filter
         if include_types:
