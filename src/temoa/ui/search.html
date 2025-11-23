@@ -580,8 +580,8 @@
             </div>
 
             <div class="control-group">
-                <label class="control-label" for="limit">Result Limit</label>
-                <input type="number" id="limit" min="1" max="50" value="20">
+                <label class="control-label" for="limit">Result Limit (max 100)</label>
+                <input type="number" id="limit" min="1" max="100" value="20">
             </div>
 
             <div class="control-group">
@@ -809,7 +809,17 @@
 
                 if (!response.ok) {
                     const error = await response.json();
-                    throw new Error(error.detail || 'Search failed');
+                    // Handle FastAPI validation errors (detail is an array)
+                    let errorMessage = 'Search failed';
+                    if (error.detail) {
+                        if (Array.isArray(error.detail)) {
+                            // Validation error format: extract message from first error
+                            errorMessage = error.detail[0]?.msg || JSON.stringify(error.detail[0]);
+                        } else if (typeof error.detail === 'string') {
+                            errorMessage = error.detail;
+                        }
+                    }
+                    throw new Error(errorMessage);
                 }
 
                 const data = await response.json();
