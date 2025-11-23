@@ -47,7 +47,7 @@ cat > ~/.config/temoa/config.json << 'EOF'
   },
   "search": {
     "default_limit": 10,
-    "max_limit": 50,
+    "max_limit": 100,
     "timeout": 10
   }
 }
@@ -121,14 +121,16 @@ temoa server --reload     # Start with auto-reload (dev)
 
 ### Search
 ```bash
-GET /search?q=<query>&limit=10&min_score=0.3&include_daily=false
+GET /search?q=<query>&limit=10&min_score=0.3&exclude_types=daily
 ```
 
 **Parameters:**
 - `q`: Search query (required)
-- `limit`: Max results (default: 10, max: 50)
+- `limit`: Max results (default: 10, max: 100)
 - `min_score`: Minimum similarity score 0-1 (default: 0.3)
-- `include_daily`: Include daily notes in results (default: false)
+- `exclude_types`: Comma-separated types to exclude (default: "daily")
+- `include_types`: Comma-separated types to include (optional)
+- `hybrid`: Use hybrid search (BM25 + semantic) (default: false)
 
 **Example:**
 ```bash

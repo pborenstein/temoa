@@ -1985,6 +1985,8 @@ for result in results:
 
 ### Migration Support
 
+> **Note**: Migration completed 2025-11-23. Scripts referenced below (`add_type_to_daily_notes.py`, `add_titles_to_gleanings.py`, `analyze_gleaning_formats.py`) have been removed as they were one-time use tools. This section preserved for historical reference.
+
 **Created:** `scripts/add_type_to_daily_notes.py`
 
 **Purpose:** Add `type: daily` to all existing daily note files

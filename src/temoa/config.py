@@ -76,7 +76,7 @@ class Config:
             '  "index_path": null,\n'
             '  "default_model": "all-mpnet-base-v2",\n'
             '  "server": {"host": "0.0.0.0", "port": 8080},\n'
-            '  "search": {"default_limit": 10, "max_limit": 50, "timeout": 10}\n'
+            '  "search": {"default_limit": 10, "max_limit": 100, "timeout": 10}\n'
             "}\n"
             "EOF\n"
         )

@@ -77,7 +77,7 @@ cat > ~/.config/temoa/config.json << 'EOF'
   },
   "search": {
     "default_limit": 10,
-    "max_limit": 50,
+    "max_limit": 100,
     "timeout": 10
   }
 }

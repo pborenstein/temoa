@@ -292,7 +292,7 @@ temoa server              # Start FastAPI server
 - **Problem**: `temoa stats` showed "Embeddings: 0" even though search worked perfectly
 - **Root cause**: CLI looked for `total_embeddings` key, but Synthesis returns `num_embeddings`
 - **Fix**: Updated key name + improved model name extraction from nested dict
-- **Discovery**: Created `debug_stats.py` script to inspect actual JSON structure
+- **Discovery**: Created `debug_stats.py` script to inspect actual JSON structure (script removed 2025-11-23, issue resolved)
 
 ### Real-World Validation
 
@@ -456,7 +456,7 @@ During initial deployment testing, discovered and fixed 4 critical bugs:
 - [x] Simplified config search (global-only)
 - [x] Gleaning titles display properly
 - [x] `/extract` API endpoint added
-- [x] `scripts/add_titles_to_gleanings.py` - Repair tool for existing gleanings
+- [x] `scripts/add_titles_to_gleanings.py` - Repair tool for existing gleanings (completed migration, script removed 2025-11-23)
 
 ### Extraction Shakedown (2025-11-21)
 
@@ -680,7 +680,7 @@ if frontmatter_data is not None:
 ```
 
 **Migration Support:**
-- Created `scripts/add_type_to_daily_notes.py` migration script
+- Created `scripts/add_type_to_daily_notes.py` migration script (completed migration, script removed 2025-11-23)
 - Adds `type: daily` to all files in Daily/ directory
 - Includes `--dry-run` mode for safe testing
 - Provides detailed summary of changes
@@ -705,7 +705,7 @@ if frontmatter_data is not None:
 - [x] `filter_by_type()` function in `src/temoa/server.py`
 - [x] CLI flags: `--type` and `--exclude-type` in `src/temoa/cli.py`
 - [x] Web UI type controls in `src/temoa/ui/search.html`
-- [x] Migration script: `scripts/add_type_to_daily_notes.py`
+- [x] Migration script: `scripts/add_type_to_daily_notes.py` (completed migration, script removed 2025-11-23)
 - [x] Updated API endpoint documentation
 - [x] Performance optimization using cached frontmatter
 
@@ -777,7 +777,7 @@ cat > config.json << 'EOF'
   "index_path": null,
   "default_model": "all-MiniLM-L6-v2",
   "server": {"host": "0.0.0.0", "port": 8080},
-  "search": {"default_limit": 10, "max_limit": 50, "timeout": 10}
+  "search": {"default_limit": 10, "max_limit": 100, "timeout": 10}
 }
 EOF
 
