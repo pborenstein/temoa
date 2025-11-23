@@ -291,117 +291,73 @@
             display: block;
         }
 
-        .stats-panel {
-            background: #2a2a2a;
-            padding: 20px;
-            margin-bottom: 16px;
-            border-radius: 8px;
-            border: 1px solid #404040;
-            display: none;
-        }
-
-        .stats-panel.active {
-            display: block;
-        }
-
-        /* Search metadata - de-emphasized */
-        .stats-metadata {
-            padding-bottom: 12px;
-            margin-bottom: 16px;
-            border-bottom: 1px solid #404040;
-            text-align: center;
-        }
-
-        .stats-metadata-content {
-            font-size: 13px;
-            color: #666666;
-        }
-
-        .stats-metadata-content strong {
-            color: #888888;
-            font-weight: 500;
-        }
-
-        /* Results summary - prominent */
-        .stats-results {
-            text-align: center;
-            padding: 16px 0;
-            margin-bottom: 16px;
-            background: #1a1a1a;
-            border-radius: 6px;
-            border: 1px solid #404040;
-        }
-
-        .stats-results-label {
-            font-size: 12px;
-            color: #888888;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 8px;
-            font-weight: 600;
-        }
-
-        .stats-results-value {
-            font-size: 36px;
-            font-weight: 700;
-            color: #ffffff;
-            line-height: 1;
-        }
-
-        .stats-results-sublabel {
-            font-size: 13px;
-            color: #666666;
-            margin-top: 4px;
-        }
-
-        /* Filtered breakdown - grouped */
-        .stats-filtered {
-            background: #1a1a1a;
-            padding: 16px;
-            border-radius: 6px;
-            border: 1px solid #404040;
-        }
-
-        .stats-filtered-header {
-            font-size: 11px;
-            color: #888888;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 12px;
-            font-weight: 600;
-            padding-bottom: 8px;
-            border-bottom: 1px solid #333333;
-        }
-
-        .stats-filtered-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
-        }
-
-        .stats-filtered-item {
+        /* Stats Panel - Compact and Collapsible */
+        .stats-header {
             display: flex;
-            justify-content: space-between;
-            align-items: baseline;
-            padding: 8px 0;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: #2a2a2a;
+            border: 1px solid #404040;
+            border-radius: 6px;
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.2s;
+            margin-bottom: 12px;
         }
 
-        .stats-filtered-label {
-            font-size: 13px;
+        .stats-header:hover {
+            background: #323232;
+        }
+
+        .stats-header .arrow {
+            font-size: 12px;
+            transition: transform 0.2s;
             color: #888888;
         }
 
-        .stats-filtered-value {
-            font-size: 15px;
-            font-weight: 600;
+        .stats-header.expanded .arrow {
+            transform: rotate(90deg);
+        }
+
+        .stats-summary {
+            flex: 1;
+            font-size: 13px;
             color: #e0e0e0;
         }
 
-        .stats-filtered-percent {
+        .stats-summary strong {
+            font-weight: 600;
+        }
+
+        .stats-details {
+            display: none;
+            background: #2a2a2a;
+            padding: 12px;
+            margin-bottom: 16px;
+            border-radius: 6px;
+            border: 1px solid #404040;
             font-size: 12px;
-            color: #666666;
-            margin-left: 6px;
-            font-weight: 400;
+            color: #888888;
+        }
+
+        .stats-details.expanded {
+            display: block;
+        }
+
+        .stats-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+        }
+
+        .stats-row-label {
+            color: #888888;
+        }
+
+        .stats-row-value {
+            color: #e0e0e0;
+            font-weight: 500;
         }
 
         .json-viewer {
@@ -585,13 +541,6 @@
                 grid-template-columns: 1fr;
             }
 
-            .stats-filtered-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .stats-results-value {
-                font-size: 28px;
-            }
 
             .result-header {
                 flex-direction: column;
@@ -702,43 +651,36 @@
             <div style="margin-top: 8px;">Searching...</div>
         </div>
 
-        <div class="stats-panel" id="stats-panel">
-            <!-- Search Metadata (de-emphasized) -->
-            <div class="stats-metadata">
-                <div class="stats-metadata-content">
-                    <strong id="stat-model">-</strong>
-                    <span id="stat-mode"></span>
-                </div>
-            </div>
+        <!-- Stats Panel - Collapsible -->
+        <div class="stats-header" id="stats-header" onclick="toggleStats()" style="display: none;">
+            <span class="arrow">▶</span>
+            <div class="stats-summary" id="stats-summary"></div>
+        </div>
 
-            <!-- Results Summary (prominent) -->
-            <div class="stats-results">
-                <div class="stats-results-label">Results Found</div>
-                <div class="stats-results-value" id="stat-total">-</div>
-                <div class="stats-results-sublabel" id="stat-shown">-</div>
+        <div class="stats-details" id="stats-details">
+            <div class="stats-row">
+                <span class="stats-row-label">Model:</span>
+                <span class="stats-row-value" id="stat-model">-</span>
             </div>
-
-            <!-- Filtered Breakdown (grouped) -->
-            <div class="stats-filtered">
-                <div class="stats-filtered-header">Filtered Out</div>
-                <div class="stats-filtered-grid">
-                    <div class="stats-filtered-item">
-                        <span class="stats-filtered-label">By Score</span>
-                        <span class="stats-filtered-value" id="stat-filtered-score">-</span>
-                    </div>
-                    <div class="stats-filtered-item">
-                        <span class="stats-filtered-label">By Status</span>
-                        <span class="stats-filtered-value" id="stat-filtered-status">-</span>
-                    </div>
-                    <div class="stats-filtered-item">
-                        <span class="stats-filtered-label">By Type</span>
-                        <span class="stats-filtered-value" id="stat-filtered-type">-</span>
-                    </div>
-                    <div class="stats-filtered-item">
-                        <span class="stats-filtered-label">By Daily</span>
-                        <span class="stats-filtered-value" id="stat-filtered-daily">-</span>
-                    </div>
-                </div>
+            <div class="stats-row">
+                <span class="stats-row-label">Mode:</span>
+                <span class="stats-row-value" id="stat-mode">-</span>
+            </div>
+            <div class="stats-row">
+                <span class="stats-row-label">Showing:</span>
+                <span class="stats-row-value" id="stat-shown">-</span>
+            </div>
+            <div class="stats-row">
+                <span class="stats-row-label">Filtered (score):</span>
+                <span class="stats-row-value" id="stat-filtered-score">-</span>
+            </div>
+            <div class="stats-row">
+                <span class="stats-row-label">Filtered (type):</span>
+                <span class="stats-row-value" id="stat-filtered-type">-</span>
+            </div>
+            <div class="stats-row">
+                <span class="stats-row-label">Filtered (daily):</span>
+                <span class="stats-row-value" id="stat-filtered-daily">-</span>
             </div>
         </div>
 
@@ -779,7 +721,8 @@
         const loadingDiv = document.getElementById('loading');
         const errorDiv = document.getElementById('error');
         const searchBtn = document.querySelector('.search-btn');
-        const statsPanel = document.getElementById('stats-panel');
+        const statsHeader = document.getElementById('stats-header');
+        const statsDetails = document.getElementById('stats-details');
         const jsonViewer = document.getElementById('json-viewer');
 
         // Helper function to get selected values from multi-select
@@ -802,6 +745,12 @@
 
             content.classList.toggle('expanded');
             header.classList.toggle('expanded');
+        }
+
+        // Toggle stats
+        function toggleStats() {
+            statsDetails.classList.toggle('expanded');
+            statsHeader.classList.toggle('expanded');
         }
 
         showJsonCheckbox.addEventListener('change', (e) => {
@@ -840,7 +789,9 @@
             loadingDiv.classList.add('active');
             resultsDiv.innerHTML = '';
             resultsHeader.style.display = 'none';
-            statsPanel.classList.remove('active');
+            statsHeader.style.display = 'none';
+            statsDetails.classList.remove('expanded');
+            statsHeader.classList.remove('expanded');
             jsonViewer.classList.remove('active');
             searchBtn.disabled = true;
 
@@ -883,47 +834,27 @@
         function displayStats(data) {
             const { model, total, min_score, filtered_count, search_mode, results } = data;
 
-            // Calculate totals for percentages
             const totalResults = total || 0;
             const shownResults = results?.length || 0;
-            const totalFiltered = (filtered_count?.by_score || 0) +
-                                  (filtered_count?.by_status || 0) +
-                                  (filtered_count?.by_type || 0) +
-                                  (filtered_count?.by_daily || 0);
-            const originalTotal = totalResults + totalFiltered;
-
-            // Helper to calculate percentage
-            const calcPercent = (count) => {
-                if (originalTotal === 0) return '0%';
-                return `(${Math.round((count / originalTotal) * 100)}%)`;
-            };
-
-            // Update model and mode (metadata)
-            document.getElementById('stat-model').textContent = model || 'unknown';
-            const modeText = search_mode ? ` • ${search_mode} mode` : '';
-            document.getElementById('stat-mode').textContent = modeText;
-
-            // Update results summary (prominent)
-            document.getElementById('stat-total').textContent = totalResults;
-            document.getElementById('stat-shown').textContent =
-                shownResults < totalResults ? `Showing ${shownResults}` : 'All results shown';
-
-            // Update filtered breakdown with percentages
             const scoreFiltered = filtered_count?.by_score || 0;
-            const statusFiltered = filtered_count?.by_status || 0;
             const typeFiltered = filtered_count?.by_type || 0;
             const dailyFiltered = filtered_count?.by_daily || 0;
 
-            document.getElementById('stat-filtered-score').innerHTML =
-                `${scoreFiltered} <span class="stats-filtered-percent">${calcPercent(scoreFiltered)}</span>`;
-            document.getElementById('stat-filtered-status').innerHTML =
-                `${statusFiltered} <span class="stats-filtered-percent">${calcPercent(statusFiltered)}</span>`;
-            document.getElementById('stat-filtered-type').innerHTML =
-                `${typeFiltered} <span class="stats-filtered-percent">${calcPercent(typeFiltered)}</span>`;
-            document.getElementById('stat-filtered-daily').innerHTML =
-                `${dailyFiltered} <span class="stats-filtered-percent">${calcPercent(dailyFiltered)}</span>`;
+            // Update summary (compact one-liner)
+            const summary = `<strong>${totalResults}</strong> results`;
+            document.getElementById('stats-summary').innerHTML = summary;
 
-            statsPanel.classList.add('active');
+            // Update details
+            document.getElementById('stat-model').textContent = model || 'unknown';
+            document.getElementById('stat-mode').textContent = search_mode || '-';
+            document.getElementById('stat-shown').textContent =
+                shownResults < totalResults ? `${shownResults} of ${totalResults}` : 'All results';
+            document.getElementById('stat-filtered-score').textContent = scoreFiltered;
+            document.getElementById('stat-filtered-type').textContent = typeFiltered;
+            document.getElementById('stat-filtered-daily').textContent = dailyFiltered;
+
+            // Show the stats header
+            statsHeader.style.display = 'flex';
         }
 
         function displayJson(data) {
