@@ -31,13 +31,14 @@ The chronicles have been split into chapters for easier navigation:
 - Entry 10: Extraction Shakedown - Format Flexibility & Filesystem Edge Cases
 
 ### [Phase 2.5: Deployment & Mobile Validation](chronicles/phase-2.5-deployment.md)
-**Entries 11-15** | Real-World Usage and Gleaning Management
+**Entries 11-16** | Real-World Usage and Gleaning Management
 
 - Entry 11: Mid-Course Assessment - Pausing Before Phase 3
 - Entry 12: Deployment Shakedown - Real-World Bugs Surface
 - Entry 13: Gleanings Status Management - Active, Inactive, Hidden
 - Entry 14: Architecture Documentation - Explaining the Machine
 - Entry 15: Type Filtering - From Noise to Signal
+- Entry 16: UI Refinement - Polish Through Real Usage
 
 ---
 
@@ -83,4 +84,4 @@ The chronicles have been split into chapters for easier navigation:
 
 **Created**: 2025-11-18
 **Last Updated**: 2025-11-23
-**Total Entries**: 15
+**Total Entries**: 16
