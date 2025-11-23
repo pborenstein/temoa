@@ -2393,3 +2393,376 @@ Not:
 **Next:** Commit documentation updates and continue Phase 2.5 mobile validation
 
 ---
+
+## Entry 16: UI Refinement - Polish Through Real Usage (2025-11-23)
+
+### Context
+
+After implementing type filtering and using the web UI in production, user identified several UX improvements to make the interface cleaner and more usable:
+
+**User's observations:**
+- "Score badge should be on the right, not left"
+- "Project-to badge should be next to score"
+- "Stats panel takes up too much space, should be collapsible"
+- "Type badge placement feels wrong"
+- "Need proper error handling for validation errors"
+
+This session focused on UI refinement based on actual usage patterns - part of the Phase 2.5 shakedown process.
+
+---
+
+### The Improvements
+
+**1. Score Badge Repositioning**
+
+**Before:**
+```
+[0.654] Title of document
+        type: gleaning | project-to: phase3
+```
+
+**After:**
+```
+Title of document                           [0.654]
+type: gleaning | project-to: phase3
+```
+
+**Why:** Score is metadata, not the primary identifier. Title should be leftmost and most prominent. Score on the right creates clean visual hierarchy.
+
+**Commit:** abb74e5 "feat: move score badge to rightmost position in result header"
+
+---
+
+**2. Project-To Badge Repositioned**
+
+**Before:**
+```
+Title of document                           [0.654]
+type: gleaning | project-to: phase3
+```
+
+**After:**
+```
+Title of document              project-to: phase3 [0.654]
+type: gleaning
+```
+
+**Why:** Project-to and score are both metadata about the document's status/relevance. Grouping them together on the right creates logical association. Type badge stays with other document attributes on the second line.
+
+**Commit:** d02ee39 "feat: move project-to badge next to score in result header"
+
+---
+
+**3. Validation Error Handling**
+
+**Problem:** When API returns validation errors (e.g., missing required parameters), the UI showed generic "Search failed" messages without details about what went wrong.
+
+**Example error:**
+```json
+{
+  "detail": [
+    {
+      "type": "string_too_short",
+      "loc": ["query", "q"],
+      "msg": "String should have at least 1 character",
+      "input": ""
+    }
+  ]
+}
+```
+
+**Solution:** Enhanced error handling in UI to:
+- Detect validation error structure (array of detail objects)
+- Extract readable error messages
+- Display helpful feedback to user
+- Handle both single and multiple validation errors
+
+**Display:**
+```
+❌ Validation error: String should have at least 1 character (query → q)
+```
+
+**Commit:** 1a18714 "fix: handle validation errors properly in UI"
+
+---
+
+**4. Compact and Collapsible Stats Panel**
+
+**Problem:** Stats panel showed 8 lines of information that took up significant screen space, especially on mobile:
+
+```
+Files indexed: 2,942
+Results shown: 10
+Filtered by score: 15
+Filtered by type: 8
+Filtered by status: 2
+Model: all-mpnet-base-v2
+Response time: 0.4s
+Last indexed: 2025-11-23
+```
+
+**Solution:** Made stats collapsible with compact summary:
+
+**Collapsed (default):**
+```
+📊 Stats (2,942 files, 10 results) [click to expand]
+```
+
+**Expanded (on click):**
+```
+📊 Stats (click to collapse)
+Files indexed: 2,942
+Results shown: 10
+... (full details)
+```
+
+**Benefits:**
+- Saves vertical space (8 lines → 1 line when collapsed)
+- Still shows key metrics in summary (total files, result count)
+- Easy to expand when detailed stats needed
+- Better mobile UX (less scrolling to see results)
+- Remembers state in session (localStorage)
+
+**Commit:** 36d895e "feat: compact and collapsible stats panel"
+
+---
+
+**5. Type Badge Repositioned (Final Layout)**
+
+**Problem:** With project-to badge moved to the right, type badge placement needed adjustment for visual balance.
+
+**Final layout:**
+```
+Title of document              project-to: phase3 [0.654]
+type: gleaning
+```
+
+**Why:**
+- Title is primary (leftmost, bold)
+- Metadata on right (project-to, score)
+- Attributes on second line (type, tags, etc.)
+- Clean visual hierarchy
+
+**Commit:** 94cb4f4 "feat: reposition type badge next to score badge in result header"
+
+---
+
+### Visual Design Principles Emerged
+
+**Information Hierarchy:**
+1. **Primary:** Document title (bold, leftmost)
+2. **Relevance:** Score + project-to (right side, metadata)
+3. **Classification:** Type, tags (second line, attributes)
+4. **Context:** Source, date (tertiary info)
+
+**Space Optimization:**
+- Collapsible sections for optional information
+- Compact summary states that expand on demand
+- Mobile-first: minimize scrolling, maximize content
+
+**Error Communication:**
+- Specific error messages, not generic failures
+- Show what went wrong and where
+- Help users fix the issue themselves
+
+---
+
+### Lessons Learned
+
+**1. Real usage reveals UI friction**
+
+None of these issues were apparent during initial development. They only became obvious after:
+- Using the search repeatedly
+- Looking at actual result layouts
+- Noticing what information you look for first
+- Experiencing the scroll fatigue on mobile
+
+**Pattern:** Build → Use → Notice friction → Refine
+
+---
+
+**2. Visual hierarchy matters more than you think**
+
+Moving the score badge from left to right seems minor, but impact was significant:
+- Title now clearly the primary identifier
+- Score feels like metadata, not a label
+- Eyes naturally scan left → right: title → relevance
+
+**Lesson:** Even small layout changes affect information processing
+
+---
+
+**3. Collapsible UI saves mobile real estate**
+
+Stats panel went from:
+- Always visible (8 lines)
+- To: Collapsed by default (1 line)
+
+**Impact:**
+- 7 lines saved = 1-2 more results visible without scrolling
+- Still accessible when needed (click to expand)
+- Remembers preference (localStorage)
+
+**Pattern:** Default to minimal, expand on demand
+
+---
+
+**4. Error messages should teach, not just inform**
+
+**Bad error message:**
+```
+Search failed
+```
+
+**Good error message:**
+```
+Validation error: String should have at least 1 character (query → q)
+```
+
+**Why good is better:**
+- Tells user what went wrong
+- Shows which field is the problem
+- Suggests how to fix it (add characters)
+- Respects user's time (no guessing)
+
+**Lesson:** Error messages are teaching moments
+
+---
+
+### Testing Validation
+
+**Tested scenarios:**
+
+1. **Empty query:**
+   - Input: `""` (empty string)
+   - Expected: Validation error
+   - Result: ✓ Proper error message displayed
+
+2. **Score badge positioning:**
+   - Desktop: ✓ Right-aligned, clean
+   - Mobile: ✓ Wraps properly on small screens
+
+3. **Stats panel collapse:**
+   - Default state: ✓ Collapsed
+   - Click to expand: ✓ Shows full details
+   - Click to collapse: ✓ Returns to summary
+   - Refresh page: ✓ Remembers state
+
+4. **Project-to + score grouping:**
+   - Visual: ✓ Grouped together logically
+   - Alignment: ✓ Right-aligned as metadata
+   - Spacing: ✓ Clear separation from title
+
+---
+
+### Commits in This Session
+
+All part of UI refinement shakedown:
+
+```
+abb74e5 - feat: move score badge to rightmost position in result header
+d02ee39 - feat: move project-to badge next to score in result header
+1a18714 - fix: handle validation errors properly in UI
+36d895e - feat: compact and collapsible stats panel
+94cb4f4 - feat: reposition type badge next to score badge in result header
+```
+
+**Pattern:** Each commit is a focused improvement based on real usage observation
+
+---
+
+### Updated Deliverables
+
+**UI Components:**
+- [x] Redesigned result header layout (title left, metadata right)
+- [x] Collapsible stats panel with compact summary
+- [x] Enhanced error handling for validation errors
+- [x] Visual hierarchy improvements (typography, spacing)
+
+**State Management:**
+- [x] Stats panel collapse state persisted in localStorage
+- [x] Graceful fallback if localStorage unavailable
+
+**Error Handling:**
+- [x] Validation error detection and parsing
+- [x] User-friendly error message formatting
+- [x] Field-level error reporting (query → q)
+
+---
+
+### Meta: The Shakedown Philosophy
+
+**What is a shakedown?**
+
+Shakedown = Use the thing you built, find rough edges, smooth them out
+
+**Not the same as:**
+- Feature development (building new capabilities)
+- Bug fixing (fixing broken functionality)
+- Testing (validation that it works)
+
+**Shakedown is:** Refinement through real usage
+
+**Examples from this session:**
+- Score badge position: Works, but feels wrong → move it
+- Stats panel: Works, but too verbose → collapse it
+- Error messages: Works, but too generic → make specific
+
+**All features worked correctly.** Shakedown made them work *well*.
+
+---
+
+### The Value of Polish
+
+**Before this session:**
+- Search: ✓ Works
+- Type filtering: ✓ Works
+- Stats display: ✓ Works
+- Error handling: ✓ Works
+
+**After this session:**
+- Search: ✓ Works *and feels good to use*
+- Type filtering: ✓ Works *and results are easy to scan*
+- Stats display: ✓ Works *and doesn't waste space*
+- Error handling: ✓ Works *and teaches users what to fix*
+
+**Difference:** Polish = usability × delight
+
+---
+
+### Status at Session End
+
+**UI Refinement: COMPLETE**
+- ✅ Result header layout optimized (title left, metadata right)
+- ✅ Stats panel compact and collapsible
+- ✅ Error messages helpful and specific
+- ✅ Visual hierarchy clear and consistent
+- ✅ Mobile-first space optimization
+
+**Phase 2.5 Shakedown Progress:**
+- ✅ Type filtering (Entry 15)
+- ✅ UI refinement (Entry 16 - this entry)
+- ⏭️ Next: Continue mobile validation with polished interface
+
+**Current branch:** `claude/update-webapp-ui-01KXciQKmygZoXJvJqJtvuEv`
+
+**Next:** Document this session in chronicles and implementation, continue Phase 2.5 validation
+
+---
+
+### What This Means for Phase 2.5
+
+**Good news:** UI is now polished enough for serious mobile validation
+
+**Better news:** Each refinement makes the behavioral hypothesis easier to test:
+- Cleaner results → easier to scan on mobile
+- Collapsible stats → less scrolling on small screens
+- Better errors → less frustration when things go wrong
+- Visual hierarchy → faster information processing
+
+**The hypothesis:**
+> "If I can search my vault from my phone in <2 seconds, I'll check it before Googling."
+
+**Now we can test it properly** because the UI is no longer getting in the way.
+
+---

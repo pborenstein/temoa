@@ -67,13 +67,13 @@
 
         .controls {
             background: #2a2a2a;
-            padding: 16px;
+            padding: 12px;
             margin-bottom: 16px;
             border-radius: 8px;
             border: 1px solid #404040;
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 16px;
+            gap: 12px;
         }
 
         .control-group {
@@ -107,7 +107,7 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            padding: 10px 0;
+            padding: 6px 0;
         }
 
         input[type="checkbox"] {
@@ -171,6 +171,57 @@
             color: #666666;
             font-style: italic;
             margin-top: 4px;
+        }
+
+        /* Collapsible section */
+        .collapsible-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 12px;
+            background: #2a2a2a;
+            border: 1px solid #404040;
+            border-radius: 6px;
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.2s;
+            margin-bottom: 12px;
+        }
+
+        .collapsible-header:hover {
+            background: #323232;
+        }
+
+        .collapsible-header .arrow {
+            font-size: 14px;
+            transition: transform 0.2s;
+            color: #888888;
+        }
+
+        .collapsible-header.expanded .arrow {
+            transform: rotate(90deg);
+        }
+
+        .collapsible-header .label {
+            flex: 1;
+            font-size: 14px;
+            color: #e0e0e0;
+            font-weight: 500;
+        }
+
+        .collapsible-content {
+            display: none;
+            background: #2a2a2a;
+            padding: 12px;
+            margin-bottom: 16px;
+            border-radius: 8px;
+            border: 1px solid #404040;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+        }
+
+        .collapsible-content.expanded {
+            display: grid;
         }
 
         .search-btn {
@@ -240,45 +291,73 @@
             display: block;
         }
 
-        .stats-panel {
-            background: #2a2a2a;
-            padding: 16px;
-            margin-bottom: 16px;
-            border-radius: 8px;
-            border: 1px solid #404040;
-            display: none;
-        }
-
-        .stats-panel.active {
-            display: block;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 16px;
-        }
-
-        .stat-item {
+        /* Stats Panel - Compact and Collapsible */
+        .stats-header {
             display: flex;
-            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: #2a2a2a;
+            border: 1px solid #404040;
+            border-radius: 6px;
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.2s;
+            margin-bottom: 12px;
         }
 
-        .stat-label {
+        .stats-header:hover {
+            background: #323232;
+        }
+
+        .stats-header .arrow {
             font-size: 12px;
-            color: #666666;
-            margin-bottom: 4px;
+            transition: transform 0.2s;
+            color: #888888;
         }
 
-        .stat-value {
-            font-size: 18px;
-            font-weight: 600;
+        .stats-header.expanded .arrow {
+            transform: rotate(90deg);
+        }
+
+        .stats-summary {
+            flex: 1;
+            font-size: 13px;
             color: #e0e0e0;
         }
 
-        .stat-value.model {
-            font-size: 14px;
+        .stats-summary strong {
+            font-weight: 600;
+        }
+
+        .stats-details {
+            display: none;
+            background: #2a2a2a;
+            padding: 12px;
+            margin-bottom: 16px;
+            border-radius: 6px;
+            border: 1px solid #404040;
+            font-size: 12px;
             color: #888888;
+        }
+
+        .stats-details.expanded {
+            display: block;
+        }
+
+        .stats-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+        }
+
+        .stats-row-label {
+            color: #888888;
+        }
+
+        .stats-row-value {
+            color: #e0e0e0;
+            font-weight: 500;
         }
 
         .json-viewer {
@@ -347,6 +426,13 @@
             text-decoration: underline;
         }
 
+        .result-badges {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
         .result-score-badge {
             background: #3a3a3a;
             color: #c0c0c0;
@@ -413,6 +499,22 @@
             text-transform: capitalize;
         }
 
+        .project-badge {
+            background: #3a3a5a;
+            color: #b0b0ff;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .project-badge:hover {
+            background: #4a4a6a;
+            color: #d0d0ff;
+        }
+
         .empty-state {
             text-align: center;
             padding: 48px 24px;
@@ -451,16 +553,17 @@
                 grid-template-columns: 1fr;
             }
 
-            .stats-grid {
-                grid-template-columns: 1fr 1fr;
+            .collapsible-content {
+                grid-template-columns: 1fr;
             }
+
 
             .result-header {
                 flex-direction: column;
                 align-items: flex-start;
             }
 
-            .result-score-badge {
+            .result-badges {
                 align-self: flex-start;
             }
         }
@@ -493,8 +596,8 @@
             </div>
 
             <div class="control-group">
-                <label class="control-label" for="limit">Result Limit</label>
-                <input type="number" id="limit" min="1" max="50" value="20">
+                <label class="control-label" for="limit">Result Limit (max 100)</label>
+                <input type="number" id="limit" min="1" max="100" value="20">
             </div>
 
             <div class="control-group">
@@ -503,14 +606,15 @@
                     <label for="hybrid-search">Hybrid search (BM25 + semantic)</label>
                 </div>
             </div>
+        </div>
 
-            <div class="control-group">
-                <div class="checkbox-group">
-                    <input type="checkbox" id="include-daily">
-                    <label for="include-daily">Include daily notes</label>
-                </div>
-            </div>
+        <!-- Collapsible Advanced Options -->
+        <div class="collapsible-header" onclick="toggleAdvancedOptions()">
+            <span class="arrow">▶</span>
+            <span class="label">Advanced Options</span>
+        </div>
 
+        <div class="collapsible-content" id="advanced-options">
             <!-- Type Filtering Controls -->
             <div class="control-group">
                 <label class="control-label" for="include-types">Include Types</label>
@@ -526,7 +630,7 @@
                     </select>
                     <button type="button" class="clear-btn" onclick="clearSelect('include-types')">Clear</button>
                 </div>
-                <div class="help-text">Hold Ctrl/Cmd to select multiple. Empty = include all.</div>
+                <div class="help-text">Ctrl/Cmd for multiple. Empty = all.</div>
             </div>
 
             <div class="control-group">
@@ -543,7 +647,7 @@
                     </select>
                     <button type="button" class="clear-btn" onclick="clearSelect('exclude-types')">Clear</button>
                 </div>
-                <div class="help-text">Default: excludes daily type.</div>
+                <div class="help-text">Default excludes daily.</div>
             </div>
 
             <div class="control-group">
@@ -563,32 +667,36 @@
             <div style="margin-top: 8px;">Searching...</div>
         </div>
 
-        <div class="stats-panel" id="stats-panel">
-            <div class="stats-grid">
-                <div class="stat-item">
-                    <div class="stat-label">Model</div>
-                    <div class="stat-value model" id="stat-model">-</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-label">Results</div>
-                    <div class="stat-value" id="stat-total">-</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-label">Filtered (Score)</div>
-                    <div class="stat-value" id="stat-filtered-score">-</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-label">Filtered (Status)</div>
-                    <div class="stat-value" id="stat-filtered-status">-</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-label">Filtered (Type)</div>
-                    <div class="stat-value" id="stat-filtered-type">-</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-label">Filtered (Daily)</div>
-                    <div class="stat-value" id="stat-filtered-daily">-</div>
-                </div>
+        <!-- Stats Panel - Collapsible -->
+        <div class="stats-header" id="stats-header" onclick="toggleStats()" style="display: none;">
+            <span class="arrow">▶</span>
+            <div class="stats-summary" id="stats-summary"></div>
+        </div>
+
+        <div class="stats-details" id="stats-details">
+            <div class="stats-row">
+                <span class="stats-row-label">Model:</span>
+                <span class="stats-row-value" id="stat-model">-</span>
+            </div>
+            <div class="stats-row">
+                <span class="stats-row-label">Mode:</span>
+                <span class="stats-row-value" id="stat-mode">-</span>
+            </div>
+            <div class="stats-row">
+                <span class="stats-row-label">Showing:</span>
+                <span class="stats-row-value" id="stat-shown">-</span>
+            </div>
+            <div class="stats-row">
+                <span class="stats-row-label">Filtered (score):</span>
+                <span class="stats-row-value" id="stat-filtered-score">-</span>
+            </div>
+            <div class="stats-row">
+                <span class="stats-row-label">Filtered (type):</span>
+                <span class="stats-row-value" id="stat-filtered-type">-</span>
+            </div>
+            <div class="stats-row">
+                <span class="stats-row-label">Filtered (daily):</span>
+                <span class="stats-row-value" id="stat-filtered-daily">-</span>
             </div>
         </div>
 
@@ -621,7 +729,6 @@
         const minScoreInput = document.getElementById('min-score');
         const limitInput = document.getElementById('limit');
         const hybridSearchCheckbox = document.getElementById('hybrid-search');
-        const includeDailyCheckbox = document.getElementById('include-daily');
         const includeTypesSelect = document.getElementById('include-types');
         const excludeTypesSelect = document.getElementById('exclude-types');
         const showJsonCheckbox = document.getElementById('show-json');
@@ -630,7 +737,8 @@
         const loadingDiv = document.getElementById('loading');
         const errorDiv = document.getElementById('error');
         const searchBtn = document.querySelector('.search-btn');
-        const statsPanel = document.getElementById('stats-panel');
+        const statsHeader = document.getElementById('stats-header');
+        const statsDetails = document.getElementById('stats-details');
         const jsonViewer = document.getElementById('json-viewer');
 
         // Helper function to get selected values from multi-select
@@ -644,6 +752,21 @@
         function clearSelect(selectId) {
             const select = document.getElementById(selectId);
             Array.from(select.options).forEach(opt => opt.selected = false);
+        }
+
+        // Toggle advanced options
+        function toggleAdvancedOptions() {
+            const content = document.getElementById('advanced-options');
+            const header = document.querySelector('.collapsible-header');
+
+            content.classList.toggle('expanded');
+            header.classList.toggle('expanded');
+        }
+
+        // Toggle stats
+        function toggleStats() {
+            statsDetails.classList.toggle('expanded');
+            statsHeader.classList.toggle('expanded');
         }
 
         showJsonCheckbox.addEventListener('change', (e) => {
@@ -675,7 +798,6 @@
             const minScore = parseFloat(minScoreInput.value) || 0.3;
             const limit = parseInt(limitInput.value) || 20;
             const hybrid = hybridSearchCheckbox.checked;
-            const includeDaily = includeDailyCheckbox.checked;
             const includeTypes = getSelectedValues(includeTypesSelect);
             const excludeTypes = getSelectedValues(excludeTypesSelect);
 
@@ -683,12 +805,14 @@
             loadingDiv.classList.add('active');
             resultsDiv.innerHTML = '';
             resultsHeader.style.display = 'none';
-            statsPanel.classList.remove('active');
+            statsHeader.style.display = 'none';
+            statsDetails.classList.remove('expanded');
+            statsHeader.classList.remove('expanded');
             jsonViewer.classList.remove('active');
             searchBtn.disabled = true;
 
             try {
-                let url = `/search?q=${encodeURIComponent(query)}&limit=${limit}&min_score=${minScore}&hybrid=${hybrid}&include_daily=${includeDaily}`;
+                let url = `/search?q=${encodeURIComponent(query)}&limit=${limit}&min_score=${minScore}&hybrid=${hybrid}`;
 
                 if (includeTypes) {
                     url += `&include_types=${encodeURIComponent(includeTypes)}`;
@@ -701,7 +825,17 @@
 
                 if (!response.ok) {
                     const error = await response.json();
-                    throw new Error(error.detail || 'Search failed');
+                    // Handle FastAPI validation errors (detail is an array)
+                    let errorMessage = 'Search failed';
+                    if (error.detail) {
+                        if (Array.isArray(error.detail)) {
+                            // Validation error format: extract message from first error
+                            errorMessage = error.detail[0]?.msg || JSON.stringify(error.detail[0]);
+                        } else if (typeof error.detail === 'string') {
+                            errorMessage = error.detail;
+                        }
+                    }
+                    throw new Error(errorMessage);
                 }
 
                 const data = await response.json();
@@ -724,26 +858,29 @@
         }
 
         function displayStats(data) {
-            const { model, total, min_score, filtered_count, search_mode } = data;
+            const { model, total, min_score, filtered_count, search_mode, results } = data;
 
-            // Show model and search mode
-            let modelText = model || 'unknown';
-            if (search_mode) {
-                modelText += ` (${search_mode})`;
-            }
-            document.getElementById('stat-model').textContent = modelText;
+            const totalResults = total || 0;
+            const shownResults = results?.length || 0;
+            const scoreFiltered = filtered_count?.by_score || 0;
+            const typeFiltered = filtered_count?.by_type || 0;
+            const dailyFiltered = filtered_count?.by_daily || 0;
 
-            document.getElementById('stat-total').textContent = total || 0;
-            document.getElementById('stat-filtered-score').textContent =
-                filtered_count?.by_score || 0;
-            document.getElementById('stat-filtered-status').textContent =
-                filtered_count?.by_status || 0;
-            document.getElementById('stat-filtered-type').textContent =
-                filtered_count?.by_type || 0;
-            document.getElementById('stat-filtered-daily').textContent =
-                filtered_count?.by_daily || 0;
+            // Update summary (compact one-liner)
+            const summary = `<strong>${totalResults}</strong> results`;
+            document.getElementById('stats-summary').innerHTML = summary;
 
-            statsPanel.classList.add('active');
+            // Update details
+            document.getElementById('stat-model').textContent = model || 'unknown';
+            document.getElementById('stat-mode').textContent = search_mode || '-';
+            document.getElementById('stat-shown').textContent =
+                shownResults < totalResults ? `${shownResults} of ${totalResults}` : 'All results';
+            document.getElementById('stat-filtered-score').textContent = scoreFiltered;
+            document.getElementById('stat-filtered-type').textContent = typeFiltered;
+            document.getElementById('stat-filtered-daily').textContent = dailyFiltered;
+
+            // Show the stats header
+            statsHeader.style.display = 'flex';
         }
 
         function displayJson(data) {
@@ -774,11 +911,33 @@
                                 <a href="${escapeHtml(result.obsidian_uri)}" class="result-title-link">
                                     ${escapeHtml(result.title || result.relative_path)}
                                 </a>
-                                <div class="result-score-badge">
-                                    ${result.bm25_score !== undefined ?
-                                        `${((result.similarity_score || 0) * 100).toFixed(1)}% | ${result.bm25_score.toFixed(1)}` :
-                                        `${((result.similarity_score || 0) * 100).toFixed(1)}%`
-                                    }
+                                <div class="result-badges">
+                                    ${result.frontmatter?.type ? (() => {
+                                        let type = result.frontmatter.type;
+                                        // Handle different type formats (string, array)
+                                        if (Array.isArray(type)) {
+                                            type = type.join(', ');
+                                        } else {
+                                            type = String(type);
+                                        }
+                                        return `<span class="type-badge">${escapeHtml(type)}</span>`;
+                                    })() : ''}
+                                    ${result.frontmatter?.project ? (() => {
+                                        const vaultName = result.obsidian_uri.split('/')[3];
+                                        let project = result.frontmatter.project;
+                                        // Handle different project formats (string, array, etc.)
+                                        if (Array.isArray(project)) project = project[0];
+                                        if (typeof project !== 'string') project = String(project);
+                                        const projectName = project.replace(/[\[\]]/g, '');
+                                        const projectUri = `obsidian://vault/${vaultName}/${encodeURIComponent(projectName)}`;
+                                        return `<a href="${projectUri}" class="project-badge">${escapeHtml(projectName)}</a>`;
+                                    })() : ''}
+                                    <div class="result-score-badge">
+                                        ${result.bm25_score !== undefined ?
+                                            `${((result.similarity_score || 0) * 100).toFixed(1)}% | ${result.bm25_score.toFixed(1)}` :
+                                            `${((result.similarity_score || 0) * 100).toFixed(1)}%`
+                                        }
+                                    </div>
                                 </div>
                             </div>
                             <div class="result-meta">
@@ -790,32 +949,6 @@
                                         <span>${escapeHtml(result.created_date)}</span>
                                     </div>
                                 ` : ''}
-                                ${result.frontmatter?.type ? (() => {
-                                    let type = result.frontmatter.type;
-                                    // Handle different type formats (string, array)
-                                    if (Array.isArray(type)) {
-                                        type = type.join(', ');
-                                    } else {
-                                        type = String(type);
-                                    }
-                                    return `
-                                    <div class="result-meta-item">
-                                        <span class="type-badge">${escapeHtml(type)}</span>
-                                    </div>`;
-                                })() : ''}
-                                ${result.frontmatter?.project ? (() => {
-                                    const vaultName = result.obsidian_uri.split('/')[3];
-                                    let project = result.frontmatter.project;
-                                    // Handle different project formats (string, array, etc.)
-                                    if (Array.isArray(project)) project = project[0];
-                                    if (typeof project !== 'string') project = String(project);
-                                    const projectName = project.replace(/[\[\]]/g, '');
-                                    const projectUri = `obsidian://vault/${vaultName}/${encodeURIComponent(projectName)}`;
-                                    return `
-                                    <div class="result-meta-item">
-                                        <span>Project: <a href="${projectUri}" style="color: #888888; text-decoration: underline;">${escapeHtml(projectName)}</a></span>
-                                    </div>`;
-                                })() : ''}
                             </div>
                             ${result.description ? `
                                 <div class="result-description">${escapeHtml(result.description)}</div>

@@ -544,6 +544,65 @@ Files processed: 374
 Coverage: 100% (was 90% before fixes)
 ```
 
+### UI Refinement (2025-11-23)
+
+**Status**: COMPLETE - Web interface polished based on real usage feedback
+
+During production usage of the web UI, identified and implemented several UX improvements to enhance readability and reduce screen clutter (especially on mobile).
+
+**Improvements Made:**
+
+1. **Score Badge Repositioned:**
+   - Moved similarity score from left to right side of result header
+   - Title now primary identifier (leftmost), score is metadata (rightmost)
+   - Creates clean visual hierarchy: content → relevance
+
+2. **Project-To Badge Repositioned:**
+   - Moved project-to badge next to score on right side
+   - Groups related metadata together (both about document status/relevance)
+   - Second line reserved for document attributes (type, tags)
+
+3. **Validation Error Handling:**
+   - Enhanced error display to parse FastAPI validation error structure
+   - Shows specific field-level errors with helpful messages
+   - Example: "Validation error: String should have at least 1 character (query → q)"
+   - Helps users understand and fix validation issues
+
+4. **Compact and Collapsible Stats Panel:**
+   - Default collapsed state shows summary: "📊 Stats (2,942 files, 10 results)"
+   - Saves 7 lines of vertical space on mobile
+   - Expands on click to show full details
+   - State persisted in localStorage (remembers preference)
+
+5. **Final Layout:**
+   ```
+   Title of document              project-to: phase3 [0.654]
+   type: gleaning
+   ```
+   - Primary info (title) left-aligned
+   - Metadata (project-to, score) right-aligned
+   - Attributes (type, tags) on second line
+   - Clean, scannable hierarchy
+
+**Visual Design Principles:**
+- Information hierarchy: Title → Metadata → Attributes → Context
+- Space optimization: Collapsible sections, compact summaries
+- Error communication: Specific, helpful, actionable messages
+- Mobile-first: Minimize scrolling, maximize content visibility
+
+**Commits:**
+- abb74e5: feat: move score badge to rightmost position in result header
+- d02ee39: feat: move project-to badge next to score in result header
+- 1a18714: fix: handle validation errors properly in UI
+- 36d895e: feat: compact and collapsible stats panel
+- 94cb4f4: feat: reposition type badge next to score badge in result header
+
+**Impact:**
+- Cleaner, more scannable search results
+- Less scrolling required on mobile (stats collapsed by default)
+- Better error feedback when validation fails
+- Professional, polished interface ready for mobile validation
+
 ### Type Filtering Implementation (2025-11-23)
 
 **Status**: COMPLETE - Comprehensive type-based filtering with cached frontmatter optimization
