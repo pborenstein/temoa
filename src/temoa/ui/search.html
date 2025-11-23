@@ -470,6 +470,13 @@
             text-decoration: underline;
         }
 
+        .result-badges {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
         .result-score-badge {
             background: #3a3a3a;
             color: #c0c0c0;
@@ -591,7 +598,7 @@
                 align-items: flex-start;
             }
 
-            .result-score-badge {
+            .result-badges {
                 align-self: flex-start;
             }
         }
@@ -947,11 +954,23 @@
                                 <a href="${escapeHtml(result.obsidian_uri)}" class="result-title-link">
                                     ${escapeHtml(result.title || result.relative_path)}
                                 </a>
-                                <div class="result-score-badge">
-                                    ${result.bm25_score !== undefined ?
-                                        `${((result.similarity_score || 0) * 100).toFixed(1)}% | ${result.bm25_score.toFixed(1)}` :
-                                        `${((result.similarity_score || 0) * 100).toFixed(1)}%`
-                                    }
+                                <div class="result-badges">
+                                    ${result.frontmatter?.type ? (() => {
+                                        let type = result.frontmatter.type;
+                                        // Handle different type formats (string, array)
+                                        if (Array.isArray(type)) {
+                                            type = type.join(', ');
+                                        } else {
+                                            type = String(type);
+                                        }
+                                        return `<span class="type-badge">${escapeHtml(type)}</span>`;
+                                    })() : ''}
+                                    <div class="result-score-badge">
+                                        ${result.bm25_score !== undefined ?
+                                            `${((result.similarity_score || 0) * 100).toFixed(1)}% | ${result.bm25_score.toFixed(1)}` :
+                                            `${((result.similarity_score || 0) * 100).toFixed(1)}%`
+                                        }
+                                    </div>
                                 </div>
                             </div>
                             <div class="result-meta">
@@ -963,19 +982,6 @@
                                         <span>${escapeHtml(result.created_date)}</span>
                                     </div>
                                 ` : ''}
-                                ${result.frontmatter?.type ? (() => {
-                                    let type = result.frontmatter.type;
-                                    // Handle different type formats (string, array)
-                                    if (Array.isArray(type)) {
-                                        type = type.join(', ');
-                                    } else {
-                                        type = String(type);
-                                    }
-                                    return `
-                                    <div class="result-meta-item">
-                                        <span class="type-badge">${escapeHtml(type)}</span>
-                                    </div>`;
-                                })() : ''}
                                 ${result.frontmatter?.project ? (() => {
                                     const vaultName = result.obsidian_uri.split('/')[3];
                                     let project = result.frontmatter.project;
