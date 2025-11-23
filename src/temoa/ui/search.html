@@ -499,6 +499,22 @@
             text-transform: capitalize;
         }
 
+        .project-badge {
+            background: #3a3a5a;
+            color: #b0b0ff;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .project-badge:hover {
+            background: #4a4a6a;
+            color: #d0d0ff;
+        }
+
         .empty-state {
             text-align: center;
             padding: 48px 24px;
@@ -912,6 +928,16 @@
                                             `${((result.similarity_score || 0) * 100).toFixed(1)}%`
                                         }
                                     </div>
+                                    ${result.frontmatter?.project ? (() => {
+                                        const vaultName = result.obsidian_uri.split('/')[3];
+                                        let project = result.frontmatter.project;
+                                        // Handle different project formats (string, array, etc.)
+                                        if (Array.isArray(project)) project = project[0];
+                                        if (typeof project !== 'string') project = String(project);
+                                        const projectName = project.replace(/[\[\]]/g, '');
+                                        const projectUri = `obsidian://vault/${vaultName}/${encodeURIComponent(projectName)}`;
+                                        return `<a href="${projectUri}" class="project-badge">${escapeHtml(projectName)}</a>`;
+                                    })() : ''}
                                 </div>
                             </div>
                             <div class="result-meta">
@@ -923,19 +949,6 @@
                                         <span>${escapeHtml(result.created_date)}</span>
                                     </div>
                                 ` : ''}
-                                ${result.frontmatter?.project ? (() => {
-                                    const vaultName = result.obsidian_uri.split('/')[3];
-                                    let project = result.frontmatter.project;
-                                    // Handle different project formats (string, array, etc.)
-                                    if (Array.isArray(project)) project = project[0];
-                                    if (typeof project !== 'string') project = String(project);
-                                    const projectName = project.replace(/[\[\]]/g, '');
-                                    const projectUri = `obsidian://vault/${vaultName}/${encodeURIComponent(projectName)}`;
-                                    return `
-                                    <div class="result-meta-item">
-                                        <span>Project: <a href="${projectUri}" style="color: #888888; text-decoration: underline;">${escapeHtml(projectName)}</a></span>
-                                    </div>`;
-                                })() : ''}
                             </div>
                             ${result.description ? `
                                 <div class="result-description">${escapeHtml(result.description)}</div>
