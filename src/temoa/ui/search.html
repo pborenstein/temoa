@@ -173,6 +173,57 @@
             margin-top: 4px;
         }
 
+        /* Collapsible section */
+        .collapsible-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 12px;
+            background: #2a2a2a;
+            border: 1px solid #404040;
+            border-radius: 6px;
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.2s;
+            margin-bottom: 12px;
+        }
+
+        .collapsible-header:hover {
+            background: #323232;
+        }
+
+        .collapsible-header .arrow {
+            font-size: 14px;
+            transition: transform 0.2s;
+            color: #888888;
+        }
+
+        .collapsible-header.expanded .arrow {
+            transform: rotate(90deg);
+        }
+
+        .collapsible-header .label {
+            flex: 1;
+            font-size: 14px;
+            color: #e0e0e0;
+            font-weight: 500;
+        }
+
+        .collapsible-content {
+            display: none;
+            background: #2a2a2a;
+            padding: 12px;
+            margin-bottom: 16px;
+            border-radius: 8px;
+            border: 1px solid #404040;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+        }
+
+        .collapsible-content.expanded {
+            display: grid;
+        }
+
         .search-btn {
             width: 100%;
             padding: 14px;
@@ -451,6 +502,10 @@
                 grid-template-columns: 1fr;
             }
 
+            .collapsible-content {
+                grid-template-columns: 1fr;
+            }
+
             .stats-grid {
                 grid-template-columns: 1fr 1fr;
             }
@@ -503,7 +558,15 @@
                     <label for="hybrid-search">Hybrid search (BM25 + semantic)</label>
                 </div>
             </div>
+        </div>
 
+        <!-- Collapsible Advanced Options -->
+        <div class="collapsible-header" onclick="toggleAdvancedOptions()">
+            <span class="arrow">▶</span>
+            <span class="label">Advanced Options</span>
+        </div>
+
+        <div class="collapsible-content" id="advanced-options">
             <!-- Type Filtering Controls -->
             <div class="control-group">
                 <label class="control-label" for="include-types">Include Types</label>
@@ -636,6 +699,15 @@
         function clearSelect(selectId) {
             const select = document.getElementById(selectId);
             Array.from(select.options).forEach(opt => opt.selected = false);
+        }
+
+        // Toggle advanced options
+        function toggleAdvancedOptions() {
+            const content = document.getElementById('advanced-options');
+            const header = document.querySelector('.collapsible-header');
+
+            content.classList.toggle('expanded');
+            header.classList.toggle('expanded');
         }
 
         showJsonCheckbox.addEventListener('change', (e) => {
