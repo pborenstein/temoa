@@ -2063,6 +2063,97 @@ Filtered count stats returned:
 
 ---
 
+### Issue 4: Daily Notes and Semantic Search Mismatch
+
+**User observation:** "semantic search was the problem"
+
+**Context:** After removing path-based filtering, user tested searching for "workout" which appears in 42 daily notes (verified with grep). Semantic-only search found 0 daily notes, but hybrid search found them easily.
+
+**Investigation:**
+
+Semantic-only search:
+```bash
+$ temoa search "workout" --exclude-type ""
+# Result: 1 result (gym article), 29 filtered by score
+```
+
+Hybrid search:
+```bash
+$ temoa search "workout" --exclude-type "" --hybrid --limit 3
+# Results: 3 daily notes found!
+# Scores:
+# - Semantic: 0.266, BM25: 6.981
+# - Semantic: 0.239, BM25: 7.267
+# - Semantic: 0.213, BM25: 7.437
+```
+
+**Root cause:** Daily notes have **low semantic similarity** but **high BM25 keyword match**
+
+Daily note content is typically short and context-poor:
+- "- workout good walking is best part"
+- "- no workout"
+- "- missed workout"
+
+**Why this happens:**
+
+1. **Semantic embeddings need context**: Short phrases like "workout good" don't provide enough context for meaningful semantic similarity. The transformer model can't capture much meaning from 3-4 words.
+
+2. **BM25 excels at keyword matching**: Exact word "workout" → high BM25 score (6-7 range)
+
+3. **Default min_score threshold**: Semantic-only mode filters results with similarity < 0.3, which excludes all daily notes (0.21-0.27 range)
+
+4. **Hybrid mode doesn't apply score filter**: By design, hybrid search doesn't filter by similarity score because BM25-only results may not have semantic scores
+
+**The fix:**
+
+For daily notes, use either:
+```bash
+# Lower the score threshold
+temoa search "workout" --type daily --min-score 0.0
+
+# Or use hybrid (recommended!)
+temoa search "workout" --type daily --hybrid
+```
+
+**Architectural insight:**
+
+Daily notes are **keyword-rich but context-poor**, making them fundamentally better suited for BM25/hybrid search than pure semantic search.
+
+This has broader implications:
+- Maybe hybrid should be the **default search mode**?
+- Or at least document that daily note searches work better with `--hybrid`
+- Consider different min_score thresholds for different document types?
+
+**The debugging journey:**
+
+1. User: "grep finds 42 daily notes with 'workout' but temoa finds 0"
+2. Me: "Daily notes aren't indexed!" ❌ Wrong assumption
+3. User: "no, I think semantic search was the problem" ✓ Correct!
+4. Testing with `--hybrid` revealed the issue
+5. Root cause: min_score threshold filtering out low-similarity daily notes
+
+**Lesson:** Short-form content (daily notes, tweets, chat logs) has different search characteristics than long-form content (articles, documents). Semantic search optimizes for long-form content with rich context. Hybrid search bridges both worlds.
+
+**DEC-026: Hybrid Search Recommendation for Daily Notes**
+
+**Date:** 2025-11-23
+**Context:** Daily notes have low semantic scores but high BM25 scores
+**Decision:** Document that daily note searches work best with `--hybrid` flag
+**Rationale:**
+- Daily notes are short and context-poor (3-20 word bullets typically)
+- Semantic similarity scores fall below default min_score threshold
+- BM25 keyword matching works perfectly for daily notes
+- Hybrid combines both → best of both worlds
+
+**Recommendation for users:**
+- Default search: Semantic-only (good for finding similar concepts)
+- Searching daily notes: Use `--hybrid` flag (good for finding exact keywords)
+- Or: Lower `--min-score` threshold when searching dailies
+
+**Future consideration:** Auto-detect when searching for `type: daily` and suggest/enable hybrid mode automatically?
+
+---
+
 ### Commits in This Session
 
 ```
@@ -2070,6 +2161,8 @@ Filtered count stats returned:
 13bef34 - fix: add missing python-frontmatter dependency
 3cb340a - fix: reduce noisy logging output in CLI
 68ac23a - perf: use cached frontmatter for type filtering
+c7984fe - fix: remove path-based daily filtering, use only type filtering
+38ddf45 - refactor: remove unused filter_daily_notes function
 ```
 
 **Progression:** Feature → Bug fix → Another bug fix → Performance optimization

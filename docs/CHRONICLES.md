@@ -57,6 +57,7 @@ The chronicles have been split into chapters for easier navigation:
 | DEC-023: Case-sensitive pattern matching | 10 | Only search Daily/Journal (capital-case) |
 | DEC-024: Themes by Period feature | 14 | Document for future, focus on present |
 | DEC-025: Default exclude daily type | 15 | Reduce noise in search results |
+| DEC-026: Hybrid search for daily notes | 15 | Daily notes work better with BM25+semantic |
 
 ---
 
