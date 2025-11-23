@@ -293,7 +293,7 @@
 
         .stats-panel {
             background: #2a2a2a;
-            padding: 16px;
+            padding: 20px;
             margin-bottom: 16px;
             border-radius: 8px;
             border: 1px solid #404040;
@@ -304,32 +304,104 @@
             display: block;
         }
 
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 16px;
+        /* Search metadata - de-emphasized */
+        .stats-metadata {
+            padding-bottom: 12px;
+            margin-bottom: 16px;
+            border-bottom: 1px solid #404040;
+            text-align: center;
         }
 
-        .stat-item {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .stat-label {
-            font-size: 12px;
+        .stats-metadata-content {
+            font-size: 13px;
             color: #666666;
-            margin-bottom: 4px;
         }
 
-        .stat-value {
-            font-size: 18px;
+        .stats-metadata-content strong {
+            color: #888888;
+            font-weight: 500;
+        }
+
+        /* Results summary - prominent */
+        .stats-results {
+            text-align: center;
+            padding: 16px 0;
+            margin-bottom: 16px;
+            background: #1a1a1a;
+            border-radius: 6px;
+            border: 1px solid #404040;
+        }
+
+        .stats-results-label {
+            font-size: 12px;
+            color: #888888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .stats-results-value {
+            font-size: 36px;
+            font-weight: 700;
+            color: #ffffff;
+            line-height: 1;
+        }
+
+        .stats-results-sublabel {
+            font-size: 13px;
+            color: #666666;
+            margin-top: 4px;
+        }
+
+        /* Filtered breakdown - grouped */
+        .stats-filtered {
+            background: #1a1a1a;
+            padding: 16px;
+            border-radius: 6px;
+            border: 1px solid #404040;
+        }
+
+        .stats-filtered-header {
+            font-size: 11px;
+            color: #888888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+            font-weight: 600;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #333333;
+        }
+
+        .stats-filtered-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .stats-filtered-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            padding: 8px 0;
+        }
+
+        .stats-filtered-label {
+            font-size: 13px;
+            color: #888888;
+        }
+
+        .stats-filtered-value {
+            font-size: 15px;
             font-weight: 600;
             color: #e0e0e0;
         }
 
-        .stat-value.model {
-            font-size: 14px;
-            color: #888888;
+        .stats-filtered-percent {
+            font-size: 12px;
+            color: #666666;
+            margin-left: 6px;
+            font-weight: 400;
         }
 
         .json-viewer {
@@ -506,8 +578,12 @@
                 grid-template-columns: 1fr;
             }
 
-            .stats-grid {
-                grid-template-columns: 1fr 1fr;
+            .stats-filtered-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-results-value {
+                font-size: 28px;
             }
 
             .result-header {
@@ -620,30 +696,41 @@
         </div>
 
         <div class="stats-panel" id="stats-panel">
-            <div class="stats-grid">
-                <div class="stat-item">
-                    <div class="stat-label">Model</div>
-                    <div class="stat-value model" id="stat-model">-</div>
+            <!-- Search Metadata (de-emphasized) -->
+            <div class="stats-metadata">
+                <div class="stats-metadata-content">
+                    <strong id="stat-model">-</strong>
+                    <span id="stat-mode"></span>
                 </div>
-                <div class="stat-item">
-                    <div class="stat-label">Results</div>
-                    <div class="stat-value" id="stat-total">-</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-label">Filtered (Score)</div>
-                    <div class="stat-value" id="stat-filtered-score">-</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-label">Filtered (Status)</div>
-                    <div class="stat-value" id="stat-filtered-status">-</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-label">Filtered (Type)</div>
-                    <div class="stat-value" id="stat-filtered-type">-</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-label">Filtered (Daily)</div>
-                    <div class="stat-value" id="stat-filtered-daily">-</div>
+            </div>
+
+            <!-- Results Summary (prominent) -->
+            <div class="stats-results">
+                <div class="stats-results-label">Results Found</div>
+                <div class="stats-results-value" id="stat-total">-</div>
+                <div class="stats-results-sublabel" id="stat-shown">-</div>
+            </div>
+
+            <!-- Filtered Breakdown (grouped) -->
+            <div class="stats-filtered">
+                <div class="stats-filtered-header">Filtered Out</div>
+                <div class="stats-filtered-grid">
+                    <div class="stats-filtered-item">
+                        <span class="stats-filtered-label">By Score</span>
+                        <span class="stats-filtered-value" id="stat-filtered-score">-</span>
+                    </div>
+                    <div class="stats-filtered-item">
+                        <span class="stats-filtered-label">By Status</span>
+                        <span class="stats-filtered-value" id="stat-filtered-status">-</span>
+                    </div>
+                    <div class="stats-filtered-item">
+                        <span class="stats-filtered-label">By Type</span>
+                        <span class="stats-filtered-value" id="stat-filtered-type">-</span>
+                    </div>
+                    <div class="stats-filtered-item">
+                        <span class="stats-filtered-label">By Daily</span>
+                        <span class="stats-filtered-value" id="stat-filtered-daily">-</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -787,24 +874,47 @@
         }
 
         function displayStats(data) {
-            const { model, total, min_score, filtered_count, search_mode } = data;
+            const { model, total, min_score, filtered_count, search_mode, results } = data;
 
-            // Show model and search mode
-            let modelText = model || 'unknown';
-            if (search_mode) {
-                modelText += ` (${search_mode})`;
-            }
-            document.getElementById('stat-model').textContent = modelText;
+            // Calculate totals for percentages
+            const totalResults = total || 0;
+            const shownResults = results?.length || 0;
+            const totalFiltered = (filtered_count?.by_score || 0) +
+                                  (filtered_count?.by_status || 0) +
+                                  (filtered_count?.by_type || 0) +
+                                  (filtered_count?.by_daily || 0);
+            const originalTotal = totalResults + totalFiltered;
 
-            document.getElementById('stat-total').textContent = total || 0;
-            document.getElementById('stat-filtered-score').textContent =
-                filtered_count?.by_score || 0;
-            document.getElementById('stat-filtered-status').textContent =
-                filtered_count?.by_status || 0;
-            document.getElementById('stat-filtered-type').textContent =
-                filtered_count?.by_type || 0;
-            document.getElementById('stat-filtered-daily').textContent =
-                filtered_count?.by_daily || 0;
+            // Helper to calculate percentage
+            const calcPercent = (count) => {
+                if (originalTotal === 0) return '0%';
+                return `(${Math.round((count / originalTotal) * 100)}%)`;
+            };
+
+            // Update model and mode (metadata)
+            document.getElementById('stat-model').textContent = model || 'unknown';
+            const modeText = search_mode ? ` • ${search_mode} mode` : '';
+            document.getElementById('stat-mode').textContent = modeText;
+
+            // Update results summary (prominent)
+            document.getElementById('stat-total').textContent = totalResults;
+            document.getElementById('stat-shown').textContent =
+                shownResults < totalResults ? `Showing ${shownResults}` : 'All results shown';
+
+            // Update filtered breakdown with percentages
+            const scoreFiltered = filtered_count?.by_score || 0;
+            const statusFiltered = filtered_count?.by_status || 0;
+            const typeFiltered = filtered_count?.by_type || 0;
+            const dailyFiltered = filtered_count?.by_daily || 0;
+
+            document.getElementById('stat-filtered-score').innerHTML =
+                `${scoreFiltered} <span class="stats-filtered-percent">${calcPercent(scoreFiltered)}</span>`;
+            document.getElementById('stat-filtered-status').innerHTML =
+                `${statusFiltered} <span class="stats-filtered-percent">${calcPercent(statusFiltered)}</span>`;
+            document.getElementById('stat-filtered-type').innerHTML =
+                `${typeFiltered} <span class="stats-filtered-percent">${calcPercent(typeFiltered)}</span>`;
+            document.getElementById('stat-filtered-daily').innerHTML =
+                `${dailyFiltered} <span class="stats-filtered-percent">${calcPercent(dailyFiltered)}</span>`;
 
             statsPanel.classList.add('active');
         }
