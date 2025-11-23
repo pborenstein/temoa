@@ -3,8 +3,8 @@
 > **Purpose**: This document explains the technical architecture of Temoa, how components interact, and how semantic search with embeddings works.
 
 **Created**: 2025-11-22
-**Last Updated**: 2025-11-22
-**Status**: Phase 2.5 (Mobile Validation)
+**Last Updated**: 2025-11-23
+**Status**: Phase 2.5 (Mobile Validation + Type Filtering)
 
 ---
 
@@ -327,6 +327,79 @@ Where:
 Total Time: ~400ms (meets <2s target)
 ```
 
+### Type Filtering Flow
+
+**Added in Phase 2.5**: Results can be filtered by document type using frontmatter metadata.
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ Type Filtering (Applied After Search)                          │
+└─────────────────────────────────────────────────────────────────┘
+
+1. Search Returns Results (with cached frontmatter)
+   ┌─────────────────────────────────────────────────────────┐
+   │  [                                                      │
+   │    {                                                    │
+   │      "title": "Daily Note",                             │
+   │      "frontmatter": {"type": "daily"},  ← Cached!       │
+   │      "similarity_score": 0.85                           │
+   │    },                                                   │
+   │    {                                                    │
+   │      "title": "Gleaning",                               │
+   │      "frontmatter": {"type": "gleaning"},               │
+   │      "similarity_score": 0.82                           │
+   │    }                                                    │
+   │  ]                                                      │
+   └─────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+2. Apply Type Filters (No File I/O!)
+   ┌─────────────────────────────────────────────────────────┐
+   │  exclude_types = ["daily"]  ← Default filter            │
+   │                                                         │
+   │  For each result:                                       │
+   │    types = result.frontmatter.get("type")               │
+   │    if types in exclude_types:                           │
+   │      skip result  ← Filter out daily notes              │
+   └─────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+3. Filtered Results
+   ┌─────────────────────────────────────────────────────────┐
+   │  [                                                      │
+   │    {                                                    │
+   │      "title": "Gleaning",                               │
+   │      "type": "gleaning",                                │
+   │      "similarity_score": 0.82                           │
+   │    }                                                    │
+   │  ]                                                      │
+   │  + filtered_count: {"by_type": 1, ...}                  │
+   └─────────────────────────────────────────────────────────┘
+
+Filter Performance: <1ms (uses cached frontmatter, no disk I/O)
+```
+
+**Supported Type Values:**
+- `gleaning` - Extracted link/article from daily notes
+- `writering` - Writing-related content
+- `llmering` - LLM/AI-related content
+- `article` - General articles
+- `reference` - Reference material
+- `note` - General notes
+- `daily` - Daily notes (excluded by default)
+
+**Filter Modes:**
+```
+Inclusive (--type gleaning,article):
+  → Show ONLY results with these types
+
+Exclusive (--exclude-type daily,note):
+  → Hide results with these types
+
+Default Behavior:
+  exclude_types=["daily"]  ← Reduce noise from daily notes
+```
+
 ### Performance Breakdown
 
 ```
@@ -455,6 +528,7 @@ tags:
   - obsidian
   - plugins
   - dataview
+type: gleaning                         # NEW: Type for filtering
 status: active
 migrated_from: null
 ---
@@ -465,6 +539,20 @@ A comprehensive guide to using the Dataview plugin for querying your Obsidian va
 - Fetched: 2025-11-22T14:31:00
 - Status Code: 200
 - Content Type: text/html
+```
+
+**Type Field Format** (added Phase 2.5):
+```yaml
+# Single type
+type: gleaning
+
+# Multiple types (OR matching)
+type:
+  - writering
+  - article
+
+# Alternative inline format
+type: [writering, article]
 ```
 
 ### Configuration Files
@@ -552,7 +640,7 @@ Key Responsibilities:
 
 Endpoints:
 ┌────────────────────┬─────────────────────────────────────┐
-│ GET  /search       │ Semantic search                     │
+│ GET  /search       │ Semantic search with type filtering │
 │ GET  /archaeology  │ Temporal analysis of topics         │
 │ GET  /stats        │ Vault statistics                    │
 │ POST /reindex      │ Rebuild embedding index             │
@@ -560,6 +648,16 @@ Endpoints:
 │ GET  /health       │ Server health check                 │
 │ GET  /             │ Serve web UI (search.html)          │
 │ GET  /docs         │ OpenAPI documentation               │
+└────────────────────┴─────────────────────────────────────┘
+
+Search Query Parameters:
+┌────────────────────┬─────────────────────────────────────┐
+│ q                  │ Search query (required)             │
+│ limit              │ Max results (default: 10)           │
+│ min_score          │ Min similarity (default: 0.3)       │
+│ hybrid             │ Use BM25+semantic (default: false)  │
+│ include_types      │ Include only these types (optional) │
+│ exclude_types      │ Exclude these types (default: daily)│
 └────────────────────┴─────────────────────────────────────┘
 ```
 

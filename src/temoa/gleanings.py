@@ -213,6 +213,39 @@ def parse_frontmatter_status(content: str) -> Optional[GleaningStatus]:
     return None
 
 
+def parse_type_field(frontmatter: dict) -> list[str]:
+    """
+    Extract type(s) from frontmatter, normalize to list.
+
+    Handles multiple YAML formats:
+    - type: gleaning               → ["gleaning"]
+    - type: [gleaning, note]       → ["gleaning", "note"]
+    - type:                        → ["writering", "article"]
+        - writering
+        - article
+    - type: null                   → []
+    - (no type field)              → []
+
+    Args:
+        frontmatter: Parsed frontmatter dict
+
+    Returns:
+        List of type strings (empty if no type)
+    """
+    type_value = frontmatter.get("type")
+
+    if type_value is None:
+        return []
+
+    if isinstance(type_value, str):
+        return [type_value.strip()]
+
+    if isinstance(type_value, list):
+        return [str(t).strip() for t in type_value if t]
+
+    return []
+
+
 def scan_gleaning_files(
     vault_path: Path,
     status_manager: GleaningStatusManager,

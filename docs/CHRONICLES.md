@@ -37,6 +37,7 @@ The chronicles have been split into chapters for easier navigation:
 - Entry 12: Deployment Shakedown - Real-World Bugs Surface
 - Entry 13: Gleanings Status Management - Active, Inactive, Hidden
 - Entry 14: Architecture Documentation - Explaining the Machine
+- Entry 15: Type Filtering - From Noise to Signal
 
 ---
 
@@ -55,6 +56,8 @@ The chronicles have been split into chapters for easier navigation:
 | DEC-022: Title fetching for naked URLs | 10 | Fetch web titles for completeness |
 | DEC-023: Case-sensitive pattern matching | 10 | Only search Daily/Journal (capital-case) |
 | DEC-024: Themes by Period feature | 14 | Document for future, focus on present |
+| DEC-025: Default exclude daily type | 15 | Reduce noise in search results |
+| DEC-026: Hybrid search for daily notes | 15 | Daily notes work better with BM25+semantic |
 
 ---
 
@@ -79,5 +82,5 @@ The chronicles have been split into chapters for easier navigation:
 ---
 
 **Created**: 2025-11-18
-**Last Updated**: 2025-11-22
-**Total Entries**: 14
+**Last Updated**: 2025-11-23
+**Total Entries**: 15

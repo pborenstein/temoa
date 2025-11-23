@@ -6,8 +6,8 @@
 
 **Project**: Temoa - Local Semantic Search Server for Obsidian Vault
 **Created**: 2025-11-18
-**Status**: Phase 2 ✅ COMPLETE + CLI ✅ COMPLETE | Phase 2.5 🔵 NEXT (Mobile Validation)
-**Last Updated**: 2025-11-19
+**Status**: Phase 2 ✅ COMPLETE + CLI ✅ COMPLETE | Phase 2.5 🔵 IN PROGRESS (Mobile Validation + Type Filtering ✅)
+**Last Updated**: 2025-11-23
 **Estimated Timeline**: 4-6 weeks for Phases 0-2, ongoing for Phases 3-4
 
 ---
@@ -543,6 +543,118 @@ Duplicates skipped: 27
 Files processed: 374
 Coverage: 100% (was 90% before fixes)
 ```
+
+### Type Filtering Implementation (2025-11-23)
+
+**Status**: COMPLETE - Comprehensive type-based filtering with cached frontmatter optimization
+
+Implemented full type-based filtering system for search results after user identified need to filter daily notes and other document types.
+
+**Core Features:**
+
+1. **Frontmatter Type Field Support:**
+   - Single string: `type: gleaning`
+   - YAML array: `type: [writering, article]`
+   - Block format: `type:\n  - writering\n  - article`
+   - Added `parse_type_field()` function in `gleanings.py`
+
+2. **Dual Filtering Modes:**
+   - Inclusive filtering: `--type gleaning,article` (show only these types)
+   - Exclusive filtering: `--exclude-type daily,note` (hide these types)
+   - Default behavior: `exclude_types=["daily"]` to reduce noise
+   - OR-logic matching for arrays
+
+3. **CLI Integration:**
+   - Added `--type/-t` and `--exclude-type/-x` flags to search command
+   - Logging configuration to suppress noisy synthesis module logs
+   - Filter statistics display in results
+
+4. **Web UI Controls:**
+   - Multi-select dropdowns for include/exclude type selection
+   - Type badge display in search results
+   - Updated stats panel to show filtered counts
+   - CSS styling for type controls
+
+5. **API Endpoint Updates:**
+   - `/search` endpoint now accepts `include_types` and `exclude_types` parameters
+   - Updated response includes `filtered_count` statistics
+   - Filter chain: score → status → type → daily notes → limit
+
+**Issues Discovered and Fixed:**
+
+**Issue 1: Missing Frontmatter Dependency**
+- **Problem**: `No module named 'frontmatter'` error on first search attempt
+- **Cause**: `python-frontmatter` not in dependencies
+- **Fix**: Added `python-frontmatter>=1.0.0` to pyproject.toml (commit: 13bef34)
+- **Impact**: Type filtering now works correctly
+
+**Issue 2: Excessive Logging Spam**
+- **Problem**: Hundreds of VaultReader initialization logs on every search
+- **Cause**: Initial `filter_by_type()` implementation read files for every result, triggering synthesis module logs
+- **Fix 1**: Added logging configuration to CLI to suppress INFO logs (commit: 3cb340a)
+- **Fix 2**: Better fix - optimized to use cached frontmatter instead (commit: 68ac23a)
+- **Impact**: Clean output, no file I/O during filtering
+
+**Issue 3: Performance Degradation from File I/O**
+- **Problem**: Type filtering was reading files for every search result
+- **Evidence**: User noted "but this didn't happen before?" - new performance issue
+- **Cause**: `filter_by_type()` called `VaultReader.read_file()` for each result
+- **Fix**: Refactored to use cached frontmatter from Synthesis results (commit: 68ac23a)
+- **Result**: Zero file I/O during filtering, <1ms overhead
+
+**Optimization Details:**
+
+Before optimization:
+```python
+# Read file for every result - SLOW
+with open(result_path) as f:
+    post = frontmatter.load(f)
+    types = parse_type_field(post.metadata)
+```
+
+After optimization:
+```python
+# Use cached frontmatter from Synthesis - FAST
+frontmatter_data = result.get("frontmatter")
+if frontmatter_data is not None:
+    types = parse_type_field(frontmatter_data)  # No file I/O!
+```
+
+**Migration Support:**
+- Created `scripts/add_type_to_daily_notes.py` migration script
+- Adds `type: daily` to all files in Daily/ directory
+- Includes `--dry-run` mode for safe testing
+- Provides detailed summary of changes
+
+**Supported Document Types:**
+- `gleaning` - Extracted links/articles from daily notes
+- `writering` - Writing-related content
+- `llmering` - LLM/AI-related content
+- `article` - General articles
+- `reference` - Reference material
+- `note` - General notes
+- `daily` - Daily notes (excluded by default)
+
+**Commits in this session:**
+- 2c1cfe6: feat: implement type-based filtering for search results
+- 13bef34: fix: add missing python-frontmatter dependency
+- 3cb340a: fix: reduce noisy logging output in CLI
+- 68ac23a: perf: use cached frontmatter for type filtering
+
+**Updated Deliverables:**
+- [x] `parse_type_field()` function in `src/temoa/gleanings.py`
+- [x] `filter_by_type()` function in `src/temoa/server.py`
+- [x] CLI flags: `--type` and `--exclude-type` in `src/temoa/cli.py`
+- [x] Web UI type controls in `src/temoa/ui/search.html`
+- [x] Migration script: `scripts/add_type_to_daily_notes.py`
+- [x] Updated API endpoint documentation
+- [x] Performance optimization using cached frontmatter
+
+**Architecture Decision:**
+- Cache frontmatter during index/reindex operations (Synthesis does this automatically)
+- Use cached metadata for filtering (no file I/O required)
+- Default excludes daily type to reduce noise from daily notes
+- Both path-based and type-based filtering work together (AND logic)
 
 ### Success Criteria
 
