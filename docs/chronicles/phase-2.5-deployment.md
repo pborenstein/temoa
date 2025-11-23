@@ -1974,7 +1974,7 @@ for result in results:
 - Daily notes are containers, not content to surface in search
 - Gleanings extracted from daily notes are the actual findings
 - Reduces noise in search results significantly
-- Users can still include daily notes explicitly with `--include-daily` or clearing exclude filter in UI
+- Users can still include daily notes explicitly with `--type daily` or `--exclude-type ""` in CLI, or clearing exclude filter in UI
 
 **Trade-offs:**
 - Hides daily notes by default (some users might want them)
@@ -2225,7 +2225,7 @@ Before: Search results mixed gleanings with daily notes (noisy)
 After: Default excludes daily notes (signal!)
 
 **User can still access daily notes** via:
-- CLI: `--include-daily` flag
+- CLI: `--type daily` or `--exclude-type ""`
 - Web UI: Clear exclude filter
 - API: `exclude_types=[]` parameter
 

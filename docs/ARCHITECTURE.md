@@ -656,7 +656,6 @@ Search Query Parameters:
 │ limit              │ Max results (default: 10)           │
 │ min_score          │ Min similarity (default: 0.3)       │
 │ hybrid             │ Use BM25+semantic (default: false)  │
-│ include_daily      │ Include daily notes (default: false)│
 │ include_types      │ Include only these types (optional) │
 │ exclude_types      │ Exclude these types (default: daily)│
 └────────────────────┴─────────────────────────────────────┘
