@@ -9,6 +9,8 @@ from pathlib import Path
 import click
 import uvicorn
 
+from .__version__ import __version__
+
 # Configure logging for CLI - quiet down noisy synthesis internals
 logging.basicConfig(
     level=logging.WARNING,
@@ -21,7 +23,7 @@ logging.getLogger("sentence_transformers").setLevel(logging.WARNING)
 
 
 @click.group()
-@click.version_option(version="0.1.0")
+@click.version_option(version=__version__)
 def main():
     """Temoa - Local semantic search server for Obsidian vault.
 
