@@ -261,10 +261,6 @@ async def search(
         ge=0.0,
         le=1.0
     ),
-    include_daily: bool = Query(
-        default=False,
-        description="Include daily notes in results (default: False)"
-    ),
     include_types: Optional[str] = Query(
         default=None,
         description="Comma-separated list of types to include (e.g., 'gleaning,article')"
@@ -330,7 +326,7 @@ async def search(
         # Determine whether to use hybrid search
         use_hybrid = hybrid if hybrid is not None else config.hybrid_search_enabled
 
-        logger.info(f"Search: query='{q}', limit={limit}, min_score={min_score}, include_daily={include_daily}, include_types={include_type_list}, exclude_types={exclude_type_list}, hybrid={use_hybrid}, model={model or 'default'}")
+        logger.info(f"Search: query='{q}', limit={limit}, min_score={min_score}, include_types={include_type_list}, exclude_types={exclude_type_list}, hybrid={use_hybrid}, model={model or 'default'}")
 
         # Note: model parameter not supported yet in current wrapper
         # Would require reinitializing Synthesis with different model
@@ -392,16 +388,6 @@ async def search(
         if type_removed > 0:
             logger.info(f"Filtered {type_removed} results by type (include={include_type_list}, exclude={exclude_type_list})")
 
-        # Filter out daily notes (unless explicitly requested)
-        daily_removed = 0
-        if not include_daily:
-            daily_count = len(filtered_results)
-            filtered_results = filter_daily_notes(filtered_results)
-            daily_removed = daily_count - len(filtered_results)
-
-            if daily_removed > 0:
-                logger.info(f"Filtered {daily_removed} daily notes from results")
-
         # Apply final limit
         filtered_results = filtered_results[:limit] if limit else filtered_results
 
@@ -413,8 +399,7 @@ async def search(
             "by_score": score_removed,
             "by_status": status_removed,
             "by_type": type_removed,
-            "by_daily": daily_removed,
-            "total_removed": score_removed + status_removed + type_removed + daily_removed
+            "total_removed": score_removed + status_removed + type_removed
         }
 
         return JSONResponse(content=data)
