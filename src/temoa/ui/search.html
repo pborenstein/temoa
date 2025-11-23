@@ -67,13 +67,13 @@
 
         .controls {
             background: #2a2a2a;
-            padding: 16px;
+            padding: 12px;
             margin-bottom: 16px;
             border-radius: 8px;
             border: 1px solid #404040;
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 16px;
+            gap: 12px;
         }
 
         .control-group {
@@ -107,7 +107,7 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            padding: 10px 0;
+            padding: 6px 0;
         }
 
         input[type="checkbox"] {
@@ -504,13 +504,6 @@
                 </div>
             </div>
 
-            <div class="control-group">
-                <div class="checkbox-group">
-                    <input type="checkbox" id="include-daily">
-                    <label for="include-daily">Include daily notes</label>
-                </div>
-            </div>
-
             <!-- Type Filtering Controls -->
             <div class="control-group">
                 <label class="control-label" for="include-types">Include Types</label>
@@ -526,7 +519,7 @@
                     </select>
                     <button type="button" class="clear-btn" onclick="clearSelect('include-types')">Clear</button>
                 </div>
-                <div class="help-text">Hold Ctrl/Cmd to select multiple. Empty = include all.</div>
+                <div class="help-text">Ctrl/Cmd for multiple. Empty = all.</div>
             </div>
 
             <div class="control-group">
@@ -543,7 +536,7 @@
                     </select>
                     <button type="button" class="clear-btn" onclick="clearSelect('exclude-types')">Clear</button>
                 </div>
-                <div class="help-text">Default: excludes daily type.</div>
+                <div class="help-text">Default excludes daily.</div>
             </div>
 
             <div class="control-group">
@@ -621,7 +614,6 @@
         const minScoreInput = document.getElementById('min-score');
         const limitInput = document.getElementById('limit');
         const hybridSearchCheckbox = document.getElementById('hybrid-search');
-        const includeDailyCheckbox = document.getElementById('include-daily');
         const includeTypesSelect = document.getElementById('include-types');
         const excludeTypesSelect = document.getElementById('exclude-types');
         const showJsonCheckbox = document.getElementById('show-json');
@@ -675,7 +667,6 @@
             const minScore = parseFloat(minScoreInput.value) || 0.3;
             const limit = parseInt(limitInput.value) || 20;
             const hybrid = hybridSearchCheckbox.checked;
-            const includeDaily = includeDailyCheckbox.checked;
             const includeTypes = getSelectedValues(includeTypesSelect);
             const excludeTypes = getSelectedValues(excludeTypesSelect);
 
@@ -688,7 +679,7 @@
             searchBtn.disabled = true;
 
             try {
-                let url = `/search?q=${encodeURIComponent(query)}&limit=${limit}&min_score=${minScore}&hybrid=${hybrid}&include_daily=${includeDaily}`;
+                let url = `/search?q=${encodeURIComponent(query)}&limit=${limit}&min_score=${minScore}&hybrid=${hybrid}`;
 
                 if (includeTypes) {
                     url += `&include_types=${encodeURIComponent(includeTypes)}`;
