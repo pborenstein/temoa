@@ -571,7 +571,7 @@ Global Config (~/.config/temoa/config.json):
 │   },                                                   │
 │   "search": {                                          │
 │     "default_limit": 10,                               │
-│     "max_limit": 50,                                   │
+│     "max_limit": 100,                                  │
 │     "timeout": 10                                      │
 │   }                                                    │
 │ }                                                      │

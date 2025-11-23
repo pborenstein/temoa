@@ -114,49 +114,19 @@ Gleaned from [[2025-11-15-Fr]] on 2025-11-15
 
 ## Extraction Workflow
 
-### Diagnostic Analysis (Recommended First Step)
-
-Before extracting, run the diagnostic script to see what formats you're using:
-
-```bash
-python scripts/analyze_gleaning_formats.py ~/Obsidian/vault
-```
-
-This will show:
-- How many markdown links vs naked URLs you have
-- Examples of different formats found
-- How many URLs are currently being missed
-- Percentage breakdown of formats
-
-**Example output:**
-```
-SUMMARY
-======================================================================
-Files with gleanings sections: 742
-Total URLs found: 1450
-
-FORMAT BREAKDOWN:
-  ✓ Markdown links ([Title](URL)):        1200 (SUPPORTED)
-  ✗ Naked URLs with bullet (- https://):   180 (NOT SUPPORTED)
-  ✗ Naked URLs bare (https://):            70 (NOT SUPPORTED)
-
-⚠️  MISSING: 250 URLs not captured by current extraction!
-   That's 17.2% of your gleanings!
-```
-
 ### Manual Extraction
 
-Extract gleanings from daily notes:
+Extract gleanings from daily notes using the Temoa CLI:
 
 ```bash
-# Preview what would be extracted
-python scripts/extract_gleanings.py --vault-path ~/Obsidian/vault --dry-run
+# Preview what would be extracted (dry run)
+temoa extract --dry-run
 
-# Extract gleanings
-python scripts/extract_gleanings.py --vault-path ~/Obsidian/vault
+# Extract new gleanings (incremental, only processes new daily notes)
+temoa extract
 
-# Force re-process all files (not just new ones)
-python scripts/extract_gleanings.py --vault-path ~/Obsidian/vault --full
+# Force re-process all files (full extraction)
+temoa extract --full
 ```
 
 **Note about Naked URLs:**
