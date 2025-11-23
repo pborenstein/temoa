@@ -121,34 +121,6 @@ def filter_inactive_gleanings(results: list) -> list:
     return filtered
 
 
-def filter_daily_notes(results: list) -> list:
-    """
-    Filter out daily notes from search results.
-
-    Daily notes typically contain gleaning links, but the gleanings themselves
-    are extracted into separate files. This prevents duplicate results.
-
-    Args:
-        results: List of search result dicts
-
-    Returns:
-        Filtered list without daily notes
-    """
-    filtered = []
-
-    for result in results:
-        rel_path = result.get("relative_path", "")
-
-        # Skip files in Daily/ folder
-        if rel_path.startswith("Daily/"):
-            logger.debug(f"Filtered out daily note: {rel_path}")
-            continue
-
-        filtered.append(result)
-
-    return filtered
-
-
 def filter_by_type(
     results: list,
     include_types: list[str] | None = None,
