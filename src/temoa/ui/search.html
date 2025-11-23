@@ -922,12 +922,6 @@
                                         }
                                         return `<span class="type-badge">${escapeHtml(type)}</span>`;
                                     })() : ''}
-                                    <div class="result-score-badge">
-                                        ${result.bm25_score !== undefined ?
-                                            `${((result.similarity_score || 0) * 100).toFixed(1)}% | ${result.bm25_score.toFixed(1)}` :
-                                            `${((result.similarity_score || 0) * 100).toFixed(1)}%`
-                                        }
-                                    </div>
                                     ${result.frontmatter?.project ? (() => {
                                         const vaultName = result.obsidian_uri.split('/')[3];
                                         let project = result.frontmatter.project;
@@ -938,6 +932,12 @@
                                         const projectUri = `obsidian://vault/${vaultName}/${encodeURIComponent(projectName)}`;
                                         return `<a href="${projectUri}" class="project-badge">${escapeHtml(projectName)}</a>`;
                                     })() : ''}
+                                    <div class="result-score-badge">
+                                        ${result.bm25_score !== undefined ?
+                                            `${((result.similarity_score || 0) * 100).toFixed(1)}% | ${result.bm25_score.toFixed(1)}` :
+                                            `${((result.similarity_score || 0) * 100).toFixed(1)}%`
+                                        }
+                                    </div>
                                 </div>
                             </div>
                             <div class="result-meta">
