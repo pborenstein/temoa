@@ -93,14 +93,13 @@ def server(host, port, reload, log_level):
 @click.argument('query')
 @click.option('--limit', '-n', default=10, type=int, help='Number of results (default: 10)')
 @click.option('--min-score', '-s', default=0.3, type=float, help='Minimum similarity score (0.0-1.0, default: 0.3)')
-@click.option('--include-daily', is_flag=True, help='Include daily notes in results')
 @click.option('--type', '-t', 'include_types', default=None, help='Include only these types (comma-separated, e.g., "gleaning,article")')
 @click.option('--exclude-type', '-x', 'exclude_types', default='daily', help='Exclude these types (comma-separated, default: "daily")')
 @click.option('--hybrid', is_flag=True, default=None, help='Use hybrid search (BM25 + semantic)')
 @click.option('--bm25-only', is_flag=True, help='Use BM25 keyword search only (for debugging)')
 @click.option('--model', '-m', default=None, help='Embedding model to use')
 @click.option('--json', 'output_json', is_flag=True, help='Output as JSON')
-def search(query, limit, min_score, include_daily, include_types, exclude_types, hybrid, bm25_only, model, output_json):
+def search(query, limit, min_score, include_types, exclude_types, hybrid, bm25_only, model, output_json):
     """Search the vault for similar content.
 
     \b
@@ -113,11 +112,11 @@ def search(query, limit, min_score, include_daily, include_types, exclude_types,
       temoa search "obsidian" --json
       temoa search "topic" --type gleaning,article
       temoa search "topic" --exclude-type daily,note
-      temoa search "topic" --include-daily
+      temoa search "topic" --type daily --exclude-type ""
     """
     from .config import Config
     from .synthesis import SynthesisClient
-    from .server import filter_inactive_gleanings, filter_daily_notes, filter_by_type
+    from .server import filter_inactive_gleanings, filter_by_type
 
     config = Config()
 
@@ -126,8 +125,14 @@ def search(query, limit, min_score, include_daily, include_types, exclude_types,
     if include_types:
         include_type_list = [t.strip() for t in include_types.split(",") if t.strip()]
 
+    # If include_types is specified, ignore exclude_types default (user is explicit about what they want)
     exclude_type_list = None
-    if exclude_types:
+    if include_types:
+        # User explicitly specified what to include, only apply exclude if they also specified it
+        if exclude_types and exclude_types != 'daily':  # Don't use default when include is set
+            exclude_type_list = [t.strip() for t in exclude_types.split(",") if t.strip()]
+    elif exclude_types:
+        # No include_types, use exclude_types (including default)
         exclude_type_list = [t.strip() for t in exclude_types.split(",") if t.strip()]
 
     try:
@@ -181,13 +186,6 @@ def search(query, limit, min_score, include_daily, include_types, exclude_types,
                 exclude_types=exclude_type_list
             )
 
-            # Filter out daily notes (unless explicitly requested)
-            daily_removed = 0
-            if not include_daily:
-                daily_count = len(filtered_results)
-                filtered_results = filter_daily_notes(filtered_results)
-                daily_removed = daily_count - len(filtered_results)
-
             # Apply final limit
             filtered_results = filtered_results[:limit]
 
@@ -199,8 +197,7 @@ def search(query, limit, min_score, include_daily, include_types, exclude_types,
                 'by_score': score_removed,
                 'by_status': status_removed,
                 'by_type': type_removed,
-                'by_daily': daily_removed,
-                'total_removed': score_removed + status_removed + type_removed + daily_removed
+                'total_removed': score_removed + status_removed + type_removed
             }
 
             results = filtered_results
@@ -215,13 +212,11 @@ def search(query, limit, min_score, include_daily, include_types, exclude_types,
             click.echo(f"\nSearch results for: {click.style(query, fg='cyan', bold=True)}{mode_str}\n")
 
             # Show applied filters
-            if not include_daily or include_type_list or exclude_type_list:
+            if include_type_list or exclude_type_list:
                 filters_applied = []
-                if not include_daily:
-                    filters_applied.append("excluding daily notes")
                 if include_type_list:
                     filters_applied.append(f"types: {', '.join(include_type_list)}")
-                if exclude_type_list and exclude_type_list != ['daily']:
+                if exclude_type_list:
                     filters_applied.append(f"excluding: {', '.join(exclude_type_list)}")
 
                 if filters_applied:
@@ -239,8 +234,6 @@ def search(query, limit, min_score, include_daily, include_types, exclude_types,
                         parts.append(f"{fc['by_status']} by status")
                     if fc.get('by_type', 0) > 0:
                         parts.append(f"{fc['by_type']} by type")
-                    if fc.get('by_daily', 0) > 0:
-                        parts.append(f"{fc['by_daily']} daily notes")
 
                     click.echo(click.style(f"Filtered: {', '.join(parts)} ({total} total)", dim=True))
                     click.echo()
