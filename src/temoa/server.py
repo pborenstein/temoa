@@ -246,6 +246,35 @@ async def root():
     return HTMLResponse(content=html_content)
 
 
+@app.get("/manage", response_class=HTMLResponse)
+async def manage():
+    """Serve management UI"""
+    ui_path = Path(__file__).parent / "ui" / "manage.html"
+
+    if not ui_path.exists():
+        # Return basic HTML if UI file doesn't exist yet
+        return HTMLResponse(content=f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Temoa Management</title>
+</head>
+<body>
+    <h1>⚙︎ Temoa Management</h1>
+    <p>Management UI coming soon.</p>
+    <p><a href="/">Back to Search</a></p>
+    <p>Version: {__version__}</p>
+</body>
+</html>
+        """)
+
+    html_content = ui_path.read_text()
+    # Inject version into HTML
+    html_content = html_content.replace("{{VERSION}}", __version__)
+    return HTMLResponse(content=html_content)
+
+
 @app.get("/search")
 async def search(
     q: str = Query(..., description="Search query", min_length=1),
