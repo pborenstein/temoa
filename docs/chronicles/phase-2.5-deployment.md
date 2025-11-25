@@ -3273,3 +3273,302 @@ What would you like to work on next?
 ```
 
 ---
+
+## Entry 18: Management Page - Centralizing Vault Operations (2025-11-24)
+
+**Context**: After completing the compact collapsible UI and mobile optimization, we realized that managing vault operations (reindexing, extracting gleanings) required CLI access, which is inconvenient when using the mobile interface. We needed a web-based administrative interface.
+
+### What We Built
+
+A comprehensive management page at `/manage` that provides:
+
+1. **System Health Monitoring**
+   - Real-time status from `/health` endpoint
+   - Model information display
+   - Files indexed count
+   - Visual status indicators
+
+2. **Vault Statistics Dashboard**
+   - Total embeddings
+   - Tag count and breakdown
+   - Directory count
+   - Auto-refreshes after operations
+
+3. **Reindex Vault Control**
+   - Confirmation dialog (prevents accidents)
+   - Barber pole progress indicator
+   - Status messages during operation
+   - Automatic stats refresh on completion
+
+4. **Extract Gleanings Control**
+   - Configurable extraction options:
+     - Incremental mode (default: on)
+     - Auto-reindex after extraction (default: on)
+   - Detailed results display
+   - Integration with existing `/extract` endpoint
+
+5. **Navigation**
+   - Gear icon (⚙︎) in search page header
+   - "Back to Search" link in management page
+   - Consistent dark theme across pages
+
+### Design Decisions
+
+**DEC-030: Barber Pole Progress Indicator**
+- **Rationale**: Classic macOS-style indeterminate progress
+- **Why not percentage**: Operations (reindex, extraction) have unpredictable duration
+- **Implementation**: CSS animation with diagonal stripes
+- **User benefit**: Clear visual feedback that work is happening
+
+**DEC-031: Confirmation Dialog for Reindex**
+- **Rationale**: Reindexing can take 15-20 seconds and rebuilds all embeddings
+- **Why needed**: Prevents accidental clicks (especially on mobile)
+- **Pattern**: Standard browser confirm() dialog
+- **User benefit**: Protection against disruptive accidental operations
+
+**DEC-032: Checkboxes Below Button**
+- **Initial mistake**: Checkboxes appeared above "Extract Gleanings" button
+- **Problem**: Confusing visual hierarchy (options before action)
+- **Fix**: Repositioned using DOM insertBefore
+- **Rationale**: Action first, then options (natural reading order)
+
+### Technical Patterns
+
+**1. Safe DOM Manipulation (Continued)**
+
+Following patterns from Entry 17 (compact collapsible UI):
+
+```javascript
+// createElement pattern, not innerHTML
+const statusSection = document.createElement('div')
+statusSection.className = 'section'
+
+const heading = document.createElement('h2')
+heading.textContent = 'System Health'
+statusSection.appendChild(heading)
+```
+
+No `innerHTML` usage = no XSS vulnerabilities.
+
+**2. Progress Feedback Pattern**
+
+```javascript
+// Show progress
+const progressBar = createProgressBar('Reindexing vault...')
+progressSection.appendChild(progressBar)
+
+try {
+  const response = await fetch('/reindex', {method: 'POST'})
+  const data = await response.json()
+
+  // Replace progress with success
+  progressSection.removeChild(progressBar)
+  const success = createSuccessMessage(...)
+  progressSection.appendChild(success)
+} catch (error) {
+  // Replace progress with error
+  progressSection.removeChild(progressBar)
+  const errorMsg = createErrorMessage(...)
+  progressSection.appendChild(errorMsg)
+}
+```
+
+Clear state transitions: idle → working → success/error.
+
+**3. Barber Pole CSS Animation**
+
+```css
+@keyframes barber-pole {
+  from { background-position: 0 0; }
+  to { background-position: 60px 0; }
+}
+
+.barber-pole-progress {
+  background: repeating-linear-gradient(
+    45deg,
+    #4a90e2,
+    #4a90e2 10px,
+    #357abd 10px,
+    #357abd 20px
+  );
+  background-size: 60px 100%;
+  animation: barber-pole 1s linear infinite;
+}
+```
+
+Classic diagonal stripe pattern that animates left-to-right.
+
+### Bugs Discovered and Fixed
+
+**Bug 1: Stats Display Showing Undefined**
+
+**Problem**: In initial implementation, stats showed:
+```
+Total Tags: undefined
+Directories: undefined
+```
+
+**Root cause**: API response structure mismatch
+```javascript
+// Wrong (what we tried)
+data.total_tags
+
+// Correct (actual structure)
+data.stats.total_tags
+```
+
+The `/stats` endpoint returns: `{stats: {num_embeddings, total_tags, directories}}`, not flat structure.
+
+**Fix**: Updated all stats access to use `data.stats.*` pattern.
+
+**Bug 2: Checkbox Layout Confusion**
+
+**Problem**: Extract Gleanings checkboxes appeared ABOVE the button:
+```
+☐ Incremental mode
+☐ Auto-reindex
+[Extract Gleanings]  ← button below options (confusing!)
+```
+
+**Root cause**: DOM insertion order
+```javascript
+// Created checkboxes first, then button
+// appendChild adds to end, so button came last
+```
+
+**Fix**: Use `insertBefore` to position checkboxes after button:
+```javascript
+actionsSection.appendChild(extractBtn)
+actionsSection.insertBefore(checkboxes, extractBtn.nextSibling)
+```
+
+**Result**: Natural visual hierarchy:
+```
+[Extract Gleanings]  ← action first
+☐ Incremental mode   ← options second
+☐ Auto-reindex
+```
+
+### Integration Points
+
+**API Endpoints Used**:
+- `GET /health` - System status monitoring
+- `GET /stats` - Vault statistics
+- `POST /reindex` - Trigger full reindex
+- `POST /extract` - Trigger gleaning extraction
+
+All endpoints existed before management page, so no backend changes needed (except adding `/manage` route to serve the HTML).
+
+**Navigation Pattern**:
+```
+Search page (/):
+  ⚙︎ → Management
+
+Management page (/manage):
+  ← Back to Search
+```
+
+Bidirectional navigation maintains user context.
+
+### User Experience Improvements
+
+**Before management page**:
+- Had to SSH into server for vault operations
+- No visibility into system health
+- No progress feedback during operations
+- CLI-only access to gleaning extraction
+
+**After management page**:
+- All operations accessible via web UI
+- Real-time health monitoring
+- Visual progress feedback (barber pole)
+- Mobile-friendly administration
+- No need to leave the browser
+
+**Mobile use case**: Can now trigger gleaning extraction and reindex from phone while browsing search results.
+
+### Lessons Learned
+
+**1. Visual Hierarchy Matters**
+
+Even small layout choices (checkbox position) affect usability. Action buttons should come before their options in visual flow.
+
+**2. Progress Feedback is Essential**
+
+Long-running operations (15-20 seconds) need clear feedback. Barber pole pattern works well for indeterminate progress.
+
+**3. Confirmation Dialogs for Destructive Actions**
+
+Reindexing rebuilds all embeddings (expensive operation). Confirmation dialog prevents accidental triggers, especially on mobile where tap targets are smaller.
+
+**4. API Response Structure Needs Documentation**
+
+Spent time debugging why stats showed "undefined" - turned out to be nested response structure. Clear API documentation would have prevented this.
+
+**5. DOM Manipulation Patterns Pay Off**
+
+Using `createElement` pattern from Entry 17 made it easy to build management page without XSS vulnerabilities. Pattern is now established across entire UI codebase.
+
+### Performance Considerations
+
+**Page Load**:
+- Initial health check: ~50ms
+- Stats fetch: ~100ms
+- Total load time: ~150ms
+
+**Operations**:
+- Reindex: 15-20 seconds (depends on vault size)
+- Extract gleanings: 2-5 seconds (depends on new file count)
+
+Both operations show barber pole progress, so perceived performance is good despite actual duration.
+
+### Files Modified
+
+**New Files**:
+- `src/temoa/ui/manage.html` (547 lines) - Complete management interface
+- `docs/MANAGEMENT-PAGE-PLAN.md` (302 lines) - Implementation plan
+
+**Modified Files**:
+- `src/temoa/server.py` - Added `/manage` route
+- `src/temoa/ui/search.html` - Added gear icon navigation
+
+Total new code: ~850 lines (HTML, CSS, JavaScript).
+
+### What This Enables
+
+Management page completes the "self-contained" nature of Temoa:
+
+1. **Discovery**: Search page for finding content
+2. **Administration**: Management page for maintenance
+3. **Monitoring**: Health and stats visibility
+4. **Operations**: Reindex and extraction without CLI
+
+Everything needed for day-to-day usage is now accessible via web interface, perfect for mobile-first workflow.
+
+### Connection to Project Goals
+
+From Entry 1 (The Central Problem):
+> "This is not a technology problem. It's a **retrieval behavior problem**."
+
+Management page removes friction from vault maintenance:
+- Don't need to switch to laptop to extract gleanings
+- Can reindex vault after bulk changes from phone
+- Visibility into system health builds trust
+
+Lower friction → more consistent usage → better habit formation.
+
+### Next Steps
+
+With management page complete, Phase 2.5 enhancements are done:
+1. ✅ Compact collapsible UI (Entry 17)
+2. ✅ Management page (Entry 18)
+
+Ready to evaluate Phase 3 priorities:
+- Archaeology endpoint (temporal analysis)
+- PWA support (home screen installation)
+- Advanced filters (date range, etc.)
+- Performance optimizations
+
+Or continue Phase 2.5 refinement based on mobile validation feedback.
+
+---

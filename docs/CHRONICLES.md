@@ -31,7 +31,7 @@ The chronicles have been split into chapters for easier navigation:
 - Entry 10: Extraction Shakedown - Format Flexibility & Filesystem Edge Cases
 
 ### [Phase 2.5: Deployment & Mobile Validation](chronicles/phase-2.5-deployment.md)
-**Entries 11-17** | Real-World Usage and Gleaning Management
+**Entries 11-18** | Real-World Usage and Gleaning Management
 
 - Entry 11: Mid-Course Assessment - Pausing Before Phase 3
 - Entry 12: Deployment Shakedown - Real-World Bugs Surface
@@ -40,6 +40,7 @@ The chronicles have been split into chapters for easier navigation:
 - Entry 15: Type Filtering - From Noise to Signal
 - Entry 16: UI Refinement - Polish Through Real Usage
 - Entry 17: Compact Collapsible UI - Mobile Testing Drives Major Refactor
+- Entry 18: Management Page - Centralizing Vault Operations
 
 ---
 
@@ -63,6 +64,9 @@ The chronicles have been split into chapters for easier navigation:
 | DEC-027: Compact collapsible results | 17 | Default collapsed, expand on demand |
 | DEC-028: Centralized state management | 17 | Versioned localStorage, race condition prevention |
 | DEC-029: Safe DOM manipulation | 17 | Replace innerHTML with createElement (XSS protection) |
+| DEC-030: Barber pole progress indicator | 18 | Classic macOS-style indeterminate progress |
+| DEC-031: Confirmation dialog for reindex | 18 | Prevent accidental expensive operations |
+| DEC-032: Checkboxes below button | 18 | Action first, options second (natural hierarchy) |
 
 ---
 
@@ -88,4 +92,4 @@ The chronicles have been split into chapters for easier navigation:
 
 **Created**: 2025-11-18
 **Last Updated**: 2025-11-24
-**Total Entries**: 17
+**Total Entries**: 18

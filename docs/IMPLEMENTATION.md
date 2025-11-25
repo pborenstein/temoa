@@ -66,7 +66,7 @@ See [phases/phase-0-discovery.md](phases/phase-0-discovery.md)
 
 ## Phase 1: Minimal Viable Search ✅
 
-**Status**: COMPLETE (2025-11-18)
+**Status**: COMPLETE (2025-11-18) + Management Page (2025-11-24)
 **Goal**: Build FastAPI server that wraps Synthesis with direct imports for fast search
 **Duration**: 1 day (faster than estimated!)
 
@@ -801,6 +801,100 @@ During mobile validation, discovered UI issues that needed addressing for practi
 - Cleaner, more professional interface
 - Zero external dependencies maintained
 - XSS vulnerabilities eliminated
+
+### Management Page (2025-11-24)
+
+**Status**: COMPLETE - Administrative interface for vault operations
+
+Added comprehensive management interface at `/manage` for vault maintenance and monitoring.
+
+**Features Implemented:**
+
+1. **System Health Monitoring**:
+   - Real-time health status display
+   - Model information (name, embeddings count)
+   - Files indexed count
+   - Status indicators (🟢 healthy, 🔴 unhealthy)
+
+2. **Vault Statistics**:
+   - Total embeddings count
+   - Tag count with breakdown
+   - Directory count
+   - Fetched from `/stats` endpoint
+   - Updated after reindex operations
+
+3. **Reindex Vault Control**:
+   - Button to trigger full vault reindex
+   - Confirmation dialog (prevents accidental clicks)
+   - Barber pole progress indicator (classic macOS style)
+   - Status messages during and after reindex
+   - Automatic stats refresh on completion
+
+4. **Extract Gleanings Control**:
+   - Button to trigger gleaning extraction
+   - Configurable options (checkboxes):
+     - Incremental mode (default: on) - only new files
+     - Auto-reindex (default: on) - reindex after extraction
+   - Status messages with extraction statistics
+   - Results display (total found, created, duplicates skipped)
+
+5. **Navigation**:
+   - Gear icon (⚙︎) in search page header links to management
+   - "Back to Search" link in management page
+   - Consistent styling across pages
+
+**Technical Implementation:**
+
+1. **UI Components**:
+   - Dark theme matching search page
+   - Mobile-responsive layout
+   - Safe DOM manipulation (createElement)
+   - Barber pole CSS animation for progress
+   - Indeterminate progress bar (no percentage)
+
+2. **API Integration**:
+   - `/health` endpoint for status monitoring
+   - `/stats` endpoint for vault statistics
+   - `/reindex` endpoint (POST) for reindexing
+   - `/extract` endpoint (POST) for gleaning extraction
+
+3. **Progress Feedback**:
+   - "Working..." message with barber pole
+   - Operation-specific success messages
+   - Error handling with user-friendly messages
+   - Stats auto-refresh after operations
+
+**Bug Fixes:**
+
+**Issue 1: Stats Display Bug**
+- **Problem**: `total_tags` and `directories` showed as undefined
+- **Cause**: Response structure nested under `stats` key
+- **Fix**: Access `data.stats.total_tags` instead of `data.total_tags`
+- **Impact**: Stats now display correctly in management page
+
+**Issue 2: Checkbox Layout**
+- **Problem**: Checkboxes appeared above Extract button (confusing)
+- **Cause**: DOM insertion order in initial implementation
+- **Fix**: Repositioned checkboxes below button using insertBefore
+- **Impact**: Clearer visual hierarchy (action → options)
+
+**Commits:**
+- bef5807: feat: add management page with reindex and extraction controls
+
+**Files Added:**
+- `src/temoa/ui/manage.html` (547 lines) - Management interface
+- `docs/MANAGEMENT-PAGE-PLAN.md` (302 lines) - Implementation plan
+
+**Files Modified:**
+- `src/temoa/server.py` - Add `/manage` route
+- `src/temoa/ui/search.html` - Add navigation to management page
+
+**Impact:**
+- Easy access to vault maintenance operations
+- No need for CLI access during mobile usage
+- Visual feedback for long-running operations
+- Centralized administration interface
+- Consistent UX with search page
 
 ### Success Criteria
 
