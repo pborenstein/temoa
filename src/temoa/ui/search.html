@@ -65,31 +65,20 @@
             color: #666666;
         }
 
-        .controls {
-            background: #2a2a2a;
-            padding: 12px;
-            margin-bottom: 16px;
-            border-radius: 8px;
-            border: 1px solid #404040;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 12px;
-        }
-
         .control-group {
             display: flex;
             flex-direction: column;
         }
 
         .control-label {
-            font-size: 13px;
+            font-size: 12px;
             color: #888888;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             font-weight: 500;
         }
 
         input[type="number"], input[type="text"] {
-            padding: 10px 12px;
+            padding: 8px 10px;
             font-size: 16px;
             border: 1px solid #404040;
             border-radius: 6px;
@@ -136,8 +125,8 @@
             border-radius: 6px;
             background: #1a1a1a;
             color: #e0e0e0;
-            padding: 6px;
-            font-size: 14px;
+            padding: 4px;
+            font-size: 13px;
             outline: none;
             transition: border-color 0.2s;
         }
@@ -212,12 +201,12 @@
         .collapsible-content {
             display: none;
             background: #2a2a2a;
-            padding: 12px;
-            margin-bottom: 16px;
+            padding: 10px;
+            margin-bottom: 12px;
             border-radius: 8px;
             border: 1px solid #404040;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 12px;
+            gap: 10px;
         }
 
         .collapsible-content.expanded {
@@ -378,11 +367,47 @@
             display: block;
         }
 
+        /* Results Controls */
+        .results-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
         .results-header {
             color: #888888;
             font-size: 14px;
-            margin-bottom: 16px;
             font-weight: 500;
+            flex: 1;
+        }
+
+        .results-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .results-control-btn {
+            padding: 6px 12px;
+            font-size: 13px;
+            background: #2a2a2a;
+            color: #e0e0e0;
+            border: 1px solid #404040;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .results-control-btn:hover {
+            background: #333333;
+            border-color: #505050;
+        }
+
+        .results-control-btn:active {
+            background: #3a3a3a;
         }
 
         .results-table {
@@ -393,10 +418,15 @@
 
         .result-row {
             background: #2a2a2a;
-            padding: 20px;
+            padding: 12px 20px;  /* Compact padding when collapsed */
             border-radius: 8px;
             border: 1px solid #404040;
             transition: all 0.2s;
+            cursor: pointer;  /* Indicate clickable */
+        }
+
+        .result-row.expanded {
+            padding: 20px;  /* Full padding when expanded */
         }
 
         .result-row:hover {
@@ -406,10 +436,39 @@
 
         .result-header {
             display: flex;
+            flex-direction: column;  /* Stack title and badges vertically when collapsed */
+            align-items: flex-start;
+            margin-bottom: 0;  /* No margin when collapsed */
+            gap: 8px;
+            position: relative;
+            padding-left: 20px;  /* Space for arrow */
+        }
+
+        .result-row.expanded .result-header {
+            flex-direction: row;  /* Side-by-side when expanded */
             justify-content: space-between;
             align-items: flex-start;
-            margin-bottom: 12px;
             gap: 16px;
+            margin-bottom: 12px;  /* Restore margin when expanded */
+        }
+
+        /* Collapse/expand arrow */
+        .result-header::before {
+            content: '▶';
+            position: absolute;
+            left: 0;
+            font-size: 10px;
+            color: #888;
+            transition: transform 0.2s;
+        }
+
+        .result-row.expanded .result-header::before {
+            transform: rotate(90deg);
+        }
+
+        /* Details section (hidden by default) */
+        .result-details {
+            /* No display:none needed - conditionally added to DOM */
         }
 
         .result-title-link {
@@ -589,37 +648,35 @@
             >
         </div>
 
-        <div class="controls">
+        <!-- Collapsible Options (all controls consolidated) -->
+        <div class="collapsible-header" onclick="toggleOptions()">
+            <span class="arrow">▶</span>
+            <span class="label">Options</span>
+        </div>
+
+        <div class="collapsible-content" id="options">
             <div class="control-group">
-                <label class="control-label" for="min-score">Min Similarity Score</label>
+                <label class="control-label" for="min-score">Min Score</label>
                 <input type="number" id="min-score" min="0" max="1" step="0.05" value="0.30">
             </div>
 
             <div class="control-group">
-                <label class="control-label" for="limit">Result Limit (max 100)</label>
+                <label class="control-label" for="limit">Limit</label>
                 <input type="number" id="limit" min="1" max="100" value="20">
             </div>
 
             <div class="control-group">
                 <div class="checkbox-group">
                     <input type="checkbox" id="hybrid-search">
-                    <label for="hybrid-search">Hybrid search (BM25 + semantic)</label>
+                    <label for="hybrid-search">Hybrid (BM25+semantic)</label>
                 </div>
             </div>
-        </div>
 
-        <!-- Collapsible Advanced Options -->
-        <div class="collapsible-header" onclick="toggleAdvancedOptions()">
-            <span class="arrow">▶</span>
-            <span class="label">Advanced Options</span>
-        </div>
-
-        <div class="collapsible-content" id="advanced-options">
-            <!-- Type Filtering Controls -->
+            <!-- Type Filtering -->
             <div class="control-group">
                 <label class="control-label" for="include-types">Include Types</label>
                 <div class="type-filter-row">
-                    <select id="include-types" multiple size="4" class="type-select">
+                    <select id="include-types" multiple size="3" class="type-select">
                         <option value="gleaning">Gleaning</option>
                         <option value="writering">Writering</option>
                         <option value="llmering">LLMering</option>
@@ -630,13 +687,12 @@
                     </select>
                     <button type="button" class="clear-btn" onclick="clearSelect('include-types')">Clear</button>
                 </div>
-                <div class="help-text">Ctrl/Cmd for multiple. Empty = all.</div>
             </div>
 
             <div class="control-group">
                 <label class="control-label" for="exclude-types">Exclude Types</label>
                 <div class="type-filter-row">
-                    <select id="exclude-types" multiple size="4" class="type-select">
+                    <select id="exclude-types" multiple size="3" class="type-select">
                         <option value="gleaning">Gleaning</option>
                         <option value="writering">Writering</option>
                         <option value="llmering">LLMering</option>
@@ -647,13 +703,12 @@
                     </select>
                     <button type="button" class="clear-btn" onclick="clearSelect('exclude-types')">Clear</button>
                 </div>
-                <div class="help-text">Default excludes daily.</div>
             </div>
 
             <div class="control-group">
                 <div class="checkbox-group">
                     <input type="checkbox" id="show-json">
-                    <label for="show-json">Show raw JSON</label>
+                    <label for="show-json">Show JSON</label>
                 </div>
             </div>
         </div>
@@ -702,7 +757,19 @@
 
         <div class="json-viewer" id="json-viewer"></div>
 
-        <div id="results-header" class="results-header" style="display: none;"></div>
+        <!-- Results Controls -->
+        <div class="results-controls" id="results-controls" style="display: none;">
+            <div id="results-header" class="results-header"></div>
+            <div class="results-buttons">
+                <button type="button" class="results-control-btn" onclick="collapseAllResults()" title="Collapse all results (c)">
+                    Collapse All
+                </button>
+                <button type="button" class="results-control-btn" onclick="expandAllResults()" title="Expand all results (e)">
+                    Expand All
+                </button>
+            </div>
+        </div>
+
         <div id="results"></div>
 
         <footer>
@@ -741,6 +808,80 @@
         const statsDetails = document.getElementById('stats-details');
         const jsonViewer = document.getElementById('json-viewer');
 
+        // ========================================
+        // State Management
+        // ========================================
+        const STORAGE_VERSION = 1;
+        const STORAGE_KEY = `temoa_v${STORAGE_VERSION}_ui_state`;
+
+        const state = {
+            query: '',
+            results: [],
+            filters: {
+                minScore: 0.3,
+                limit: 20,
+                hybrid: false,
+                includeTypes: [],
+                excludeTypes: ['daily']
+            },
+            ui: {
+                expandedResults: new Set(),  // Track which results are expanded
+                statsExpanded: false,
+                optionsExpanded: false,  // Renamed from advancedExpanded
+                showJson: false
+            },
+            currentRequestId: 0  // Prevent race conditions
+        };
+
+        // Load UI state from localStorage
+        function loadState() {
+            try {
+                const stored = localStorage.getItem(STORAGE_KEY);
+                if (!stored) return;
+
+                const data = JSON.parse(stored);
+
+                // Restore UI preferences
+                if (data.ui) {
+                    // Convert expandedResults array back to Set
+                    if (Array.isArray(data.ui.expandedResults)) {
+                        state.ui.expandedResults = new Set(data.ui.expandedResults);
+                    }
+                    state.ui.statsExpanded = data.ui.statsExpanded || false;
+                    state.ui.optionsExpanded = data.ui.optionsExpanded || data.ui.advancedExpanded || false;  // Backward compat
+                    state.ui.showJson = data.ui.showJson || false;
+                }
+            } catch (err) {
+                console.warn('Failed to load state from localStorage:', err);
+            }
+        }
+
+        // Save UI state to localStorage
+        function saveState() {
+            try {
+                const toSave = {
+                    ui: {
+                        expandedResults: Array.from(state.ui.expandedResults),  // Convert Set to array
+                        statsExpanded: state.ui.statsExpanded,
+                        optionsExpanded: state.ui.optionsExpanded,
+                        showJson: state.ui.showJson
+                    }
+                };
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
+            } catch (err) {
+                console.warn('Failed to save state to localStorage:', err);
+            }
+        }
+
+        // Update state and persist
+        function updateState(updates) {
+            Object.assign(state, updates);
+            saveState();
+        }
+
+        // Load state on startup
+        loadState();
+
         // Helper function to get selected values from multi-select
         function getSelectedValues(selectElement) {
             return Array.from(selectElement.selectedOptions)
@@ -754,10 +895,13 @@
             Array.from(select.options).forEach(opt => opt.selected = false);
         }
 
-        // Toggle advanced options
-        function toggleAdvancedOptions() {
-            const content = document.getElementById('advanced-options');
+        // Toggle options (consolidated from controls + advanced options)
+        function toggleOptions() {
+            const content = document.getElementById('options');
             const header = document.querySelector('.collapsible-header');
+
+            state.ui.optionsExpanded = !state.ui.optionsExpanded;
+            saveState();
 
             content.classList.toggle('expanded');
             header.classList.toggle('expanded');
@@ -765,11 +909,39 @@
 
         // Toggle stats
         function toggleStats() {
+            state.ui.statsExpanded = !state.ui.statsExpanded;
+            saveState();
+
             statsDetails.classList.toggle('expanded');
             statsHeader.classList.toggle('expanded');
         }
 
+        // Restore UI state on load
+        function restoreUIState() {
+            // Restore stats panel state
+            if (state.ui.statsExpanded) {
+                statsDetails.classList.add('expanded');
+                statsHeader.classList.add('expanded');
+            }
+
+            // Restore options state
+            if (state.ui.optionsExpanded) {
+                const content = document.getElementById('options');
+                const header = document.querySelector('.collapsible-header');
+                content.classList.add('expanded');
+                header.classList.add('expanded');
+            }
+
+            // Restore JSON viewer state
+            if (state.ui.showJson) {
+                showJsonCheckbox.checked = true;
+            }
+        }
+
         showJsonCheckbox.addEventListener('change', (e) => {
+            state.ui.showJson = e.target.checked;
+            saveState();
+
             if (e.target.checked && window.lastSearchData) {
                 displayJson(window.lastSearchData);
             } else {
@@ -778,12 +950,31 @@
         });
 
         window.addEventListener('load', () => {
+            restoreUIState();
             queryInput.focus();
         });
 
         queryInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 search();
+            }
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            // Don't trigger shortcuts when typing in inputs
+            if (e.target.matches('input, textarea, select')) return;
+
+            // 'c' to collapse all results
+            if (e.key === 'c') {
+                e.preventDefault();
+                collapseAllResults();
+            }
+
+            // 'e' to expand all results
+            if (e.key === 'e') {
+                e.preventDefault();
+                expandAllResults();
             }
         });
 
@@ -795,16 +986,25 @@
                 return;
             }
 
+            // Increment request ID to detect stale responses
+            const requestId = ++state.currentRequestId;
+
             const minScore = parseFloat(minScoreInput.value) || 0.3;
             const limit = parseInt(limitInput.value) || 20;
             const hybrid = hybridSearchCheckbox.checked;
             const includeTypes = getSelectedValues(includeTypesSelect);
             const excludeTypes = getSelectedValues(excludeTypesSelect);
 
+            // Update state
+            state.query = query;
+            state.filters.minScore = minScore;
+            state.filters.limit = limit;
+            state.filters.hybrid = hybrid;
+
             errorDiv.classList.remove('active');
             loadingDiv.classList.add('active');
             resultsDiv.innerHTML = '';
-            resultsHeader.style.display = 'none';
+            document.getElementById('results-controls').style.display = 'none';
             statsHeader.style.display = 'none';
             statsDetails.classList.remove('expanded');
             statsHeader.classList.remove('expanded');
@@ -839,6 +1039,14 @@
                 }
 
                 const data = await response.json();
+
+                // Ignore stale responses (race condition protection)
+                if (requestId !== state.currentRequestId) {
+                    console.log('Ignoring stale response for request', requestId);
+                    return;
+                }
+
+                state.results = data.results || [];
                 window.lastSearchData = data;
 
                 displayResults(data);
@@ -849,11 +1057,17 @@
                 }
 
             } catch (error) {
-                showError(error.message || 'Failed to search. Please try again.');
-                console.error('Search error:', error);
+                // Only show error if this is still the current request
+                if (requestId === state.currentRequestId) {
+                    showError(error.message || 'Failed to search. Please try again.');
+                    console.error('Search error:', error);
+                }
             } finally {
-                loadingDiv.classList.remove('active');
-                searchBtn.disabled = false;
+                // Only re-enable if this is still the current request
+                if (requestId === state.currentRequestId) {
+                    loadingDiv.classList.remove('active');
+                    searchBtn.disabled = false;
+                }
             }
         }
 
@@ -890,81 +1104,289 @@
 
         function displayResults(data) {
             const { query, results, total } = data;
+            const resultsControls = document.getElementById('results-controls');
 
             if (!results || results.length === 0) {
-                resultsDiv.innerHTML = `
-                    <div class="empty-state">
-                        <div>No results found for "${escapeHtml(query)}"</div>
-                    </div>
-                `;
+                // Create empty state with createElement
+                const emptyState = document.createElement('div');
+                emptyState.className = 'empty-state';
+                const emptyText = document.createElement('div');
+                emptyText.textContent = `No results found for "${query}"`;
+                emptyState.appendChild(emptyText);
+                resultsDiv.replaceChildren(emptyState);
+                resultsControls.style.display = 'none';
                 return;
             }
 
             resultsHeader.textContent = `Found ${total} results for "${query}"`;
-            resultsHeader.style.display = 'block';
+            resultsControls.style.display = 'flex';
 
-            const tableHtml = `
-                <div class="results-table">
-                    ${results.map(result => `
-                        <div class="result-row">
-                            <div class="result-header">
-                                <a href="${escapeHtml(result.obsidian_uri)}" class="result-title-link">
-                                    ${escapeHtml(result.title || result.relative_path)}
-                                </a>
-                                <div class="result-badges">
-                                    ${result.frontmatter?.type ? (() => {
-                                        let type = result.frontmatter.type;
-                                        // Handle different type formats (string, array)
-                                        if (Array.isArray(type)) {
-                                            type = type.join(', ');
-                                        } else {
-                                            type = String(type);
-                                        }
-                                        return `<span class="type-badge">${escapeHtml(type)}</span>`;
-                                    })() : ''}
-                                    ${result.frontmatter?.project ? (() => {
-                                        const vaultName = result.obsidian_uri.split('/')[3];
-                                        let project = result.frontmatter.project;
-                                        // Handle different project formats (string, array, etc.)
-                                        if (Array.isArray(project)) project = project[0];
-                                        if (typeof project !== 'string') project = String(project);
-                                        const projectName = project.replace(/[\[\]]/g, '');
-                                        const projectUri = `obsidian://vault/${vaultName}/${encodeURIComponent(projectName)}`;
-                                        return `<a href="${projectUri}" class="project-badge">${escapeHtml(projectName)}</a>`;
-                                    })() : ''}
-                                    <div class="result-score-badge">
-                                        ${result.bm25_score !== undefined ?
-                                            `${((result.similarity_score || 0) * 100).toFixed(1)}% | ${result.bm25_score.toFixed(1)}` :
-                                            `${((result.similarity_score || 0) * 100).toFixed(1)}%`
-                                        }
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="result-meta">
-                                <div class="result-meta-item">
-                                    <span class="result-path">${escapeHtml(result.relative_path)}</span>
-                                </div>
-                                ${result.created_date ? `
-                                    <div class="result-meta-item">
-                                        <span>${escapeHtml(result.created_date)}</span>
-                                    </div>
-                                ` : ''}
-                            </div>
-                            ${result.description ? `
-                                <div class="result-description">${escapeHtml(result.description)}</div>
-                            ` : ''}
-                            ${result.tags && result.tags.length ? `
-                                <div class="result-tags">
-                                    ${result.tags.map(tag => `<span class="tag">#${escapeHtml(tag)}</span>`).join('')}
-                                </div>
-                            ` : ''}
-                        </div>
-                    `).join('')}
-                </div>
-            `;
+            // Create results table container
+            const table = document.createElement('div');
+            table.className = 'results-table';
 
-            resultsDiv.innerHTML = tableHtml;
+            // Create result cards using factory functions with error boundaries
+            const cards = results.map(result =>
+                safeRender(() => {
+                    const expanded = state.ui.expandedResults.has(result.relative_path);
+                    return createResultCard(result, expanded);
+                })
+            );
+
+            table.append(...cards);
+            resultsDiv.replaceChildren(table);
         }
+
+        // ========================================
+        // Result Card Toggle Logic
+        // ========================================
+
+        function toggleResultExpanded(resultId) {
+            if (state.ui.expandedResults.has(resultId)) {
+                state.ui.expandedResults.delete(resultId);
+            } else {
+                state.ui.expandedResults.add(resultId);
+            }
+            saveState();
+
+            // Update the specific card's DOM
+            const card = document.querySelector(`[data-result-id="${CSS.escape(resultId)}"]`);
+            if (!card) return;
+
+            const isExpanded = state.ui.expandedResults.has(resultId);
+            card.classList.toggle('expanded', isExpanded);
+
+            // Get the result data to create details if expanding
+            if (isExpanded && !card.querySelector('.result-details')) {
+                const result = state.results.find(r => r.relative_path === resultId);
+                if (result) {
+                    const details = createResultDetails(result);
+                    card.appendChild(details);
+                }
+            } else if (!isExpanded) {
+                const details = card.querySelector('.result-details');
+                if (details) {
+                    details.remove();
+                }
+            }
+        }
+
+        function collapseAllResults() {
+            state.ui.expandedResults.clear();
+            saveState();
+
+            // Update all cards
+            document.querySelectorAll('.result-row').forEach(card => {
+                card.classList.remove('expanded');
+                const details = card.querySelector('.result-details');
+                if (details) {
+                    details.remove();
+                }
+            });
+        }
+
+        function expandAllResults() {
+            // Add all result IDs to expanded set
+            state.results.forEach(result => {
+                state.ui.expandedResults.add(result.relative_path);
+            });
+            saveState();
+
+            // Update all cards
+            document.querySelectorAll('.result-row').forEach(card => {
+                const resultId = card.dataset.resultId;
+                if (!resultId) return;
+
+                card.classList.add('expanded');
+                if (!card.querySelector('.result-details')) {
+                    const result = state.results.find(r => r.relative_path === resultId);
+                    if (result) {
+                        const details = createResultDetails(result);
+                        card.appendChild(details);
+                    }
+                }
+            });
+        }
+
+        // Event delegation for result card clicks
+        resultsDiv.addEventListener('click', (e) => {
+            const card = e.target.closest('.result-row');
+            if (!card) return;
+
+            // Don't toggle if clicking on a link
+            if (e.target.tagName === 'A') return;
+
+            const resultId = card.dataset.resultId;
+            if (resultId) {
+                toggleResultExpanded(resultId);
+            }
+        });
+
+        // ========================================
+        // Component Factory Functions (Safe DOM)
+        // ========================================
+
+        function createBadge(className, content, href = null) {
+            const badge = document.createElement(href ? 'a' : 'span')
+            badge.className = className
+            badge.textContent = content
+            if (href) {
+                badge.href = href
+            }
+            return badge
+        }
+
+        function createTag(tagName) {
+            const tag = document.createElement('span')
+            tag.className = 'tag'
+            tag.textContent = `#${tagName}`
+            return tag
+        }
+
+        function createResultHeader(result) {
+            const header = document.createElement('div')
+            header.className = 'result-header'
+
+            // Title link
+            const titleLink = document.createElement('a')
+            titleLink.className = 'result-title-link'
+            titleLink.href = result.obsidian_uri
+            titleLink.textContent = result.title || result.relative_path
+            header.appendChild(titleLink)
+
+            // Badges container
+            const badgesDiv = document.createElement('div')
+            badgesDiv.className = 'result-badges'
+
+            // Type badge
+            if (result.frontmatter?.type) {
+                let type = result.frontmatter.type
+                if (Array.isArray(type)) {
+                    type = type.join(', ')
+                } else {
+                    type = String(type)
+                }
+                badgesDiv.appendChild(createBadge('type-badge', type))
+            }
+
+            // Project badge
+            if (result.frontmatter?.project) {
+                const vaultName = result.obsidian_uri.split('/')[3]
+                let project = result.frontmatter.project
+                if (Array.isArray(project)) project = project[0]
+                if (typeof project !== 'string') project = String(project)
+                const projectName = project.replace(/[\[\]]/g, '')
+                const projectUri = `obsidian://vault/${vaultName}/${encodeURIComponent(projectName)}`
+                badgesDiv.appendChild(createBadge('project-badge', projectName, projectUri))
+            }
+
+            // Score badge
+            const scoreDiv = document.createElement('div')
+            scoreDiv.className = 'result-score-badge'
+            if (result.bm25_score !== undefined) {
+                scoreDiv.textContent = `${((result.similarity_score || 0) * 100).toFixed(1)}% | ${result.bm25_score.toFixed(1)}`
+            } else {
+                scoreDiv.textContent = `${((result.similarity_score || 0) * 100).toFixed(1)}%`
+            }
+            badgesDiv.appendChild(scoreDiv)
+
+            header.appendChild(badgesDiv)
+            return header
+        }
+
+        function createResultDetails(result) {
+            const details = document.createElement('div')
+            details.className = 'result-details'
+
+            // Meta info (path, date)
+            const meta = document.createElement('div')
+            meta.className = 'result-meta'
+
+            const pathItem = document.createElement('div')
+            pathItem.className = 'result-meta-item'
+            const pathSpan = document.createElement('span')
+            pathSpan.className = 'result-path'
+            pathSpan.textContent = result.relative_path
+            pathItem.appendChild(pathSpan)
+            meta.appendChild(pathItem)
+
+            if (result.created_date) {
+                const dateItem = document.createElement('div')
+                dateItem.className = 'result-meta-item'
+                const dateSpan = document.createElement('span')
+                dateSpan.textContent = result.created_date
+                dateItem.appendChild(dateSpan)
+                meta.appendChild(dateItem)
+            }
+
+            details.appendChild(meta)
+
+            // Description
+            if (result.description) {
+                const desc = document.createElement('div')
+                desc.className = 'result-description'
+                desc.textContent = result.description
+                details.appendChild(desc)
+            }
+
+            // Tags
+            if (result.tags && result.tags.length) {
+                const tagsDiv = document.createElement('div')
+                tagsDiv.className = 'result-tags'
+                result.tags.forEach(tag => {
+                    tagsDiv.appendChild(createTag(tag))
+                })
+                details.appendChild(tagsDiv)
+            }
+
+            return details
+        }
+
+        function createResultCard(result, expanded = false) {
+            const card = document.createElement('div')
+            card.className = 'result-row'
+            if (expanded) {
+                card.classList.add('expanded')
+            }
+            card.dataset.resultId = result.relative_path
+
+            // Header (always visible)
+            const header = createResultHeader(result)
+            card.appendChild(header)
+
+            // Details (conditionally visible)
+            if (expanded) {
+                const details = createResultDetails(result)
+                card.appendChild(details)
+            }
+
+            return card
+        }
+
+        function createErrorCard() {
+            const card = document.createElement('div')
+            card.className = 'result-row error'
+            card.textContent = 'Failed to render result'
+            return card
+        }
+
+        // ========================================
+        // Error Boundaries
+        // ========================================
+
+        function safeRender(renderFn, fallback = null) {
+            try {
+                return renderFn();
+            } catch (err) {
+                console.error('Render error:', err);
+                showError('Something went wrong rendering results. Please refresh.');
+                return fallback || createErrorCard();
+            }
+        }
+
+        // ========================================
+        // Utility Functions
+        // ========================================
 
         function showError(message) {
             errorDiv.textContent = message;
