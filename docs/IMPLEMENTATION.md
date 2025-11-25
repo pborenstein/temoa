@@ -30,8 +30,8 @@
 | [Phase 0: Discovery & Validation](phases/phase-0-discovery.md) | ✅ **COMPLETE** | 1 day | None |
 | [Phase 1: Minimal Viable Search](phases/phase-1-mvp.md) | ✅ **COMPLETE** | 1 day | Phase 0 ✅ |
 | [Phase 2: Gleanings Integration](phases/phase-2-gleanings.md) | ✅ **COMPLETE** | 1 day | Phase 1 ✅ |
-| **Phase 2.5: Mobile Validation + UI** | ✅ **COMPLETE** | 1 day | Phase 2 ✅ |
-| [Phase 3: Enhanced Features](phases/phase-3-enhanced.md) | 🔵 **NEXT** | 5-7 days | Phase 2.5 ✅ |
+| **Phase 2.5: Mobile Validation + UI** | ✅ **COMPLETE** | 1 week | Phase 2 ✅ |
+| [Phase 3: Enhanced Features](PHASE-3-READY.md) | 🔵 **READY** | 2 weeks | Phase 2.5 ✅ |
 | [Phase 4: Vault-First LLM](phases/phase-4-llm.md) | ⚪ Future | 7-10 days | Phase 3, Apantli |
 
 ---
@@ -1067,36 +1067,42 @@ If partially → Remove specific barriers, then retest
 
 ---
 
-## Phase 3: Enhanced Features ⏸️
+## Phase 3: Enhanced Features 🔵
 
-**Status**: PAUSED - DO NOT START until Phase 2.5 validates hypothesis
-**Goal**: Make Temoa indispensable for daily use (after validation)
-**Duration**: 5-7 days (estimate, will adjust based on Phase 2.5 findings)
+**Status**: READY - Phase 2.5 validation complete, behavioral hypothesis confirmed
+**Goal**: Fix technical debt and improve search quality based on real usage
+**Duration**: 2 weeks (consolidated from comprehensive reviews)
+**Plan**: See [PHASE-3-READY.md](PHASE-3-READY.md) for consolidated implementation plan
 
-### Tasks Overview
+### Part 1: Technical Debt (Foundation)
 
-- [ ] 3.1: Archaeology Endpoint
-- [ ] 3.2: Enhanced UI
-- [ ] 3.3: PWA Support
+- [ ] Fix module-level initialization
+- [ ] Remove sys.path manipulation
+- [ ] Introduce service layer
 
-### Deliverables
+### Part 2: Search Quality (High Value)
 
-- [ ] `/archaeology` endpoint
-- [ ] `/stats` endpoint
-- [ ] Enhanced UI with filters
-- [ ] PWA support (manifest + service worker)
-- [ ] Performance optimizations
+- [ ] Cross-encoder re-ranking (Priority 1)
+- [ ] Query expansion for short queries
+- [ ] Time-aware scoring
+
+### Part 3: UI/UX Polish
+
+- [ ] PWA support (home screen install)
+- [ ] Keyboard shortcuts (/, Esc)
+- [ ] Search history
 
 ### Success Criteria
 
-- [ ] Daily usage > 5 searches/day
-- [ ] Archaeology provides useful insights
-- [ ] UI is preferred over Obsidian search
-- [ ] PWA installed on mobile device
+- [ ] Technical debt eliminated (no module-level init, no sys.path hacks)
+- [ ] Search quality improved 20-30% (cross-encoder)
+- [ ] PWA installable on mobile
+- [ ] All tests passing, no performance regression
 
 ### Detailed Plan
 
-See [phases/phase-3-enhanced.md](phases/phase-3-enhanced.md)
+**Primary**: [PHASE-3-READY.md](PHASE-3-READY.md) - Consolidated from 3 comprehensive reviews
+**Reference**: [phases/phase-3-enhanced.md](phases/phase-3-enhanced.md) - Original outline
 
 ---
 
