@@ -246,6 +246,40 @@ def _find_changed_files(self) -> Dict[str, List[VaultContent]]:
 
 **Challenge**: NumPy arrays are fixed-size. We need to add/update/remove embeddings.
 
+**CRITICAL: Order of Operations Matters!**
+
+When merging embeddings, the order in which we apply changes is critical to avoid index corruption:
+
+1. **DELETE first** (in reverse index order)
+2. **UPDATE second** (using pre-deletion indices)
+3. **APPEND last** (new files go at end)
+
+**Why this order?**
+- Deleting shifts all subsequent indices down
+- Updating requires stable indices
+- Appending doesn't affect existing indices
+
+**Wrong order = data corruption!**
+
+```python
+# WRONG - DO NOT DO THIS
+for new_file in new_files:
+    embeddings_list.append(new_embedding)  # Adds at end
+for deleted_idx in deleted_indices:
+    del embeddings_list[deleted_idx]  # ❌ Index is wrong now!
+
+# RIGHT - ALWAYS DO THIS
+# Step 1: DELETE (reverse order to avoid index shifting issues)
+for idx in sorted(deleted_indices, reverse=True):
+    del embeddings_list[idx]
+# Step 2: UPDATE (indices still valid after deletions)
+for update in updates:
+    embeddings_list[update.idx] = update.embedding
+# Step 3: APPEND (safe to add at end)
+for new_embedding in new_embeddings:
+    embeddings_list.append(new_embedding)
+```
+
 **Approach**:
 
 ```python
@@ -256,6 +290,15 @@ def _merge_embeddings(
     changes: Dict
 ) -> None:
     """Merge new/updated embeddings with existing index.
+
+    CRITICAL: This function modifies array indices. The order of operations
+    is EXTREMELY important to avoid data corruption:
+
+    1. DELETE files first (in REVERSE index order)
+    2. UPDATE files second (using original indices from before deletion)
+    3. APPEND new files last (at end of array)
+
+    Do NOT change this order without careful testing!
 
     Args:
         new_embeddings: Embeddings for new/modified files
@@ -272,37 +315,62 @@ def _merge_embeddings(
 
     file_tracking = index_info.get("file_tracking", {})
 
-    # Build mapping: path → index position
+    # Build mapping: path → index position (from BEFORE any changes)
+    # This is our source of truth for where things currently are
     path_to_idx = {}
     for i, meta in enumerate(old_metadata):
         path_to_idx[meta["relative_path"]] = i
 
-    # Start with existing embeddings and metadata
+    # Convert to Python lists (allows dynamic sizing)
     embeddings_list = list(old_embeddings)
     metadata_list = list(old_metadata)
 
-    # Remove deleted files (mark for deletion)
+    # =========================================================================
+    # STEP 1: DELETE files (REVERSE order - CRITICAL!)
+    # =========================================================================
+    # WHY REVERSE? When you delete index 5, index 6 becomes 5, 7 becomes 6, etc.
+    # If we delete in forward order, our stored indices become invalid.
+    # Reverse order means we delete from the end first, keeping earlier indices stable.
+
     indices_to_delete = []
     for path in changes["deleted"]:
         if path in path_to_idx:
             indices_to_delete.append(path_to_idx[path])
 
-    # Delete in reverse order to maintain indices
+    # Sort descending (largest index first) to maintain index validity
     for idx in sorted(indices_to_delete, reverse=True):
         del embeddings_list[idx]
         del metadata_list[idx]
 
-    # Update modified files
+    # =========================================================================
+    # STEP 2: UPDATE modified files (use ORIGINAL indices from path_to_idx)
+    # =========================================================================
+    # IMPORTANT: path_to_idx was built BEFORE deletions. After deleting files,
+    # some indices may have shifted. This is OK for updates because:
+    # - We're using the OLD position to find the file
+    # - We're replacing it in-place (no shifting)
+    # - The positions are still valid relative to the list structure
+    #
+    # GOTCHA: If a file was both modified AND its position shifted due to
+    # deletions before it, we need to account for that shift!
+
+    # Rebuild position map after deletions
+    path_to_idx_after_delete = {}
+    for i, meta in enumerate(metadata_list):
+        path_to_idx_after_delete[meta["relative_path"]] = i
+
     new_idx = 0
     for content in changes["modified"]:
         path = content.relative_path
-        if path in path_to_idx:
-            old_idx = path_to_idx[path]
-            embeddings_list[old_idx] = new_embeddings[new_idx]
-            metadata_list[old_idx] = new_metadata[new_idx]
+        if path in path_to_idx_after_delete:  # Use post-deletion indices
+            current_idx = path_to_idx_after_delete[path]
+            embeddings_list[current_idx] = new_embeddings[new_idx]
+            metadata_list[current_idx] = new_metadata[new_idx]
             new_idx += 1
 
-    # Append new files
+    # =========================================================================
+    # STEP 3: APPEND new files (always safe - goes at end)
+    # =========================================================================
     for content in changes["new"]:
         embeddings_list.append(new_embeddings[new_idx])
         metadata_list.append(new_metadata[new_idx])
@@ -311,7 +379,7 @@ def _merge_embeddings(
     # Convert back to numpy array
     merged_embeddings = np.array(embeddings_list)
 
-    # Save merged result
+    # Save merged result (save_embeddings will rebuild file_tracking with correct positions)
     self.pipeline.store.save_embeddings(merged_embeddings, metadata_list, model_info)
 ```
 
@@ -706,6 +774,163 @@ Usage: temoa reindex [OPTIONS]
 
 After extracting gleanings or modifying notes, run `temoa reindex` to update the search index.
 ```
+
+---
+
+## DANGER ZONES: Where Bugs Will Hide
+
+This section documents the critical failure modes and "gotchas" that will cause subtle data corruption if not handled correctly. Read this before implementing or debugging merge logic.
+
+### Danger Zone #1: List Index Shifting
+
+**Problem**: When you delete an item from a Python list, all subsequent indices shift down by 1.
+
+```python
+# Example of the problem
+items = ['a', 'b', 'c', 'd', 'e']  # indices: 0, 1, 2, 3, 4
+del items[1]  # Delete 'b'
+# Now: ['a', 'c', 'd', 'e']  # indices: 0, 1, 2, 3
+# Former index 2 ('c') is now index 1
+# Former index 3 ('d') is now index 2
+# etc.
+```
+
+**Consequences**:
+- If you store indices before deletion, they become INVALID after deletion
+- Using old indices after deletion = accessing wrong data = corruption
+
+**Solution**: Always delete in REVERSE order (highest index first)
+
+```python
+indices_to_delete = [1, 3, 7, 12]
+for idx in sorted(indices_to_delete, reverse=True):  # [12, 7, 3, 1]
+    del items[idx]
+# Deleting 12 doesn't affect indices 7, 3, 1
+# Deleting 7 doesn't affect indices 3, 1
+# Deleting 3 doesn't affect index 1
+# All deletions use correct indices
+```
+
+### Danger Zone #2: Stale Index Maps
+
+**Problem**: After deletions, any `path → index` mapping built BEFORE deletion is stale.
+
+```python
+# Built before deletions
+path_to_idx = {"file1.md": 0, "file2.md": 1, "file3.md": 2}
+
+# After deleting index 1 ("file2.md")
+# "file3.md" is now at index 1, not 2!
+# But path_to_idx still says it's at 2 (WRONG!)
+```
+
+**Consequences**:
+- Using stale map for updates = updating wrong file
+- Using stale map for lookups = accessing wrong data
+
+**Solution**: Rebuild the index map after deletions
+
+```python
+# After deletions, rebuild map
+path_to_idx_after_delete = {}
+for i, meta in enumerate(metadata_list):
+    path_to_idx_after_delete[meta["relative_path"]] = i
+# Now updates use correct current positions
+```
+
+### Danger Zone #3: Wrong Order of Operations
+
+**Problem**: Applying changes in wrong order corrupts indices.
+
+```python
+# WRONG - Appending before deleting
+embeddings_list.append(new_embedding)  # Adds at end
+del embeddings_list[5]  # This should delete old file, but...
+# We just deleted what we added! Or deleted wrong file!
+
+# WRONG - Updating before deleting
+embeddings_list[5] = updated_embedding  # Update position 5
+del embeddings_list[3]  # Delete shifts indices
+# Position 5 is now position 4, update went to wrong place!
+```
+
+**Consequences**:
+- Embeddings don't match metadata
+- Search returns wrong files
+- Silent data corruption (hard to detect)
+
+**Solution**: ALWAYS use this order:
+1. DELETE (reverse order)
+2. UPDATE (using rebuilt index map)
+3. APPEND (new files at end)
+
+### Danger Zone #4: Forgetting to Rebuild file_tracking
+
+**Problem**: After merge, `file_tracking` positions are stale.
+
+```python
+# Before: file_tracking says "file3.md" is at position 10
+# After deleting positions 2, 5, 8
+# "file3.md" is now at position 7
+# But file_tracking still says 10 (WRONG!)
+```
+
+**Consequences**:
+- Next incremental reindex uses wrong positions
+- Cumulative corruption over multiple reindexes
+
+**Solution**: `save_embeddings()` ALWAYS rebuilds file_tracking
+
+```python
+# This happens automatically in save_embeddings()
+file_tracking = {}
+for i, meta in enumerate(metadata):
+    file_tracking[meta["relative_path"]] = {
+        "modified_date": meta["modified_date"],
+        "index_position": i  # Fresh, correct position
+    }
+```
+
+### Danger Zone #5: Off-By-One in new_embeddings Index
+
+**Problem**: When processing modified and new files, tracking position in `new_embeddings` array.
+
+```python
+# new_embeddings contains: [embedding_for_modified1, embedding_for_modified2, embedding_for_new1, embedding_for_new2]
+# If you restart new_idx for each loop, you'll reuse embeddings!
+
+# WRONG
+for modified_file in modified_files:
+    embeddings_list[idx] = new_embeddings[0]  # Always uses first!
+
+for new_file in new_files:
+    embeddings_list.append(new_embeddings[0])  # Always uses first!
+
+# RIGHT
+new_idx = 0
+for modified_file in modified_files:
+    embeddings_list[idx] = new_embeddings[new_idx]
+    new_idx += 1  # Increment!
+
+for new_file in new_files:
+    embeddings_list.append(new_embeddings[new_idx])
+    new_idx += 1  # Keep incrementing!
+```
+
+### Testing for These Dangers
+
+**Critical test cases**:
+1. Delete first file (index 0) → verify all positions shift correctly
+2. Delete last file → verify no off-by-one errors
+3. Delete multiple non-contiguous files → verify all shifts tracked
+4. Modify file that comes AFTER a deletion → verify position corrected
+5. Mix all three operations → verify order is correct
+
+**Invariants to check**:
+- `len(embeddings) == len(metadata)` (always)
+- `embeddings[i]` matches `metadata[i]["relative_path"]` (always)
+- `file_tracking[path]["index_position"] == actual_position_in_array` (always)
+- After reindex, search for known file returns correct file (end-to-end)
 
 ---
 
