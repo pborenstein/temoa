@@ -31,7 +31,7 @@ The chronicles have been split into chapters for easier navigation:
 - Entry 10: Extraction Shakedown - Format Flexibility & Filesystem Edge Cases
 
 ### [Phase 2.5: Deployment & Mobile Validation](chronicles/phase-2.5-deployment.md)
-**Entries 11-16** | Real-World Usage and Gleaning Management
+**Entries 11-17** | Real-World Usage and Gleaning Management
 
 - Entry 11: Mid-Course Assessment - Pausing Before Phase 3
 - Entry 12: Deployment Shakedown - Real-World Bugs Surface
@@ -39,6 +39,7 @@ The chronicles have been split into chapters for easier navigation:
 - Entry 14: Architecture Documentation - Explaining the Machine
 - Entry 15: Type Filtering - From Noise to Signal
 - Entry 16: UI Refinement - Polish Through Real Usage
+- Entry 17: Compact Collapsible UI - Mobile Testing Drives Major Refactor
 
 ---
 
@@ -59,6 +60,9 @@ The chronicles have been split into chapters for easier navigation:
 | DEC-024: Themes by Period feature | 14 | Document for future, focus on present |
 | DEC-025: Default exclude daily type | 15 | Reduce noise in search results |
 | DEC-026: Hybrid search for daily notes | 15 | Daily notes work better with BM25+semantic |
+| DEC-027: Compact collapsible results | 17 | Default collapsed, expand on demand |
+| DEC-028: Centralized state management | 17 | Versioned localStorage, race condition prevention |
+| DEC-029: Safe DOM manipulation | 17 | Replace innerHTML with createElement (XSS protection) |
 
 ---
 
@@ -83,5 +87,5 @@ The chronicles have been split into chapters for easier navigation:
 ---
 
 **Created**: 2025-11-18
-**Last Updated**: 2025-11-23
-**Total Entries**: 16
+**Last Updated**: 2025-11-24
+**Total Entries**: 17
