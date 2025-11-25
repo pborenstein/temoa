@@ -8,9 +8,16 @@
 
 ## Overview
 
-Currently, both `temoa index` and `temoa reindex` do full rebuilds of the entire embedding index, processing every file in the vault. This takes the same amount of time (~15-20 seconds for typical vaults) regardless of how many files actually changed.
+Currently, both `temoa index` and `temoa reindex` do full rebuilds of the entire embedding index, processing every file in the vault. This takes the same amount of time (~20-25 seconds for the current 3,050-file vault) regardless of how many files actually changed.
 
 This plan implements **true incremental reindexing** where `temoa reindex` only processes new and modified files, making it much faster for daily use.
+
+### Current Production Stats
+
+- **Files indexed**: 3,050
+- **Model**: `all-mpnet-base-v2`
+- **Embedding dimensions**: 768
+- **Index size**: ~18.7 MB (embeddings.npy) + ~2-3 MB (metadata.json)
 
 ---
 
@@ -113,10 +120,10 @@ def reindex(self, force: bool = True):
 ```python
 # New: index.json includes file tracking
 {
-    "model_info": {...},
+    "model_info": {"model_name": "all-mpnet-base-v2"},
     "created_at": "2025-11-25T10:30:00",
-    "num_embeddings": 1899,
-    "embedding_dim": 384,
+    "num_embeddings": 3050,
+    "embedding_dim": 768,
     "files": {...},
     "file_tracking": {  # ← NEW
         "path/to/file.md": {
@@ -129,7 +136,56 @@ def reindex(self, force: bool = True):
 }
 ```
 
-### 2. Change Detection Algorithm
+### 2. Memory Implications of Array-to-List Conversion
+
+**The NumPy → Python List Challenge**:
+
+NumPy arrays are fixed-size contiguous memory blocks. To add/remove/update elements, we must:
+1. Load the NumPy array into memory
+2. Convert to Python list (flexible, can grow/shrink)
+3. Modify the list (add/update/delete)
+4. Convert back to NumPy array
+5. Save to disk
+
+**Memory usage breakdown** (with current vault: 3,050 files × 768 dims):
+
+```python
+# Step 1: Load NumPy array
+old_embeddings = np.load("embeddings.npy")
+# Memory: 3,050 × 768 × 8 bytes = 18,739,200 bytes ≈ 18.7 MB
+
+# Step 2: Convert to Python list
+embedding_list = list(old_embeddings)
+# Memory: NumPy array (18.7 MB) + Python list (18.7 MB data + ~50 KB overhead)
+# Peak: ~37.5 MB
+
+# Step 3: Modify list (append/delete/update)
+embedding_list.append(new_embedding)
+# Memory: Still ~37.5 MB (maybe 38 MB with a few new embeddings)
+
+# Step 4: Convert back to NumPy
+final_embeddings = np.array(embedding_list)
+# Memory: Python list (37.5 MB) + new NumPy array (18.7 MB)
+# Peak: ~56 MB (briefly during conversion)
+
+# Step 5: Python GC reclaims list memory, save array
+np.save("embeddings.npy", final_embeddings)
+# Memory: Back to ~18.7 MB after GC
+```
+
+**Why this approach is acceptable**:
+- Peak memory: ~56 MB (trivial on modern systems with GB of RAM)
+- Duration: Conversion takes ~50-100ms (not noticeable)
+- Alternative (NumPy slicing/concatenation): More complex, similar memory usage
+- Benefit: Simple, readable code that's easy to test and debug
+
+**If memory becomes a concern** (e.g., vault grows to 50K files):
+- 50,000 × 768 × 8 = ~307 MB per array
+- Peak during conversion: ~614 MB (still acceptable)
+- Could optimize with numpy.concatenate() for appends only
+- But list approach should scale to 100K+ files before issues arise
+
+### 3. Change Detection Algorithm
 
 ```python
 def _find_changed_files(self) -> Dict[str, List[VaultContent]]:
@@ -492,13 +548,13 @@ temoa reindex  # Should be ~2-3 seconds
 temoa reindex  # Should be < 2 seconds
 
 # Scenario 4: Full rebuild (baseline)
-temoa index    # ~15-20 seconds (unchanged)
+temoa index    # ~20-25 seconds (unchanged)
 ```
 
 **Success criteria**:
 - Incremental reindex with no changes: < 2 seconds
 - Incremental reindex with 10 new files: < 5 seconds
-- Full rebuild: Same as current (~15-20 seconds)
+- Full rebuild: Same as current (~20-25 seconds)
 
 ---
 
@@ -654,22 +710,31 @@ After extracting gleanings or modifying notes, run `temoa reindex` to update the
 
 ### Performance Targets
 
-**Before** (current):
-- `temoa index`: 15-20 seconds
-- `temoa reindex`: 15-20 seconds (identical)
+**Current vault**: 3,050 files with `all-mpnet-base-v2` (768-dim embeddings)
 
-**After** (target):
-- `temoa index`: 15-20 seconds (unchanged)
-- `temoa reindex` (no changes): < 2 seconds
-- `temoa reindex` (10 new files): < 5 seconds
-- `temoa reindex` (100 new files): ~10 seconds
+**Before** (current behavior - both do full rebuild):
+- `temoa index`: ~20-25 seconds (embed all 3,050 files)
+- `temoa reindex`: ~20-25 seconds (identical - embed all 3,050 files)
+
+**After** (target with incremental reindexing):
+- `temoa index`: ~20-25 seconds (unchanged - still full rebuild)
+- `temoa reindex` (no changes): < 2 seconds (just change detection)
+- `temoa reindex` (10 new files): ~3-5 seconds (embed 10 + merge)
+- `temoa reindex` (100 new files): ~10-12 seconds (embed 100 + merge)
+- `temoa reindex` (1000 new files): ~15-18 seconds (embed 1000 + merge)
+
+**Time savings for typical daily use** (5-10 new gleanings):
+- Current: 25 seconds
+- New: 4 seconds
+- **Speedup: 6x faster**
 
 ### User Experience Improvements
 
-1. **Faster daily workflow**: Reindexing after adding gleanings goes from 20s → 2-3s
+1. **Faster daily workflow**: Reindexing after adding gleanings goes from 25s → 4s (6x faster)
 2. **Clearer semantics**: `index` vs `reindex` names match their behavior
 3. **Simpler CLI**: No flags to remember (except `--vault`)
 4. **Smarter defaults**: UI checkbox defaults to incremental (faster)
+5. **Scales with vault growth**: Even with 5K+ files, incremental reindex stays fast
 
 ---
 
@@ -748,10 +813,18 @@ This plan implements true incremental reindexing by:
 1. Tracking file modification times in `index.json`
 2. Detecting new/modified/deleted files before embedding
 3. Only embedding changed files
-4. Merging new embeddings with existing index
+4. Merging new embeddings with existing index (via list conversion)
 5. Falling back to full index when no previous index exists
 
-The result: `temoa reindex` goes from **15-20 seconds** → **2-5 seconds** for typical daily use.
+**The result**: `temoa reindex` goes from **25 seconds** → **4 seconds** for typical daily use (6x faster).
+
+**Memory overhead**: Peak ~56 MB during merge (acceptable on modern systems)
+
+**Current production scale**:
+- 3,050 files
+- 768-dimensional embeddings (`all-mpnet-base-v2`)
+- ~18.7 MB index size
+- Scales comfortably to 50K+ files
 
 **CLI Design**:
 - `temoa index [--vault PATH]` = full rebuild (no other flags)
@@ -761,4 +834,4 @@ The result: `temoa reindex` goes from **15-20 seconds** → **2-5 seconds** for 
 - Button: "Reindex Vault"
 - Checkbox: "Full rebuild" (off by default)
 
-Clean, simple, and fast. ✓
+Clean, simple, fast, and scalable. ✓
