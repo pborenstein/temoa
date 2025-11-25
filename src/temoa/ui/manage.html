@@ -358,7 +358,14 @@
                 Reindex Vault
             </button>
 
-            <button class="action-button" id="extract-btn" onclick="extract()" style="margin-top: 20px;">
+            <div style="margin-top: 12px; margin-bottom: 24px;">
+                <div class="checkbox-group">
+                    <input type="checkbox" id="full-rebuild">
+                    <label for="full-rebuild">Full rebuild (process all files)</label>
+                </div>
+            </div>
+
+            <button class="action-button" id="extract-btn" onclick="extract()">
                 Extract Gleanings
             </button>
 
@@ -449,8 +456,10 @@
         }
 
         async function reindex() {
-            // Show confirmation dialog
-            if (!confirm('This will rebuild all embeddings. Continue?')) {
+            const fullRebuild = document.getElementById('full-rebuild').checked;
+
+            // Show confirmation dialog for full rebuild
+            if (fullRebuild && !confirm('This will rebuild all embeddings. Continue?')) {
                 return;
             }
 
@@ -466,19 +475,20 @@
                 <div class="progress-bar">
                     <div class="progress-fill indeterminate"></div>
                 </div>
-                <div class="progress-text">Reindexing vault...</div>
+                <div class="progress-text">${fullRebuild ? 'Full rebuild in progress...' : 'Reindexing changed files...'}</div>
             `;
             button.after(progressDiv);
 
             try {
-                const response = await fetch('/reindex?force=true', { method: 'POST' });
+                const response = await fetch(`/reindex?force=${fullRebuild}`, { method: 'POST' });
                 const data = await response.json();
 
                 if (response.ok) {
-                    showMessage(
-                        `Successfully reindexed ${data.files_indexed?.toLocaleString() || 0} files`,
-                        'success'
-                    );
+                    let message = `Successfully reindexed ${data.files_indexed?.toLocaleString() || 0} files`;
+                    if (data.new_files || data.modified_files || data.deleted_files) {
+                        message += ` (${data.new_files || 0} new, ${data.modified_files || 0} modified, ${data.deleted_files || 0} deleted)`;
+                    }
+                    showMessage(message, 'success');
                     // Refresh health and stats
                     await loadHealth();
                     await loadStats();

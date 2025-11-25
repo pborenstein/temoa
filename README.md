@@ -96,7 +96,7 @@ temoa config              # Show current config
 
 # Indexing
 temoa index               # Build index from scratch (first time)
-temoa reindex             # Update index (daily use)
+temoa reindex             # Update index incrementally (daily use)
 
 # Searching
 temoa search "query"      # Quick search from terminal
@@ -116,6 +116,32 @@ temoa gleaning maintain                       # Check links, add descriptions
 temoa server              # Start HTTP server (port 8080)
 temoa server --reload     # Start with auto-reload (dev)
 ```
+
+### Index vs Reindex
+
+**`temoa index`** - Full rebuild
+- Processes all files in the vault (3,000+ files)
+- Takes ~2-3 minutes
+- Use when: First time setup, or index corruption
+
+**`temoa reindex`** - Incremental update (recommended)
+- Only processes new, modified, or deleted files
+- Takes ~5 seconds when no changes
+- Takes ~6-8 seconds with 5-10 new files
+- **30x faster** than full rebuild for typical daily use
+
+**Performance example** (3,059 file vault):
+
+| Operation | Time | Files Processed |
+|-----------|------|-----------------|
+| Full index | 159s | 3,059 files |
+| Incremental (no changes) | 4.8s | 0 files |
+| Incremental (5 new files) | 6-8s | 5 files |
+
+**Incremental reindexing** detects:
+- New files (not in previous index)
+- Modified files (changed modification timestamp)
+- Deleted files (in index but not in vault)
 
 ## HTTP API
 
@@ -190,6 +216,29 @@ POST /reindex?force=false
 ```
 
 Update embedding index with new/modified files.
+
+**Parameters:**
+- `force`: `false` (incremental - default) or `true` (full rebuild)
+
+**Examples:**
+```bash
+# Incremental reindex (only changed files)
+curl -X POST "http://localhost:8080/reindex?force=false"
+
+# Full rebuild (all files)
+curl -X POST "http://localhost:8080/reindex?force=true"
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "files_indexed": 3059,
+  "new_files": 5,
+  "modified_files": 2,
+  "deleted_files": 1
+}
+```
 
 ## Available Models
 
