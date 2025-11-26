@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Optional
 
 from fastapi import FastAPI, HTTPException, Query
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from .__version__ import __version__
@@ -273,6 +273,15 @@ async def manage():
     # Inject version into HTML
     html_content = html_content.replace("{{VERSION}}", __version__)
     return HTMLResponse(content=html_content)
+
+
+@app.get("/favicon.svg")
+async def favicon():
+    """Serve favicon"""
+    favicon_path = Path(__file__).parent / "ui" / "favicon.svg"
+    if favicon_path.exists():
+        return FileResponse(favicon_path, media_type="image/svg+xml")
+    raise HTTPException(status_code=404, detail="Favicon not found")
 
 
 @app.get("/search")

@@ -1,4 +1,4 @@
-# Temoa
+# 👣 Temoa
 
 > [Temoa](https://nahuatl.wired-humanities.org/content/temoa) (Nahuatl): To search for, to seek
 
