@@ -1,7 +1,7 @@
 """Configuration management for Temoa"""
 import json
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 
 
 class ConfigError(Exception):
@@ -195,6 +195,89 @@ class Config:
         """Whether hybrid search (BM25 + semantic) is enabled by default"""
         # Default to False if not specified for backwards compatibility
         return self._config.get("search", {}).get("hybrid_enabled", False)
+
+    def get_all_vaults(self) -> List[Dict[str, Any]]:
+        """
+        Get list of all configured vaults.
+
+        Returns:
+            List of vault configs with format:
+            [
+                {"name": "Main Vault", "path": "~/Obsidian/vault", "is_default": True},
+                ...
+            ]
+
+        If no 'vaults' array in config, auto-generates single-vault list
+        from vault_path (backward compatibility).
+        """
+        vaults = self._config.get("vaults", [])
+
+        if not vaults:
+            # Backward compatibility: generate from vault_path
+            return [{
+                "name": self.vault_path.name,
+                "path": str(self.vault_path),
+                "is_default": True
+            }]
+
+        return vaults
+
+    def get_default_vault(self) -> Dict[str, Any]:
+        """
+        Get default vault config.
+
+        Returns:
+            Vault config dict marked as default, or first vault if none marked.
+
+        Raises:
+            ConfigError: If no vaults configured
+        """
+        vaults = self.get_all_vaults()
+
+        if not vaults:
+            raise ConfigError("No vaults configured")
+
+        # Find vault marked as default
+        for vault in vaults:
+            if vault.get("is_default"):
+                return vault
+
+        # Fallback to first vault
+        return vaults[0]
+
+    def find_vault(self, identifier: str) -> Optional[Dict[str, Any]]:
+        """
+        Find vault by name or path.
+
+        Args:
+            identifier: Vault name (case-insensitive) or path string
+
+        Returns:
+            Vault config dict or None if not found
+
+        Examples:
+            config.find_vault("Main Vault")  # By name
+            config.find_vault("~/Obsidian/amoxtli")  # By path
+        """
+        vaults = self.get_all_vaults()
+
+        # Try matching by name (case-insensitive)
+        for vault in vaults:
+            if vault["name"].lower() == identifier.lower():
+                return vault
+
+        # Try matching by path
+        try:
+            search_path = Path(identifier).expanduser().resolve()
+            for vault in vaults:
+                vault_path = Path(vault["path"]).expanduser().resolve()
+                if vault_path == search_path:
+                    return vault
+        except (OSError, RuntimeError):
+            # Invalid path string - not a match
+            pass
+
+        return None
 
     def __repr__(self) -> str:
         return (
