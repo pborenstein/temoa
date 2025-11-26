@@ -896,6 +896,76 @@ Added comprehensive management interface at `/manage` for vault maintenance and 
 - Centralized administration interface
 - Consistent UX with search page
 
+### Incremental Reindexing (2025-11-25)
+
+**Status**: COMPLETE - True incremental reindexing implemented with 30x speedup
+
+During Phase 2.5 usage, identified that both `temoa index` and `temoa reindex` performed full rebuilds (~159 seconds), making daily reindexing tedious. Implemented true incremental reindexing.
+
+**Core Implementation:**
+
+1. **File Tracking in Index** (`synthesis/src/embeddings/store.py`)
+   - Added `file_tracking` dictionary to `index.json`
+   - Tracks modification time, content length, and index position for each file
+   - Automatically rebuilt on every save (positions always correct)
+
+2. **Change Detection** (`src/temoa/synthesis.py::_find_changed_files()`)
+   - Compares current vault state with file_tracking from last index
+   - Detects new files (not in tracking)
+   - Detects modified files (different modification timestamp)
+   - Detects deleted files (in tracking but not in vault)
+   - Returns `None` if no previous index (triggers full rebuild fallback)
+
+3. **Embedding Merge** (`src/temoa/synthesis.py::_merge_embeddings()`)
+   - **CRITICAL ORDER**: DELETE (reverse) → UPDATE → APPEND
+   - Heavily documented with DANGER ZONES warnings
+   - Rebuilds position maps after deletions to avoid index corruption
+   - Handles edge cases (no embeddings, only deletions, etc.)
+
+4. **Updated CLI Commands**
+   - `temoa index` - Full rebuild (force=True, all files)
+   - `temoa reindex` - Incremental update (force=False, only changed files)
+   - No flags except `--vault` (clean, simple)
+
+5. **Management UI Enhancement**
+   - Added "Full rebuild" checkbox for reindex operation
+   - Default: unchecked (incremental mode)
+   - Checkbox controls force parameter
+
+**Performance Results** (3,059 file vault, `all-mpnet-base-v2`):
+
+| Operation | Time | Files Processed | Speedup |
+|-----------|------|-----------------|---------|
+| Full index (`temoa index`) | 159s | 3,059 files | Baseline |
+| Incremental (no changes) | 4.8s | 0 files | **30x faster** |
+| Incremental (5 new files) | 6-8s | 5 files | **25x faster** |
+
+**Testing:**
+- ✅ No changes scenario: 4.76 seconds
+- ✅ 5 new files after extraction: ~6-8 seconds
+- ✅ Change detection working correctly
+- ✅ No data corruption (verified with search after reindex)
+
+**Documentation:**
+- Updated README.md with performance comparison table
+- Updated DEPLOYMENT.md with incremental reindexing guidance
+- Added comprehensive DANGER ZONES documentation in plan
+
+**Commits:**
+- 3776158: Added file_tracking to storage
+- 605ae69: Implemented incremental reindexing core logic
+- 4b21318: Updated CLI to use incremental by default
+- da6d422: Added status document
+- 0af1ee7: Documentation and UI controls
+
+**Known Issue Identified:**
+
+**Multi-Vault Support Problem**: When using `--vault` flag to index a different vault, the storage_dir still comes from config (pointing to the config's vault), not the command-line vault. This means:
+- ❌ Index for different vault overwrites config vault's index
+- ❌ Confusion about which index belongs to which vault
+
+**Solution Required**: Derive storage_dir from the vault being indexed, not from config. See Phase 3 for fix.
+
 ### Success Criteria
 
 **Deployment Working:**
@@ -1073,6 +1143,11 @@ If partially → Remove specific barriers, then retest
 **Goal**: Fix technical debt and improve search quality based on real usage
 **Duration**: 2 weeks (consolidated from comprehensive reviews)
 **Plan**: See [PHASE-3-READY.md](PHASE-3-READY.md) for consolidated implementation plan
+
+### Part 0: Multi-Vault Support (CRITICAL FIX)
+
+- [ ] Fix `--vault` flag to derive storage_dir from vault path, not config
+- [ ] Ensure each vault has its own independent index
 
 ### Part 1: Technical Debt (Foundation)
 

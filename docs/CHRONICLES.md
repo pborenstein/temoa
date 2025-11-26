@@ -31,7 +31,7 @@ The chronicles have been split into chapters for easier navigation:
 - Entry 10: Extraction Shakedown - Format Flexibility & Filesystem Edge Cases
 
 ### [Phase 2.5: Deployment & Mobile Validation](chronicles/phase-2.5-deployment.md)
-**Entries 11-18** | Real-World Usage and Gleaning Management
+**Entries 11-19** | Real-World Usage and Gleaning Management
 
 - Entry 11: Mid-Course Assessment - Pausing Before Phase 3
 - Entry 12: Deployment Shakedown - Real-World Bugs Surface
@@ -41,6 +41,7 @@ The chronicles have been split into chapters for easier navigation:
 - Entry 16: UI Refinement - Polish Through Real Usage
 - Entry 17: Compact Collapsible UI - Mobile Testing Drives Major Refactor
 - Entry 18: Management Page - Centralizing Vault Operations
+- Entry 19: Incremental Reindexing - 30x Speedup for Daily Use
 
 ---
 
@@ -67,6 +68,9 @@ The chronicles have been split into chapters for easier navigation:
 | DEC-030: Barber pole progress indicator | 18 | Classic macOS-style indeterminate progress |
 | DEC-031: Confirmation dialog for reindex | 18 | Prevent accidental expensive operations |
 | DEC-032: Checkboxes below button | 18 | Action first, options second (natural hierarchy) |
+| DEC-033: Modification time for change detection | 19 | Fast, already tracked (vs content hash) |
+| DEC-034: Rebuild BM25 fully (not incremental) | 19 | BM25 fast (<5s), merging adds complexity |
+| DEC-035: DELETE→UPDATE→APPEND merge order | 19 | Immutable order to avoid index corruption |
 
 ---
 
@@ -91,5 +95,5 @@ The chronicles have been split into chapters for easier navigation:
 ---
 
 **Created**: 2025-11-18
-**Last Updated**: 2025-11-24
-**Total Entries**: 18
+**Last Updated**: 2025-11-25
+**Total Entries**: 19

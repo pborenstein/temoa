@@ -3572,3 +3572,191 @@ Ready to evaluate Phase 3 priorities:
 Or continue Phase 2.5 refinement based on mobile validation feedback.
 
 ---
+
+## Entry 19: Incremental Reindexing - 30x Speedup for Daily Use (2025-11-25)
+
+### Context
+
+During Phase 2.5 usage, noticed that both `temoa index` and `temoa reindex` took the same amount of time (~159 seconds for 3,059 files). This made daily reindexing after adding gleanings tedious - even though only a few files changed, the entire vault was being reprocessed.
+
+**Discovery**: Current implementation (`synthesis.py:664`) had `force` parameter but it was a no-op - both paths did identical full rebuilds.
+
+This entry documents implementing **true incremental reindexing** with 30x speedup for typical daily use.
+
+---
+
+### The Problem: Full Rebuild Every Time
+
+**Current behavior** (before fix):
+```python
+def reindex(self, force: bool = True):
+    if force:
+        self.pipeline.store.clear()  # Only difference!
+
+    # Both paths do the same work:
+    vault_content = self.pipeline.reader.read_vault()  # Read ALL 3,059 files
+    texts = [content.content for content in vault_content]
+    embeddings = self.pipeline.engine.embed_texts(texts)  # Embed ALL files
+    self.pipeline.store.save_embeddings(embeddings, metadata)
+```
+
+**Result**: Whether `force=True` or `force=False`, always embedded all 3,059 files (~159 seconds).
+
+**Impact on daily workflow**:
+- Extract 5 gleanings from daily notes
+- Run `temoa reindex` to make them searchable
+- Wait 159 seconds for full vault to be re-embedded
+- Only 5 files actually changed!
+
+**Waste**: 99.8% of computation was redundant.
+
+---
+
+### Design: Three-Phase Merge Strategy
+
+**Goal**: Only embed files that changed, merge with existing embeddings.
+
+**Key Insight**: NumPy arrays are fixed-size, but Python lists are flexible. Convert → modify → convert back.
+
+**Implementation phases**:
+
+1. **Change Detection**: Compare current vault state with `file_tracking` from last index
+2. **Selective Embedding**: Only embed new/modified files
+3. **Merge**: Combine new embeddings with existing index
+
+**CRITICAL: Order matters!**
+- DELETE files first (in reverse index order)
+- UPDATE modified files second
+- APPEND new files last
+
+Why? Deleting shifts indices. Must handle deletions before updates to avoid corruption.
+
+---
+
+### DANGER ZONES: Where Bugs Hide
+
+**The merge logic is the hardest part**. Documented extensively in implementation plan.
+
+**Danger Zone #1: List Index Shifting**
+```python
+# WRONG - deleting shifts indices
+del embeddings_list[1]  # 'b' at index 1
+# Now 'c' (was index 2) is at index 1!
+# Using old index 2 accesses wrong data
+
+# RIGHT - delete in reverse order
+for idx in sorted(indices_to_delete, reverse=True):
+    del embeddings_list[idx]
+```
+
+**Danger Zone #2: Wrong Order of Operations**
+```python
+# MUST follow this order (never change!):
+# 1. DELETE (reverse order)
+# 2. UPDATE (using rebuilt index map)
+# 3. APPEND (new files at end)
+```
+
+---
+
+### Performance Results
+
+**Test vault**: 3,059 files with `all-mpnet-base-v2` (768-dimensional embeddings)
+
+| Scenario | Time | Files Processed | Speedup |
+|----------|------|-----------------|---------|
+| **Before** (always full rebuild) | 159s | 3,059 files | Baseline |
+| **After** (no changes) | 4.8s | 0 files | **30x faster** |
+| **After** (5 new files) | 6-8s | 5 files | **25x faster** |
+
+**Real-world workflow improvement**:
+- Extract 5 gleanings: `temoa extract` (~2s)
+- Reindex: `temoa reindex` (~6s)
+- **Total**: 8 seconds (vs 159s before)
+
+**Daily usage**: 95% time savings (159s → 8s).
+
+---
+
+### Known Issue: Multi-Vault Support
+
+**Problem discovered during implementation**:
+
+When using `--vault` flag to index a different vault, the `storage_dir` comes from config (points to config's vault), not the vault being indexed:
+
+```python
+# In cli.py:514-526
+client = SynthesisClient(
+    vault_path=vault_path,  # ✅ Uses custom vault
+    storage_dir=config.storage_dir  # ❌ Uses config vault's .temoa/!
+)
+```
+
+**Consequences**:
+- Index for different vault overwrites config vault's index
+- File_tracking from wrong vault used for change detection
+- Incremental reindex corrupts data (mixing vaults)
+
+**Solution required**: When `--vault` flag is used, derive `storage_dir` from the vault being indexed.
+
+**Status**: Documented as "Part 0: Multi-Vault Support" in Phase 3 (critical fix before other enhancements).
+
+---
+
+### Technical Decisions
+
+**DEC-033**: Use modification time (not content hash) for change detection
+- **Rationale**: Fast (no file reading), already tracked in metadata
+- **Trade-off**: Can be fooled by `touch` or git operations
+- **Future**: Add optional content hashing if needed
+
+**DEC-034**: Rebuild BM25 index fully each time (not incremental)
+- **Rationale**: BM25 indexing is fast (<5s), merging adds complexity
+- **Trade-off**: Still processes all files for BM25
+- **Impact**: Minimal - BM25 is < 5% of total time
+
+**DEC-035**: DELETE → UPDATE → APPEND merge order (immutable)
+- **Rationale**: Deleting shifts indices; must happen first to avoid corruption
+- **Warning**: NEVER change this order (documented in DANGER ZONES)
+
+---
+
+### Implementation Commits
+
+**Storage layer**:
+- 3776158: Added `file_tracking` to `index.json` schema
+
+**Core logic**:
+- 605ae69: Implemented `_find_changed_files()` and `_merge_embeddings()`
+
+**CLI updates**:
+- 4b21318: Updated `reindex` command to use `force=False` by default
+
+**Documentation**:
+- da6d422: Added INCREMENTAL-INDEXING-STATUS.md (status snapshot)
+- 0af1ee7: Updated README, DEPLOYMENT, and Management UI
+
+---
+
+### Connection to Project Goals
+
+From Entry 1 (The Central Problem):
+> "This is not a technology problem. It's a **retrieval behavior problem**."
+
+Incremental reindexing removes friction from vault maintenance:
+- Gleanings become searchable in 8 seconds (not 159 seconds)
+- Lower friction → more frequent reindexing
+- More current index → better search results
+- Better results → stronger vault-first habit
+
+**Before**: "I'll reindex later" (never happens)
+**After**: "Reindex now" (8 seconds, why not?)
+
+---
+
+**Created**: 2025-11-25
+**Status**: Complete and tested
+**Performance**: 30x speedup for typical daily use
+**Next**: Fix multi-vault support (Phase 3 Part 0)
+
+---

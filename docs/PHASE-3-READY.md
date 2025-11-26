@@ -1,6 +1,7 @@
 # Phase 3: Ready to Build - Consolidated Plan
 
 **Created**: 2025-11-24
+**Updated**: 2025-11-25 (Added Part 0: Multi-Vault Support)
 **Status**: Ready for implementation
 **Prerequisites**: Phase 2.5 ✅ Complete (Mobile validated, real-world usage confirmed)
 
@@ -16,6 +17,79 @@ This plan consolidates findings from three comprehensive reviews:
 - UI Review (interface enhancements)
 
 **Guiding Principle**: Build what removes friction you experienced, not what sounds cool.
+
+**NEW**: Part 0 added to fix critical multi-vault support bug discovered during incremental reindexing implementation (Entry 19).
+
+---
+
+## Part 0: Multi-Vault Support Fix (CRITICAL)
+
+> **Priority**: MUST FIX FIRST - Data corruption risk
+> **Duration**: 1-2 hours
+> **Discovered**: During incremental reindexing implementation (2025-11-25)
+
+### Problem
+
+When using `--vault` flag to index a different vault, `storage_dir` comes from config (pointing to config's vault), not the vault being indexed:
+
+```python
+# Current code in cli.py:514-526
+vault_path = Path(vault) if vault else config.vault_path  # ✅ Correct
+
+client = SynthesisClient(
+    synthesis_path=config.synthesis_path,
+    vault_path=vault_path,  # ✅ Uses custom vault
+    model=config.default_model,
+    storage_dir=config.storage_dir  # ❌ Uses config vault's .temoa/!
+)
+```
+
+**Consequences**:
+- Index for different vault overwrites config vault's index
+- File_tracking from wrong vault used for change detection
+- Incremental reindex corrupts data (mixing vaults)
+
+### Solution
+
+Derive `storage_dir` from the vault being indexed, not from config:
+
+```python
+# Proposed fix
+if vault:
+    vault_path = Path(vault)
+    # Derive storage_dir from the vault path, not config
+    storage_dir = vault_path / ".temoa" / config.default_model
+else:
+    vault_path = config.vault_path
+    storage_dir = config.storage_dir
+```
+
+### Implementation
+
+**Files to modify**:
+1. `src/temoa/cli.py` - Update `index()` and `reindex()` commands (lines ~514, ~561)
+2. Test with multiple vaults to verify independence
+
+**Testing**:
+```bash
+# Index vault A
+temoa index --vault ~/vaults/vault-a
+
+# Index vault B
+temoa index --vault ~/vaults/vault-b
+
+# Verify:
+# - vault-a/.temoa/ exists with vault A's index
+# - vault-b/.temoa/ exists with vault B's index
+# - Neither overwrites the other
+```
+
+**Success Criteria**:
+- [ ] Each vault has its own independent `.temoa/` directory
+- [ ] `--vault` flag works correctly without data corruption
+- [ ] Incremental reindex uses correct file_tracking for vault being indexed
+
+**Effort**: 1-2 hours
 
 ---
 
