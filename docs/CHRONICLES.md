@@ -43,6 +43,11 @@ The chronicles have been split into chapters for easier navigation:
 - Entry 18: Management Page - Centralizing Vault Operations
 - Entry 19: Incremental Reindexing - 30x Speedup for Daily Use
 
+### [Phase 3: Enhanced Features](chronicles/phase-3-enhanced-features.md)
+**Entries 20+** | Technical Debt, Search Quality, and UX Polish
+
+- Entry 20: Multi-Vault Support - Preventing Data Loss
+
 ---
 
 ## Quick Reference: Key Decisions
@@ -71,6 +76,9 @@ The chronicles have been split into chapters for easier navigation:
 | DEC-033: Modification time for change detection | 19 | Fast, already tracked (vs content hash) |
 | DEC-034: Rebuild BM25 fully (not incremental) | 19 | BM25 fast (<5s), merging adds complexity |
 | DEC-035: DELETE→UPDATE→APPEND merge order | 19 | Immutable order to avoid index corruption |
+| DEC-036: Multi-vault storage strategy | 20 | Auto-derive as vault/.temoa/ (co-location) |
+| DEC-037: Validation before operations | 20 | Fail early with clear error, require --force |
+| DEC-038: Auto-migration of old indexes | 20 | Seamless upgrade, no user action required |
 
 ---
 
@@ -95,5 +103,5 @@ The chronicles have been split into chapters for easier navigation:
 ---
 
 **Created**: 2025-11-18
-**Last Updated**: 2025-11-25
-**Total Entries**: 19
+**Last Updated**: 2025-11-26
+**Total Entries**: 20

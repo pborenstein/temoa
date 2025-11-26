@@ -1144,10 +1144,33 @@ If partially → Remove specific barriers, then retest
 **Duration**: 2 weeks (consolidated from comprehensive reviews)
 **Plan**: See [PHASE-3-READY.md](PHASE-3-READY.md) for consolidated implementation plan
 
-### Part 0: Multi-Vault Support (CRITICAL FIX)
+### Part 0: Multi-Vault Support (CRITICAL FIX) ✅
 
-- [ ] Fix `--vault` flag to derive storage_dir from vault path, not config
-- [ ] Ensure each vault has its own independent index
+**Status**: COMPLETE (2025-11-26)
+
+- [x] Fix `--vault` flag to derive storage_dir from vault path, not config
+- [x] Ensure each vault has its own independent index
+- [x] Add validation to prevent vault mismatch before operations
+- [x] Add --force flag for override with warning
+- [x] Add vault metadata to index.json for validation
+- [x] Auto-migrate old indexes without metadata
+- [x] Comprehensive unit tests (13 tests, all passing)
+
+**Deliverables**:
+- `src/temoa/storage.py` (195 lines) - Vault-aware storage utilities
+- Updated all CLI commands (index, reindex, search, archaeology, stats)
+- Unit tests in `tests/test_storage.py`
+- Integration test structure in `tests/test_multi_vault_integration.py`
+- Documentation in `docs/chronicles/phase-3-enhanced-features.md` Entry 20
+
+**Key Features**:
+- Config vault: Uses config's storage_dir (honors user config)
+- Other vaults: Auto-derives as `vault/.temoa/` (independent indexes)
+- Validation: Fails with clear error before data loss
+- Force: `--force` flag allows override
+- Backward compatible: Existing indexes auto-migrate
+
+See: `docs/chronicles/phase-3-enhanced-features.md` Entry 20 for detailed implementation notes.
 
 ### Part 1: Technical Debt (Foundation)
 
