@@ -949,7 +949,10 @@ class SynthesisClient:
 
                 model_info = {
                     "model_name": self.pipeline.engine.model_name,
-                    "embedding_dim": embeddings.shape[1] if len(embeddings.shape) > 1 else 0
+                    "embedding_dim": embeddings.shape[1] if len(embeddings.shape) > 1 else 0,
+                    "vault_path": str(self.vault_path.resolve()),
+                    "vault_name": self.vault_path.name,
+                    "indexed_at": datetime.now().isoformat()
                 }
 
                 self.pipeline.store.save_embeddings(embeddings, metadata, model_info)

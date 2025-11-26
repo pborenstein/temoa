@@ -101,7 +101,9 @@ def server(host, port, reload, log_level):
 @click.option('--bm25-only', is_flag=True, help='Use BM25 keyword search only (for debugging)')
 @click.option('--model', '-m', default=None, help='Embedding model to use')
 @click.option('--json', 'output_json', is_flag=True, help='Output as JSON')
-def search(query, limit, min_score, include_types, exclude_types, hybrid, bm25_only, model, output_json):
+@click.option('--vault', default=None, type=click.Path(exists=True),
+              help='Vault path (default: from config)')
+def search(query, limit, min_score, include_types, exclude_types, hybrid, bm25_only, model, output_json, vault):
     """Search the vault for similar content.
 
     \b
@@ -115,12 +117,24 @@ def search(query, limit, min_score, include_types, exclude_types, hybrid, bm25_o
       temoa search "topic" --type gleaning,article
       temoa search "topic" --exclude-type daily,note
       temoa search "topic" --type daily --exclude-type ""
+      temoa search "query" --vault ~/vaults/other
     """
     from .config import Config
     from .synthesis import SynthesisClient
     from .server import filter_inactive_gleanings, filter_by_type
+    from .storage import derive_storage_dir
 
     config = Config()
+
+    # Determine vault and storage based on --vault flag
+    if vault:
+        vault_path = Path(vault)
+        storage_dir = derive_storage_dir(
+            vault_path, config.vault_path, config.storage_dir
+        )
+    else:
+        vault_path = config.vault_path
+        storage_dir = config.storage_dir
 
     # Parse type filters
     include_type_list = None
@@ -140,9 +154,9 @@ def search(query, limit, min_score, include_types, exclude_types, hybrid, bm25_o
     try:
         client = SynthesisClient(
             synthesis_path=config.synthesis_path,
-            vault_path=config.vault_path,
+            vault_path=vault_path,
             model=model or config.default_model,
-            storage_dir=config.storage_dir
+            storage_dir=storage_dir
         )
 
         # Determine search mode
@@ -282,7 +296,9 @@ def search(query, limit, min_score, include_types, exclude_types, hybrid, bm25_o
 @click.argument('topic')
 @click.option('--limit', '-n', default=20, type=int, help='Number of results (default: 20)')
 @click.option('--json', 'output_json', is_flag=True, help='Output as JSON')
-def archaeology(topic, limit, output_json):
+@click.option('--vault', default=None, type=click.Path(exists=True),
+              help='Vault path (default: from config)')
+def archaeology(topic, limit, output_json, vault):
     """Analyze temporal patterns of interest in a topic.
 
     Shows when you were interested in a topic over time.
@@ -291,18 +307,30 @@ def archaeology(topic, limit, output_json):
     Examples:
       temoa archaeology "machine learning"
       temoa archaeology "tailscale" --json
+      temoa archaeology "topic" --vault ~/vaults/other
     """
     from .config import Config
     from .synthesis import SynthesisClient
+    from .storage import derive_storage_dir
 
     config = Config()
+
+    # Determine vault and storage based on --vault flag
+    if vault:
+        vault_path = Path(vault)
+        storage_dir = derive_storage_dir(
+            vault_path, config.vault_path, config.storage_dir
+        )
+    else:
+        vault_path = config.vault_path
+        storage_dir = config.storage_dir
 
     try:
         client = SynthesisClient(
             synthesis_path=config.synthesis_path,
-            vault_path=config.vault_path,
+            vault_path=vault_path,
             model=config.default_model,
-            storage_dir=config.storage_dir
+            storage_dir=storage_dir
         )
 
         analysis = client.archaeology(topic, top_k=limit)
@@ -336,22 +364,35 @@ def archaeology(topic, limit, output_json):
 
 @main.command()
 @click.option('--json', 'output_json', is_flag=True, help='Output as JSON')
-def stats(output_json):
+@click.option('--vault', default=None, type=click.Path(exists=True),
+              help='Vault path (default: from config)')
+def stats(output_json, vault):
     """Show vault statistics.
 
     Displays information about indexed files, embeddings, and models.
     """
     from .config import Config
     from .synthesis import SynthesisClient
+    from .storage import derive_storage_dir
 
     config = Config()
+
+    # Determine vault and storage based on --vault flag
+    if vault:
+        vault_path = Path(vault)
+        storage_dir = derive_storage_dir(
+            vault_path, config.vault_path, config.storage_dir
+        )
+    else:
+        vault_path = config.vault_path
+        storage_dir = config.storage_dir
 
     try:
         client = SynthesisClient(
             synthesis_path=config.synthesis_path,
-            vault_path=config.vault_path,
+            vault_path=vault_path,
             model=config.default_model,
-            storage_dir=config.storage_dir
+            storage_dir=storage_dir
         )
 
         statistics = client.get_stats()
@@ -360,8 +401,8 @@ def stats(output_json):
             click.echo(json.dumps(statistics, indent=2))
         else:
             click.echo("\nVault Statistics\n")
-            click.echo(f"Vault path: {click.style(str(config.vault_path), fg='cyan')}")
-            click.echo(f"Storage: {click.style(str(config.storage_dir), fg='cyan')}")
+            click.echo(f"Vault path: {click.style(str(vault_path), fg='cyan')}")
+            click.echo(f"Storage: {click.style(str(storage_dir), fg='cyan')}")
 
             # Check if embeddings exist
             total_files = statistics.get('total_files', 0)
@@ -499,7 +540,9 @@ def migrate(vault, json_file, dry_run):
 @main.command()
 @click.option('--vault', default=None, type=click.Path(exists=True),
               help='Vault path (default: from config)')
-def index(vault):
+@click.option('--force', is_flag=True,
+              help='Force overwrite if storage mismatch (DANGER)')
+def index(vault, force):
     """Build the embedding index from scratch.
 
     This processes all files in the vault and creates embeddings.
@@ -509,11 +552,25 @@ def index(vault):
     """
     from .config import Config
     from .synthesis import SynthesisClient
+    from .storage import derive_storage_dir, validate_storage_safe
 
     config = Config()
-    vault_path = Path(vault) if vault else config.vault_path
+
+    # Determine vault and storage based on --vault flag
+    if vault:
+        vault_path = Path(vault)
+        storage_dir = derive_storage_dir(
+            vault_path, config.vault_path, config.storage_dir
+        )
+    else:
+        vault_path = config.vault_path
+        storage_dir = config.storage_dir
+
+    # Validate storage is safe before proceeding
+    validate_storage_safe(storage_dir, vault_path, "index", force)
 
     click.echo(f"Building index for: {vault_path}")
+    click.echo(f"Storage directory: {storage_dir}")
     click.echo(click.style("This may take a few minutes for large vaults...", fg='yellow'))
     click.echo()
 
@@ -522,7 +579,7 @@ def index(vault):
             synthesis_path=config.synthesis_path,
             vault_path=vault_path,
             model=config.default_model,
-            storage_dir=config.storage_dir
+            storage_dir=storage_dir
         )
 
         with click.progressbar(length=100, label='Indexing') as bar:
@@ -541,7 +598,9 @@ def index(vault):
 @main.command()
 @click.option('--vault', default=None, type=click.Path(exists=True),
               help='Vault path (default: from config)')
-def reindex(vault):
+@click.option('--force', is_flag=True,
+              help='Force overwrite if storage mismatch (DANGER)')
+def reindex(vault, force):
     """Re-index the vault incrementally (only new/modified files).
 
     Detects changes since last index and only processes:
@@ -556,11 +615,25 @@ def reindex(vault):
     """
     from .config import Config
     from .synthesis import SynthesisClient
+    from .storage import derive_storage_dir, validate_storage_safe
 
     config = Config()
-    vault_path = Path(vault) if vault else config.vault_path
+
+    # Determine vault and storage based on --vault flag
+    if vault:
+        vault_path = Path(vault)
+        storage_dir = derive_storage_dir(
+            vault_path, config.vault_path, config.storage_dir
+        )
+    else:
+        vault_path = config.vault_path
+        storage_dir = config.storage_dir
+
+    # Validate storage is safe before proceeding
+    validate_storage_safe(storage_dir, vault_path, "reindex", force)
 
     click.echo(f"Re-indexing vault: {vault_path}")
+    click.echo(f"Storage directory: {storage_dir}")
     click.echo("Running incremental reindex (only changed files)...")
 
     try:
@@ -568,7 +641,7 @@ def reindex(vault):
             synthesis_path=config.synthesis_path,
             vault_path=vault_path,
             model=config.default_model,
-            storage_dir=config.storage_dir
+            storage_dir=storage_dir
         )
 
         with click.progressbar(length=100, label='Re-indexing') as bar:
