@@ -606,6 +606,10 @@ async def search(
 @app.get("/archaeology")
 async def archaeology(
     q: str = Query(..., description="Topic to analyze", min_length=1),
+    vault: Optional[str] = Query(
+        default=None,
+        description="Vault name or path (default: config vault)"
+    ),
     threshold: float = Query(
         default=0.2,
         description="Similarity threshold (0.0-1.0)",
@@ -641,13 +645,22 @@ async def archaeology(
         }
     """
     try:
-        logger.info(f"Archaeology: query='{q}', threshold={threshold}, exclude_daily={exclude_daily}")
+        # Get client for specified vault
+        synthesis, vault_path, vault_name = get_client_for_vault(vault)
+
+        logger.info(f"Archaeology: vault='{vault_name}', query='{q}', threshold={threshold}, exclude_daily={exclude_daily}")
 
         data = synthesis.archaeology(
             query=q,
             threshold=threshold,
             exclude_daily=exclude_daily
         )
+
+        # Add vault information to response
+        data["vault"] = {
+            "name": vault_name,
+            "path": str(vault_path)
+        }
 
         return JSONResponse(content=data)
 
@@ -666,7 +679,12 @@ async def archaeology(
 
 
 @app.get("/stats")
-async def stats():
+async def stats(
+    vault: Optional[str] = Query(
+        default=None,
+        description="Vault name or path (default: config vault)"
+    )
+):
     """
     Get statistics about indexed vault.
 
@@ -679,9 +697,18 @@ async def stats():
         }
     """
     try:
-        logger.debug("Retrieving vault stats")
+        # Get client for specified vault
+        synthesis, vault_path, vault_name = get_client_for_vault(vault)
+
+        logger.debug(f"Retrieving stats for vault: {vault_name}")
 
         data = synthesis.get_stats()
+
+        # Add vault information to response
+        data["vault"] = {
+            "name": vault_name,
+            "path": str(vault_path)
+        }
 
         return JSONResponse(content=data)
 
@@ -732,6 +759,10 @@ async def health():
 
 @app.post("/reindex")
 async def reindex(
+    vault: Optional[str] = Query(
+        default=None,
+        description="Vault name or path (default: config vault)"
+    ),
     force: bool = Query(
         default=True,
         description="Force rebuild even if embeddings exist"
@@ -757,9 +788,21 @@ async def reindex(
         }
     """
     try:
-        logger.info(f"Reindex requested (force={force})")
+        # Get client for specified vault
+        synthesis, vault_path, vault_name = get_client_for_vault(vault)
+
+        logger.info(f"Reindex requested for vault '{vault_name}' (force={force})")
 
         result = synthesis.reindex(force=force)
+
+        # Invalidate cache after reindex to ensure fresh data on next access
+        client_cache.invalidate(vault_path, config.default_model)
+
+        # Add vault information to response
+        result["vault"] = {
+            "name": vault_name,
+            "path": str(vault_path)
+        }
 
         return JSONResponse(content=result)
 
@@ -779,6 +822,10 @@ async def reindex(
 
 @app.post("/extract")
 async def extract_gleanings(
+    vault: Optional[str] = Query(
+        default=None,
+        description="Vault name or path (default: config vault)"
+    ),
     incremental: bool = Query(
         default=True,
         description="Incremental mode (only new files) or full re-extraction"
@@ -814,10 +861,13 @@ async def extract_gleanings(
         )
 
     try:
-        logger.info(f"Extraction requested (incremental={incremental}, auto_reindex={auto_reindex})")
+        # Get client for specified vault (for reindex later)
+        synthesis, vault_path, vault_name = get_client_for_vault(vault)
+
+        logger.info(f"Extraction requested for vault '{vault_name}' (incremental={incremental}, auto_reindex={auto_reindex})")
 
         # Initialize extractor
-        extractor = GleaningsExtractor(config.vault_path)
+        extractor = GleaningsExtractor(vault_path)
 
         # Find notes to process
         daily_notes = extractor.find_daily_notes(incremental=incremental)
@@ -857,7 +907,7 @@ async def extract_gleanings(
                 extractor.state["extracted_gleanings"][gleaning.gleaning_id] = gleaning.to_dict()
 
             # Mark file as processed
-            rel_path = str(note_path.relative_to(config.vault_path))
+            rel_path = str(note_path.relative_to(vault_path))
             if rel_path not in extractor.state["processed_files"]:
                 extractor.state["processed_files"].append(rel_path)
 
@@ -884,6 +934,8 @@ async def extract_gleanings(
             logger.info("Auto-reindexing after extraction...")
             try:
                 reindex_result = synthesis.reindex(force=True)
+                # Invalidate cache after reindex
+                client_cache.invalidate(vault_path, config.default_model)
                 result["reindexed"] = True
                 result["files_indexed"] = reindex_result.get("files_indexed", 0)
             except Exception as e:
@@ -892,6 +944,12 @@ async def extract_gleanings(
                 result["reindex_error"] = str(e)
         else:
             result["reindexed"] = False
+
+        # Add vault information to response
+        result["vault"] = {
+            "name": vault_name,
+            "path": str(vault_path)
+        }
 
         return JSONResponse(content=result)
 
