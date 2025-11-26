@@ -541,14 +541,18 @@ def index(vault):
 @main.command()
 @click.option('--vault', default=None, type=click.Path(exists=True),
               help='Vault path (default: from config)')
-@click.option('--force', is_flag=True, help='Force full rebuild of index')
-def reindex(vault, force):
-    """Re-index the vault embeddings.
+def reindex(vault):
+    """Re-index the vault incrementally (only new/modified files).
 
-    Updates the embedding index incrementally (only processes new/changed files).
-    Use --force to rebuild everything from scratch.
+    Detects changes since last index and only processes:
+    - New files
+    - Modified files (based on modification time)
+    - Deleted files (removes from index)
 
-    For first-time setup, use 'temoa index' instead.
+    Much faster than full rebuild for daily use (~6 seconds vs ~154 seconds).
+    Falls back to full rebuild if no previous index exists.
+
+    For first-time setup or full rebuild, use 'temoa index' instead.
     """
     from .config import Config
     from .synthesis import SynthesisClient
@@ -557,8 +561,7 @@ def reindex(vault, force):
     vault_path = Path(vault) if vault else config.vault_path
 
     click.echo(f"Re-indexing vault: {vault_path}")
-    if force:
-        click.echo(click.style("Force rebuild enabled", fg='yellow'))
+    click.echo("Running incremental reindex (only changed files)...")
 
     try:
         client = SynthesisClient(
@@ -571,11 +574,18 @@ def reindex(vault, force):
         with click.progressbar(length=100, label='Re-indexing') as bar:
             # Note: This is a simple progress indicator
             # Real progress would require Synthesis to support callbacks
-            result = client.reindex(force=force)
+            result = client.reindex(force=False)
             bar.update(100)
 
         click.echo(f"\n{click.style('✓', fg='green')} Re-indexing complete")
-        click.echo(f"Files indexed: {result.get('files_indexed', 'Unknown')}")
+
+        # Show detailed stats for incremental reindex
+        if 'files_new' in result:
+            click.echo(f"New files: {result.get('files_new', 0)}")
+            click.echo(f"Modified files: {result.get('files_modified', 0)}")
+            click.echo(f"Deleted files: {result.get('files_deleted', 0)}")
+        else:
+            click.echo(f"Files indexed: {result.get('files_indexed', 'Unknown')}")
 
     except Exception as e:
         click.echo(f"\nError: {e}", err=True)

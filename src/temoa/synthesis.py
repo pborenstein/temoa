@@ -7,6 +7,7 @@ This module imports Synthesis code directly (not subprocess) to achieve
 import sys
 import logging
 import re
+import numpy as np
 from datetime import datetime, date
 from pathlib import Path
 from typing import Dict, Any, List, Optional
@@ -661,24 +662,208 @@ class SynthesisClient:
             logger.error(f"Failed to get stats: {e}", exc_info=True)
             raise SynthesisError(f"Failed to get stats: {e}")
 
+    def _find_changed_files(self) -> Optional[Dict[str, List]]:
+        """
+        Find new, modified, and deleted files by comparing current vault state
+        with file_tracking from the last index.
+
+        Returns:
+            Dict with keys "new", "modified", "deleted" containing lists of files,
+            or None if no previous index exists (should do full rebuild).
+
+        Implementation notes:
+            - Uses modification dates to detect changes
+            - Deleted files are detected by absence from current vault
+            - New files are detected by absence from file_tracking
+        """
+        # Load existing index to get file tracking
+        _, _, index_info = self.pipeline.store.load_embeddings()
+
+        if not index_info or "file_tracking" not in index_info:
+            # No previous index or no tracking data, must do full rebuild
+            logger.info("No file_tracking found, full rebuild required")
+            return None
+
+        file_tracking = index_info["file_tracking"]
+        logger.info(f"Loaded file_tracking with {len(file_tracking)} files")
+
+        # Read current vault state
+        vault_content = self.pipeline.reader.read_vault()
+        current_files = {c.relative_path: c for c in vault_content}
+
+        new_files = []
+        modified_files = []
+        deleted_paths = []
+
+        # Find new and modified files
+        for path, content in current_files.items():
+            if path not in file_tracking:
+                # New file - not in previous index
+                new_files.append(content)
+                logger.debug(f"New file: {path}")
+            else:
+                # Check if modified by comparing modification dates
+                tracked = file_tracking[path]
+                current_mtime = content.modified_date
+                tracked_mtime = tracked.get("modified_date")
+
+                if current_mtime != tracked_mtime:
+                    # File was modified
+                    modified_files.append(content)
+                    logger.debug(f"Modified file: {path} (old: {tracked_mtime}, new: {current_mtime})")
+
+        # Find deleted files (in tracking but not in current vault)
+        for path in file_tracking.keys():
+            if path not in current_files:
+                deleted_paths.append(path)
+                logger.debug(f"Deleted file: {path}")
+
+        logger.info(f"Changes detected: {len(new_files)} new, {len(modified_files)} modified, {len(deleted_paths)} deleted")
+
+        return {
+            "new": new_files,
+            "modified": modified_files,
+            "deleted": deleted_paths
+        }
+
+    def _merge_embeddings(
+        self,
+        new_embeddings: np.ndarray,
+        new_metadata: List[Dict[str, Any]],
+        changes: Dict[str, List]
+    ) -> None:
+        """
+        Merge new/updated embeddings with existing index.
+
+        CRITICAL: This function modifies array indices. The order of operations
+        is EXTREMELY important to avoid data corruption:
+
+        1. DELETE files first (in REVERSE index order)
+        2. UPDATE files second (using indices from after deletion)
+        3. APPEND new files last (at end of array)
+
+        Do NOT change this order without careful testing! See docs/INCREMENTAL-INDEXING-PLAN.md
+        DANGER ZONES section for detailed explanation of failure modes.
+
+        Args:
+            new_embeddings: Embeddings for new/modified files (modified first, then new)
+            new_metadata: Metadata for new/modified files (same order)
+            changes: Dict with "new", "modified", "deleted" file lists
+
+        Raises:
+            SynthesisError: If merge fails
+        """
+        import numpy as np
+
+        # Load existing embeddings
+        old_embeddings, old_metadata, index_info = self.pipeline.store.load_embeddings()
+
+        if old_embeddings is None or old_metadata is None:
+            # No existing index, just save new ones
+            logger.info("No existing embeddings, saving new embeddings directly")
+            model_info = {
+                "model_name": self.pipeline.engine.model_name,
+                "embedding_dim": new_embeddings.shape[1] if len(new_embeddings.shape) > 1 else 0
+            }
+            self.pipeline.store.save_embeddings(new_embeddings, new_metadata, model_info)
+            return
+
+        logger.info(f"Merging: {len(old_embeddings)} existing + {len(changes['new'])} new + {len(changes['modified'])} modified - {len(changes['deleted'])} deleted")
+
+        # Build mapping: path → index position (from BEFORE any changes)
+        # This is our source of truth for where things currently are
+        path_to_idx = {}
+        for i, meta in enumerate(old_metadata):
+            path_to_idx[meta["relative_path"]] = i
+
+        # Convert to Python lists (allows dynamic sizing)
+        embeddings_list = list(old_embeddings)
+        metadata_list = list(old_metadata)
+
+        # =========================================================================
+        # STEP 1: DELETE files (REVERSE order - CRITICAL!)
+        # =========================================================================
+        # WHY REVERSE? When you delete index 5, index 6 becomes 5, 7 becomes 6, etc.
+        # If we delete in forward order, our stored indices become invalid.
+        # Reverse order means we delete from the end first, keeping earlier indices stable.
+
+        indices_to_delete = []
+        for path in changes["deleted"]:
+            if path in path_to_idx:
+                indices_to_delete.append(path_to_idx[path])
+
+        # Sort descending (largest index first) to maintain index validity
+        for idx in sorted(indices_to_delete, reverse=True):
+            logger.debug(f"Deleting index {idx}: {metadata_list[idx]['relative_path']}")
+            del embeddings_list[idx]
+            del metadata_list[idx]
+
+        # =========================================================================
+        # STEP 2: UPDATE modified files (rebuild index map after deletions!)
+        # =========================================================================
+        # IMPORTANT: After deletions, positions have shifted. Rebuild the map.
+
+        path_to_idx_after_delete = {}
+        for i, meta in enumerate(metadata_list):
+            path_to_idx_after_delete[meta["relative_path"]] = i
+
+        # new_embeddings contains modified files first, then new files
+        new_idx = 0
+        for content in changes["modified"]:
+            path = content.relative_path
+            if path in path_to_idx_after_delete:
+                current_idx = path_to_idx_after_delete[path]
+                logger.debug(f"Updating index {current_idx}: {path}")
+                embeddings_list[current_idx] = new_embeddings[new_idx]
+                metadata_list[current_idx] = new_metadata[new_idx]
+                new_idx += 1
+
+        # =========================================================================
+        # STEP 3: APPEND new files (always safe - goes at end)
+        # =========================================================================
+        for content in changes["new"]:
+            logger.debug(f"Appending new file: {content.relative_path}")
+            embeddings_list.append(new_embeddings[new_idx])
+            metadata_list.append(new_metadata[new_idx])
+            new_idx += 1
+
+        # Convert back to numpy array
+        merged_embeddings = np.array(embeddings_list)
+
+        logger.info(f"Merge complete: {len(merged_embeddings)} total files in index")
+
+        # Save merged result (save_embeddings will rebuild file_tracking with correct positions)
+        model_info = {
+            "model_name": self.pipeline.engine.model_name,
+            "embedding_dim": merged_embeddings.shape[1] if len(merged_embeddings.shape) > 1 else 0
+        }
+        self.pipeline.store.save_embeddings(merged_embeddings, metadata_list, model_info)
+
     def reindex(self, force: bool = True) -> Dict[str, Any]:
         """
         Trigger re-indexing of the vault.
 
-        This rebuilds embeddings for all files in the vault. Useful after:
-        - Adding new gleanings
-        - Modifying existing notes
-        - Changing vault structure
+        When force=False (incremental mode):
+        - Only processes new/modified files
+        - Detects deletions and removes them from index
+        - Much faster for daily use (seconds vs minutes)
+        - Falls back to full rebuild if no previous index exists
+
+        When force=True (full rebuild):
+        - Processes ALL files from scratch
+        - Use for first-time indexing, model changes, or troubleshooting
 
         Args:
-            force: Force rebuild even if embeddings exist (default: True)
+            force: Force full rebuild (default: True)
 
         Returns:
             Dict with reindexing results:
             {
                 "status": "success",
-                "files_processed": int,
                 "files_indexed": int,
+                "files_new": int (incremental only),
+                "files_modified": int (incremental only),
+                "files_deleted": int (incremental only),
                 "model": str
             }
 
@@ -688,74 +873,161 @@ class SynthesisClient:
         try:
             logger.info(f"Starting vault reindex (force={force})...")
 
-            # Read vault content once for both indexes
-            logger.info("Reading vault files...")
-            vault_content = self.pipeline.reader.read_vault()
+            # Check if incremental reindex is possible
+            if not force:
+                changes = self._find_changed_files()
 
-            if not vault_content:
-                logger.error("No content found in vault")
-                raise SynthesisError("No content found in vault")
+                if changes is None:
+                    # No previous index, fall back to full rebuild
+                    logger.info("No existing index found, performing full rebuild")
+                    force = True
+                elif not changes["new"] and not changes["modified"] and not changes["deleted"]:
+                    # No changes detected
+                    logger.info("No changes detected, index is up to date")
+                    return {
+                        "status": "success",
+                        "files_indexed": 0,
+                        "files_new": 0,
+                        "files_modified": 0,
+                        "files_deleted": 0,
+                        "model": self.model_name,
+                        "message": "No changes detected, index already up to date"
+                    }
 
-            logger.info(f"Read {len(vault_content)} files from vault")
-
-            # Build BM25 index FIRST (fast - takes seconds)
-            if self.bm25_index is not None:
-                logger.info("Building BM25 keyword index...")
-                try:
-                    documents = []
-                    for content_obj in vault_content:
-                        doc = {
-                            'relative_path': content_obj.relative_path,
-                            'title': content_obj.title,
-                            'content': content_obj.content,
-                            'tags': content_obj.tags,
-                            'frontmatter': content_obj.frontmatter
-                        }
-                        documents.append(doc)
-
-                    self.bm25_index.build(documents)
-                    logger.info(f"✓ BM25 index built: {len(documents)} documents")
-                except Exception as e:
-                    logger.warning(f"BM25 indexing failed: {e}")
-
-            # Build semantic embeddings SECOND (slow - takes minutes)
-            logger.info("Building semantic embeddings (this may take several minutes)...")
-
+            # Full rebuild path
             if force:
+                logger.info("Performing full rebuild...")
+
+                # Read vault content
+                logger.info("Reading vault files...")
+                vault_content = self.pipeline.reader.read_vault()
+
+                if not vault_content:
+                    logger.error("No content found in vault")
+                    raise SynthesisError("No content found in vault")
+
+                logger.info(f"Read {len(vault_content)} files from vault")
+
+                # Build BM25 index (fast - takes seconds)
+                if self.bm25_index is not None:
+                    logger.info("Building BM25 keyword index...")
+                    try:
+                        documents = []
+                        for content_obj in vault_content:
+                            doc = {
+                                'relative_path': content_obj.relative_path,
+                                'title': content_obj.title,
+                                'content': content_obj.content,
+                                'tags': content_obj.tags,
+                                'frontmatter': content_obj.frontmatter
+                            }
+                            documents.append(doc)
+
+                        self.bm25_index.build(documents)
+                        logger.info(f"✓ BM25 index built: {len(documents)} documents")
+                    except Exception as e:
+                        logger.warning(f"BM25 indexing failed: {e}")
+
+                # Build semantic embeddings (slow - takes minutes)
+                logger.info("Building semantic embeddings (this may take several minutes)...")
                 self.pipeline.store.clear()
 
-            texts = [content.content for content in vault_content]
-            embeddings = self.pipeline.engine.embed_texts(texts, show_progress=True)
+                texts = [content.content for content in vault_content]
+                embeddings = self.pipeline.engine.embed_texts(texts, show_progress=True)
 
-            metadata = []
-            for content in vault_content:
-                metadata.append({
-                    "relative_path": content.relative_path,
-                    "title": content.title,
-                    "tags": content.tags,
-                    "created_date": content.created_date,
-                    "modified_date": content.modified_date,
-                    "content_length": len(content.content),
-                    "frontmatter": content.frontmatter
-                })
+                metadata = []
+                for content in vault_content:
+                    metadata.append({
+                        "relative_path": content.relative_path,
+                        "title": content.title,
+                        "tags": content.tags,
+                        "created_date": content.created_date,
+                        "modified_date": content.modified_date,
+                        "content_length": len(content.content),
+                        "frontmatter": content.frontmatter
+                    })
 
-            model_info = {
-                "model_name": self.pipeline.engine.model_name,
-                "embedding_dim": embeddings.shape[1] if len(embeddings.shape) > 1 else 0
-            }
+                model_info = {
+                    "model_name": self.pipeline.engine.model_name,
+                    "embedding_dim": embeddings.shape[1] if len(embeddings.shape) > 1 else 0
+                }
 
-            self.pipeline.store.save_embeddings(embeddings, metadata, model_info)
+                self.pipeline.store.save_embeddings(embeddings, metadata, model_info)
 
-            files_indexed = len(vault_content)
-            logger.info(f"✓ Semantic indexing complete: {files_indexed} files indexed")
-            logger.info(f"✓ Full reindexing complete: {files_indexed} files")
+                files_indexed = len(vault_content)
+                logger.info(f"✓ Semantic indexing complete: {files_indexed} files indexed")
+                logger.info(f"✓ Full reindexing complete: {files_indexed} files")
 
-            return {
-                "status": "success",
-                "files_indexed": files_indexed,
-                "model": self.model_name,
-                "message": f"Successfully reindexed {files_indexed} files"
-            }
+                return {
+                    "status": "success",
+                    "files_indexed": files_indexed,
+                    "model": self.model_name,
+                    "message": f"Successfully reindexed {files_indexed} files"
+                }
+
+            # Incremental rebuild path
+            else:
+                logger.info(f"Performing incremental reindex: {len(changes['new'])} new, {len(changes['modified'])} modified, {len(changes['deleted'])} deleted")
+
+                # Rebuild BM25 index (always full rebuild - it's fast)
+                vault_content = self.pipeline.reader.read_vault()
+
+                if self.bm25_index is not None:
+                    logger.info("Rebuilding BM25 keyword index...")
+                    try:
+                        documents = []
+                        for content_obj in vault_content:
+                            doc = {
+                                'relative_path': content_obj.relative_path,
+                                'title': content_obj.title,
+                                'content': content_obj.content,
+                                'tags': content_obj.tags,
+                                'frontmatter': content_obj.frontmatter
+                            }
+                            documents.append(doc)
+
+                        self.bm25_index.build(documents)
+                        logger.info(f"✓ BM25 index rebuilt: {len(documents)} documents")
+                    except Exception as e:
+                        logger.warning(f"BM25 indexing failed: {e}")
+
+                # Embed only changed files
+                changed_files = changes["modified"] + changes["new"]
+
+                if changed_files:
+                    logger.info(f"Embedding {len(changed_files)} changed files...")
+                    texts = [content.content for content in changed_files]
+                    embeddings = self.pipeline.engine.embed_texts(texts, show_progress=True)
+
+                    metadata = []
+                    for content in changed_files:
+                        metadata.append({
+                            "relative_path": content.relative_path,
+                            "title": content.title,
+                            "tags": content.tags,
+                            "created_date": content.created_date,
+                            "modified_date": content.modified_date,
+                            "content_length": len(content.content),
+                            "frontmatter": content.frontmatter
+                        })
+
+                    # Merge with existing embeddings
+                    self._merge_embeddings(embeddings, metadata, changes)
+                    logger.info(f"✓ Incremental reindexing complete")
+                else:
+                    # Only deletions, no new embeddings to create
+                    logger.info("Processing deletions only...")
+                    self._merge_embeddings(np.array([]), [], changes)
+
+                return {
+                    "status": "success",
+                    "files_indexed": len(changed_files),
+                    "files_new": len(changes["new"]),
+                    "files_modified": len(changes["modified"]),
+                    "files_deleted": len(changes["deleted"]),
+                    "model": self.model_name,
+                    "message": f"Incremental reindex: {len(changes['new'])} new, {len(changes['modified'])} modified, {len(changes['deleted'])} deleted"
+                }
 
         except Exception as e:
             logger.error(f"Reindexing failed: {e}", exc_info=True)

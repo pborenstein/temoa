@@ -46,15 +46,25 @@ class EmbeddingStore:
             raise ValueError("Embeddings and metadata must have same length")
         
         np.save(self.embeddings_file, embeddings)
-        
+
         with open(self.metadata_file, 'w') as f:
             json.dump(metadata, f, indent=2, default=str)
-        
+
+        # Build file tracking map for incremental indexing
+        file_tracking = {}
+        for i, meta in enumerate(metadata):
+            file_tracking[meta["relative_path"]] = {
+                "modified_date": meta.get("modified_date"),
+                "content_length": meta.get("content_length"),
+                "index_position": i
+            }
+
         index_data = {
             "model_info": model_info,
             "created_at": datetime.now().isoformat(),
             "num_embeddings": len(embeddings),
             "embedding_dim": embeddings.shape[1] if len(embeddings.shape) > 1 else 0,
+            "file_tracking": file_tracking,
             "files": {
                 "embeddings": str(self.embeddings_file.name),
                 "metadata": str(self.metadata_file.name)

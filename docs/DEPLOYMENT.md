@@ -95,26 +95,28 @@ EOF
 
 ## Build Index
 
-First time only (~15-20 seconds for ~2000 files):
+**First time only** - full rebuild (~2-3 minutes for ~3000 files):
 
 ```bash
 temoa index
 ```
 
 **What happens**:
-- Scans vault for markdown files
+- Scans vault for all markdown files
 - Downloads sentence-transformer model (first time, cached after)
 - Generates embeddings for all files
-- Stores in `vault/.temoa/embeddings.pkl`
+- Stores in `vault/.temoa/model-name/` directory with file tracking
 
 **Expected output**:
 ```
 Building index for: /Users/you/Obsidian/vault
 Indexing vault...
 ✓ Index built successfully
-Files indexed: 2,281
+Files indexed: 3,059
 Model: all-mpnet-base-v2
 ```
+
+**Performance note**: First index takes 2-3 minutes. After that, use `temoa reindex` which is **30x faster** (only processes changed files).
 
 **Troubleshooting**:
 - "No config file found" → Create config (see above)
@@ -383,22 +385,51 @@ Now you have a home screen icon! 📱
 After adding new notes or gleanings:
 
 ```bash
-# Extract new gleanings
+# Extract new gleanings (if needed)
 temoa extract
 
-# Update index (incremental)
+# Update index incrementally (recommended - only changed files)
 temoa reindex
 ```
 
-Or force full rebuild:
+**Incremental reindex** (default):
+- Only processes new, modified, or deleted files
+- Takes ~5 seconds when no changes
+- Takes ~6-8 seconds with 5-10 new files
+- **30x faster** than full rebuild
+
+**Full rebuild** (rarely needed):
 ```bash
-temoa reindex --force
+temoa index
 ```
 
-Or via API:
+Use full rebuild when:
+- First time setup
+- Index corruption suspected
+- Switching models
+
+**Via API**:
 ```bash
+# Incremental (recommended)
 curl -X POST http://localhost:8080/reindex?force=false
+
+# Full rebuild
+curl -X POST http://localhost:8080/reindex?force=true
 ```
+
+**Via Web UI**:
+1. Navigate to Management page: `http://localhost:8080/manage`
+2. Click "Reindex Vault" button
+3. For full rebuild: Check "Full rebuild (process all files)" first
+4. Default (unchecked) is incremental
+
+**Performance comparison** (3,059 file vault):
+
+| Operation | Time | Files Processed |
+|-----------|------|-----------------|
+| Full index (`temoa index`) | 159s | 3,059 files |
+| Incremental (no changes) | 4.8s | 0 files |
+| Incremental (5 new) | 6-8s | 5 files |
 
 ### Automated Gleaning Extraction
 
@@ -521,12 +552,19 @@ Machines → tap server → Ping
 **Expected timings**:
 - Server startup: 13-15s (loads model)
 - Search from mobile: <2s (usually ~400-500ms)
-- Index rebuild: 15-20s for ~2000 files
+- Full index rebuild: 2-3 minutes for ~3000 files
+- Incremental reindex (no changes): ~5 seconds
+- Incremental reindex (5-10 new files): ~6-8 seconds
+
+**Reindexing comparison** (3,059 file vault):
+- Full: 159s (all files)
+- Incremental: 4.8s (no changes) - **30x faster**
+- Incremental: 6-8s (5 new files) - **25x faster**
 
 **Resource usage**:
 - Memory: ~600 MB (model in RAM)
 - Disk: ~10 MB per 2000 files (embeddings index)
-- CPU: Spike during search, idle otherwise
+- CPU: Spike during search/indexing, idle otherwise
 
 ---
 
