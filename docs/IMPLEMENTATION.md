@@ -6,8 +6,8 @@
 
 **Project**: Temoa - Local Semantic Search Server for Obsidian Vault
 **Created**: 2025-11-18
-**Status**: Phase 2 ✅ COMPLETE + CLI ✅ COMPLETE | Phase 2.5 ✅ COMPLETE (Compact Collapsible UI + Mobile Optimization)
-**Last Updated**: 2025-11-24
+**Status**: Phase 2 ✅ COMPLETE + CLI ✅ COMPLETE | Phase 2.5 ✅ COMPLETE | Phase 3 Part 0 ✅ COMPLETE | Multi-Vault Webapp 🔵 IN PROGRESS (Backend Complete)
+**Last Updated**: 2025-11-26
 **Estimated Timeline**: 4-6 weeks for Phases 0-2, ongoing for Phases 3-4
 
 ---
@@ -1171,6 +1171,55 @@ If partially → Remove specific barriers, then retest
 - Backward compatible: Existing indexes auto-migrate
 
 See: `docs/chronicles/phase-3-enhanced-features.md` Entry 20 for detailed implementation notes.
+
+### Multi-Vault Webapp Support 🔵
+
+**Status**: IN PROGRESS (2025-11-26) - Backend Complete, UI Pending
+**Branch**: `claude/multi-vault-webapp-support`
+**Goal**: Extend multi-vault support to webapp with vault selector UI
+
+**Phase 1 (Backend)** - ✅ COMPLETE:
+- [x] Extend config.py with vault management methods (get_all_vaults, get_default_vault, find_vault)
+- [x] Create client_cache.py with LRU cache (max 3 vaults, ~1.5GB RAM)
+- [x] Replace global synthesis client with client cache
+- [x] Add get_client_for_vault() helper function
+- [x] Add /vaults endpoint to list configured vaults
+- [x] Update /search endpoint to accept vault parameter
+- [x] Update /archaeology endpoint to accept vault parameter
+- [x] Update /stats endpoint to accept vault parameter
+- [x] Update /reindex endpoint to accept vault parameter (with cache invalidation)
+- [x] Update /extract endpoint to accept vault parameter (with cache invalidation)
+
+**Phase 2 (UI)** - ⏳ PENDING:
+- [ ] Add vault selector component to search.html
+- [ ] Add vault selector component to manage.html
+- [ ] Implement JavaScript vault state management
+- [ ] Update API calls to include vault parameter
+- [ ] Test multi-vault UI functionality
+
+**Phase 3 (Testing & Docs)** - ⏳ PENDING:
+- [ ] Write unit tests for client cache
+- [ ] Integration testing with multiple vaults
+- [ ] Update documentation and migration guide
+
+**Commits (3)**:
+- `6b297bb`: Config + Client Cache
+- `39cdd0a`: Search endpoint + /vaults API
+- `9bfb2a0`: All remaining endpoints
+
+**Key Features**:
+- LRU cache for fast vault switching (~400ms when cached)
+- All endpoints accept optional `?vault=...` parameter
+- Cache invalidation after reindex/extract
+- Backward compatible (defaults to config vault)
+- Pre-warms default vault at startup
+
+**Next Session**: Continue with UI implementation (Phase 2)
+- Vault selector dropdowns (HTML/CSS)
+- JavaScript state management (URL > localStorage > default)
+- Wire up API calls
+
+**Estimated Remaining**: ~2-3 hours (UI) + 1-2 hours (testing/docs)
 
 ### Part 1: Technical Debt (Foundation)
 
