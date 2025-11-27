@@ -6,8 +6,8 @@
 
 **Project**: Temoa - Local Semantic Search Server for Obsidian Vault
 **Created**: 2025-11-18
-**Status**: Phase 2 ✅ COMPLETE + CLI ✅ COMPLETE | Phase 2.5 ✅ COMPLETE (Compact Collapsible UI + Mobile Optimization)
-**Last Updated**: 2025-11-24
+**Status**: Phase 2 ✅ COMPLETE + CLI ✅ COMPLETE | Phase 2.5 ✅ COMPLETE | Phase 3 Part 0 ✅ COMPLETE | Multi-Vault Webapp 🔵 IN PROGRESS (Backend Complete)
+**Last Updated**: 2025-11-26
 **Estimated Timeline**: 4-6 weeks for Phases 0-2, ongoing for Phases 3-4
 
 ---
@@ -1144,10 +1144,95 @@ If partially → Remove specific barriers, then retest
 **Duration**: 2 weeks (consolidated from comprehensive reviews)
 **Plan**: See [PHASE-3-READY.md](PHASE-3-READY.md) for consolidated implementation plan
 
-### Part 0: Multi-Vault Support (CRITICAL FIX)
+### Part 0: Multi-Vault Support (CRITICAL FIX) ✅
 
-- [ ] Fix `--vault` flag to derive storage_dir from vault path, not config
-- [ ] Ensure each vault has its own independent index
+**Status**: COMPLETE (2025-11-26)
+
+- [x] Fix `--vault` flag to derive storage_dir from vault path, not config
+- [x] Ensure each vault has its own independent index
+- [x] Add validation to prevent vault mismatch before operations
+- [x] Add --force flag for override with warning
+- [x] Add vault metadata to index.json for validation
+- [x] Auto-migrate old indexes without metadata
+- [x] Comprehensive unit tests (13 tests, all passing)
+
+**Deliverables**:
+- `src/temoa/storage.py` (195 lines) - Vault-aware storage utilities
+- Updated all CLI commands (index, reindex, search, archaeology, stats)
+- Unit tests in `tests/test_storage.py`
+- Integration test structure in `tests/test_multi_vault_integration.py`
+- Documentation in `docs/chronicles/phase-3-enhanced-features.md` Entry 20
+
+**Key Features**:
+- Config vault: Uses config's storage_dir (honors user config)
+- Other vaults: Auto-derives as `vault/.temoa/` (independent indexes)
+- Validation: Fails with clear error before data loss
+- Force: `--force` flag allows override
+- Backward compatible: Existing indexes auto-migrate
+
+See: `docs/chronicles/phase-3-enhanced-features.md` Entry 20 for detailed implementation notes.
+
+### Multi-Vault Webapp Support ✅
+
+**Status**: COMPLETE (2025-11-27)
+**Branch**: `claude/multi-vault-webapp-support`
+**Goal**: Extend multi-vault support to webapp with vault selector UI
+
+**Phase 1 (Backend)** - ✅ COMPLETE:
+- [x] Extend config.py with vault management methods (get_all_vaults, get_default_vault, find_vault)
+- [x] Create client_cache.py with LRU cache (max 3 vaults, ~1.5GB RAM)
+- [x] Replace global synthesis client with client cache
+- [x] Add get_client_for_vault() helper function
+- [x] Add /vaults endpoint to list configured vaults
+- [x] Update /search endpoint to accept vault parameter
+- [x] Update /archaeology endpoint to accept vault parameter
+- [x] Update /stats endpoint to accept vault parameter
+- [x] Update /reindex endpoint to accept vault parameter (with cache invalidation)
+- [x] Update /extract endpoint to accept vault parameter (with cache invalidation)
+- [x] Update /health endpoint to accept vault parameter
+
+**Phase 2 (UI)** - ✅ COMPLETE:
+- [x] Add vault selector component to search.html
+- [x] Add vault selector component to manage.html
+- [x] Implement JavaScript vault state management
+- [x] Update API calls to include vault parameter
+- [x] Test multi-vault UI functionality
+- [x] Fix `get_vault_metadata()` to check model-specific subdirectory
+- [x] Clean up UI (remove redundant info from dropdown, remove Status link)
+
+**Deliverables**:
+- Updated `src/temoa/storage.py` - Fixed `get_vault_metadata()` to accept model parameter
+- Updated `src/temoa/server.py` - Fixed `/health` and `/vaults` endpoints
+- Updated `src/temoa/ui/search.html` - Vault selector with state management
+- Updated `src/temoa/ui/manage.html` - Vault selector with state management
+- Config format supports `vaults` array for multi-vault setups
+
+**Key Features**:
+- LRU cache for fast vault switching (~400ms when cached)
+- All endpoints accept optional `?vault=...` parameter
+- Vault selector dropdown at top of both pages
+- Vault info badges showing default status and file count
+- State management: URL param > localStorage > default vault
+- Shareable URLs with `?vault=...` parameter
+- Cache invalidation after reindex/extract
+- Backward compatible (defaults to config vault)
+
+**Config Format**:
+```json
+{
+  "vaults": [
+    {"name": "amoxtli", "path": "~/Obsidian/amoxtli", "is_default": true},
+    {"name": "rodeo", "path": "~/Obsidian/rodeo", "is_default": false},
+    {"name": "small-vault", "path": "~/Obsidian/small-vault", "is_default": false}
+  ],
+  "vault_path": "~/Obsidian/amoxtli",
+  ...
+}
+```
+
+**Testing**: Verified with 3 vaults (amoxtli: 3067 files, rodeo: 9056 files, small-vault: not indexed)
+
+See: `docs/chronicles/phase-3-enhanced-features.md` Entry 21 for detailed session notes.
 
 ### Part 1: Technical Debt (Foundation)
 
