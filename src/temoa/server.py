@@ -381,19 +381,10 @@ async def list_vaults():
                 config.storage_dir
             )
 
-            # Check if indexed
-            metadata = get_vault_metadata(storage_dir)
+            # Check if indexed (pass model to check model-specific subdirectory)
+            metadata = get_vault_metadata(storage_dir, config.default_model)
             indexed = metadata is not None
-            file_count = 0
-
-            if indexed:
-                # Try to get file count from metadata or stats
-                try:
-                    client, _, _ = get_client_for_vault(vault_config["name"])
-                    stats = client.get_stats()
-                    file_count = stats.get("total_files", 0)
-                except Exception as e:
-                    logger.warning(f"Could not get stats for vault {vault_config['name']}: {e}")
+            file_count = metadata.get("file_count", 0) if metadata else 0
 
             vaults.append({
                 "name": vault_config["name"],
@@ -727,13 +718,19 @@ async def stats(
 
 
 @app.get("/health")
-async def health():
+async def health(vault: Optional[str] = None):
     """
     Health check endpoint.
+
+    Args:
+        vault: Vault identifier (name or path). Defaults to config vault.
 
     Returns server status and Synthesis connectivity.
     """
     try:
+        # Get client for specified vault
+        synthesis, vault_path, vault_name = get_client_for_vault(vault)
+
         # Quick test that Synthesis is accessible
         stats = synthesis.get_stats()
 
@@ -741,7 +738,8 @@ async def health():
             "status": "healthy",
             "synthesis": "connected",
             "model": config.default_model,
-            "vault": str(config.vault_path),
+            "vault": str(vault_path),
+            "vault_name": vault_name,
             "files_indexed": stats.get("total_files") or stats.get("file_count", 0)
         })
 

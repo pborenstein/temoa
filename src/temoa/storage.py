@@ -153,17 +153,19 @@ def _add_vault_metadata(
         # Non-fatal - continue anyway
 
 
-def get_vault_metadata(storage_dir: Path) -> Optional[Dict[str, Any]]:
+def get_vault_metadata(storage_dir: Path, model: str) -> Optional[Dict[str, Any]]:
     """
     Get vault metadata from index.
 
     Args:
-        storage_dir: Storage directory containing index.json
+        storage_dir: Base storage directory (e.g., .temoa/)
+        model: Model name (Synthesis stores in storage_dir/model/)
 
     Returns:
-        Dict with vault metadata, or None if no index or no metadata
+        Dict with vault metadata if index exists, None otherwise
     """
-    index_file = storage_dir / "index.json"
+    # Synthesis stores indexes in model-specific subdirectory
+    index_file = storage_dir / model / "index.json"
 
     if not index_file.exists():
         return None
@@ -172,13 +174,11 @@ def get_vault_metadata(storage_dir: Path) -> Optional[Dict[str, Any]]:
         with open(index_file) as f:
             index_data = json.load(f)
 
-        if "vault_path" in index_data:
-            return {
-                "vault_path": Path(index_data["vault_path"]),
-                "vault_name": index_data.get("vault_name"),
-                "indexed_at": index_data.get("indexed_at"),
-                "migrated_at": index_data.get("migrated_at")
-            }
-        return None
+        return {
+            "vault_path": Path(index_data.get("vault_path", "")),
+            "vault_name": index_data.get("vault_name"),
+            "indexed_at": index_data.get("indexed_at"),
+            "file_count": len(index_data.get("file_tracking", {}))
+        }
     except (json.JSONDecodeError, IOError):
         return None

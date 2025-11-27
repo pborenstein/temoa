@@ -330,6 +330,99 @@ Resolves: Data loss bug from IMPLEMENTATION.md line 1149
 
 ---
 
-**Entry created**: 2025-11-26
-**Author**: Claude (Sonnet 4.5)
-**Status**: Multi-vault support implemented, tested, and documented
+## Entry 21: Multi-Vault Webapp UI (2025-11-27)
+
+**Goal**: Extend multi-vault support to the webapp with a vault selector UI.
+
+### What Was Built
+
+**Vault Selector Component** (added to both search.html and manage.html):
+- Dropdown showing all configured vaults by name
+- Info badges below showing: "default" status, "N files indexed" or "not indexed"
+- State management: URL param > localStorage > default vault
+- Shareable URLs with `?vault=...` parameter
+
+**Backend Fixes**:
+1. Fixed `/health` endpoint to accept vault parameter
+2. Fixed `get_vault_metadata()` to check model-specific subdirectory (`storage_dir/model/index.json`)
+3. Fixed `/vaults` endpoint to correctly report indexed status
+
+### Key Discovery: Storage Structure
+
+**Problem**: `/vaults` endpoint reported all vaults as "not indexed" even though they were.
+
+**Root cause**: Synthesis stores indexes in model-specific subdirectories:
+```
+.temoa/                    ← storage_dir (what we were checking)
+  └── all-mpnet-base-v2/   ← actual location
+      └── index.json       ← here!
+```
+
+**Fix**: Updated `get_vault_metadata()` to accept model parameter:
+```python
+def get_vault_metadata(storage_dir: Path, model: str) -> Optional[Dict]:
+    index_file = storage_dir / model / "index.json"  # ← Now correct!
+    ...
+```
+
+### Config Format
+
+Multi-vault support requires adding a `vaults` array to config:
+```json
+{
+  "vaults": [
+    {"name": "amoxtli", "path": "~/Obsidian/amoxtli", "is_default": true},
+    {"name": "rodeo", "path": "~/Obsidian/rodeo", "is_default": false},
+    {"name": "small-vault", "path": "~/Obsidian/small-vault", "is_default": false}
+  ],
+  "vault_path": "~/Obsidian/amoxtli",
+  ...
+}
+```
+
+Backward compatible: If no `vaults` array, auto-generates single-vault list from `vault_path`.
+
+### UI Design Decisions
+
+**DEC-039: Clean Dropdown, Info in Badges**
+- Dropdown shows just vault names (clean, scannable)
+- Badges below show metadata (default status, file count)
+- Avoids cluttered dropdown with redundant info
+
+**DEC-040: State Priority (URL > localStorage > default)**
+- URL params enable shareable links (`?vault=rodeo`)
+- localStorage remembers last-used vault
+- Falls back to default vault from config
+
+**DEC-041: Removed Status Link from Footer**
+- Health info now in vault badges
+- Management page shows detailed status
+- Cleaner footer, less redundancy
+
+### Files Changed
+
+1. **`src/temoa/storage.py`** - Fixed `get_vault_metadata()` to accept model parameter
+2. **`src/temoa/server.py`** - Fixed `/health` and `/vaults` endpoints
+3. **`src/temoa/ui/search.html`** - Added vault selector with full state management
+4. **`src/temoa/ui/manage.html`** - Added vault selector, updated all API calls
+
+### Testing
+
+Verified with 3 vaults:
+- **amoxtli**: 3067 files indexed ✅
+- **rodeo**: 9056 files indexed ✅
+- **small-vault**: not indexed ✅
+
+All endpoints working with vault parameter:
+- `/vaults` - Lists all vaults with status
+- `/health?vault=...` - Health check for specific vault
+- `/search?vault=...` - Search specific vault
+- `/stats?vault=...` - Stats for specific vault
+- `/reindex?vault=...` - Reindex specific vault
+- `/extract?vault=...` - Extract gleanings from specific vault
+
+---
+
+**Entry created**: 2025-11-27
+**Author**: Claude (Opus 4.5)
+**Status**: Multi-vault webapp UI complete
