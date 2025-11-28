@@ -3,10 +3,15 @@ import pytest
 from fastapi.testclient import TestClient
 from temoa.server import app
 
-client = TestClient(app)
+
+@pytest.fixture(scope="module")
+def client():
+    """Create test client with lifespan context"""
+    with TestClient(app) as c:
+        yield c
 
 
-def test_root_endpoint():
+def test_root_endpoint(client):
     """Test that root endpoint serves UI or placeholder"""
     response = client.get("/")
     assert response.status_code == 200
@@ -14,7 +19,7 @@ def test_root_endpoint():
     assert "Temoa" in response.text
 
 
-def test_health_endpoint():
+def test_health_endpoint(client):
     """Test health check endpoint"""
     response = client.get("/health")
     assert response.status_code == 200
@@ -25,7 +30,7 @@ def test_health_endpoint():
     assert data["status"] in ["healthy", "unhealthy"]
 
 
-def test_search_endpoint_basic():
+def test_search_endpoint_basic(client):
     """Test basic search endpoint"""
     response = client.get("/search?q=test")
     assert response.status_code == 200
@@ -38,7 +43,7 @@ def test_search_endpoint_basic():
     assert data["query"] == "test"
 
 
-def test_search_endpoint_with_limit():
+def test_search_endpoint_with_limit(client):
     """Test search with limit parameter"""
     response = client.get("/search?q=test&limit=5")
     assert response.status_code == 200
@@ -47,19 +52,19 @@ def test_search_endpoint_with_limit():
     assert len(data["results"]) <= 5
 
 
-def test_search_endpoint_missing_query():
+def test_search_endpoint_missing_query(client):
     """Test that search without query returns error"""
     response = client.get("/search")
     assert response.status_code == 422  # Validation error
 
 
-def test_search_endpoint_empty_query():
+def test_search_endpoint_empty_query(client):
     """Test that search with empty query returns error"""
     response = client.get("/search?q=")
     assert response.status_code == 422  # Validation error (min_length=1)
 
 
-def test_search_endpoint_invalid_limit():
+def test_search_endpoint_invalid_limit(client):
     """Test that invalid limit values are handled"""
     # Negative limit
     response = client.get("/search?q=test&limit=-1")
@@ -70,7 +75,7 @@ def test_search_endpoint_invalid_limit():
     assert response.status_code == 422
 
 
-def test_search_result_structure():
+def test_search_result_structure(client):
     """Test that search results have expected structure"""
     response = client.get("/search?q=semantic+search&limit=1")
     assert response.status_code == 200
@@ -87,7 +92,7 @@ def test_search_result_structure():
         assert result["obsidian_uri"].startswith("obsidian://vault/")
 
 
-def test_stats_endpoint():
+def test_stats_endpoint(client):
     """Test stats endpoint"""
     response = client.get("/stats")
     assert response.status_code == 200
@@ -97,7 +102,7 @@ def test_stats_endpoint():
     assert "file_count" in data or "total_files" in data
 
 
-def test_openapi_docs():
+def test_openapi_docs(client):
     """Test that OpenAPI docs are available"""
     response = client.get("/docs")
     assert response.status_code == 200

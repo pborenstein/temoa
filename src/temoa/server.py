@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -23,82 +23,91 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Import extraction functionality
-# Add scripts directory to path so we can import extract_gleanings
-scripts_path = Path(__file__).parent.parent.parent / "scripts"
-if str(scripts_path) not in sys.path:
-    sys.path.insert(0, str(scripts_path))
-
 try:
-    from extract_gleanings import GleaningsExtractor
+    from .scripts.extract_gleanings import GleaningsExtractor
 except ImportError as e:
     logger.warning(f"Could not import GleaningsExtractor: {e}")
     GleaningsExtractor = None
-
-# Load configuration
-try:
-    config = Config()
-    logger.info(f"Configuration loaded: {config}")
-except ConfigError as e:
-    logger.error(f"Configuration error: {e}")
-    raise
-
-# Initialize client cache for multi-vault support
-cache_size = config._config.get("server", {}).get("client_cache_size", 3)
-client_cache = ClientCache(max_size=cache_size)
-logger.info(f"Client cache initialized (max_size={cache_size})")
-
-# Pre-warm cache with default vault
-try:
-    logger.info("Pre-warming cache with default vault (this may take 10-20 seconds)...")
-    default_vault = config.get_default_vault()
-    default_vault_path = Path(default_vault["path"]).expanduser().resolve()
-
-    from .storage import derive_storage_dir
-    default_storage_dir = derive_storage_dir(
-        default_vault_path,
-        config.vault_path,
-        config.storage_dir
-    )
-
-    client_cache.get(
-        vault_path=default_vault_path,
-        synthesis_path=config.synthesis_path,
-        model=config.default_model,
-        storage_dir=default_storage_dir
-    )
-    logger.info("✓ Default vault client ready")
-except Exception as e:
-    logger.error(f"Failed to pre-warm cache: {e}")
-    raise
-
-# Initialize Gleaning status manager (uses default vault)
-gleaning_manager = GleaningStatusManager(config.vault_path / ".temoa")
 
 
 # Lifespan context manager for startup/shutdown
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Handle startup and shutdown events"""
-    # Startup
+    """
+    Handle startup and shutdown events.
+
+    Initializes all server dependencies in proper order and stores them in app.state
+    for access by endpoint handlers.
+    """
+    # Startup - Initialize all dependencies
     logger.info("=" * 60)
-    logger.info("Temoa server starting")
-    logger.info(f"  Vault: {config.vault_path}")
-    logger.info(f"  Model: {config.default_model}")
-    logger.info(f"  Synthesis: {config.synthesis_path}")
-    logger.info(f"  Server: http://{config.server_host}:{config.server_port}")
-    logger.info("=" * 60)
+    logger.info("Temoa server starting...")
+
+    try:
+        # Load configuration
+        config = Config()
+        logger.info(f"  ✓ Configuration loaded")
+
+        # Initialize client cache for multi-vault support
+        cache_size = config._config.get("server", {}).get("client_cache_size", 3)
+        client_cache = ClientCache(max_size=cache_size)
+        logger.info(f"  ✓ Client cache initialized (max_size={cache_size})")
+
+        # Pre-warm cache with default vault
+        logger.info("  ⏳ Pre-warming cache with default vault (this may take 10-20 seconds)...")
+        default_vault = config.get_default_vault()
+        default_vault_path = Path(default_vault["path"]).expanduser().resolve()
+
+        from .storage import derive_storage_dir
+        default_storage_dir = derive_storage_dir(
+            default_vault_path,
+            config.vault_path,
+            config.storage_dir
+        )
+
+        client_cache.get(
+            vault_path=default_vault_path,
+            synthesis_path=config.synthesis_path,
+            model=config.default_model,
+            storage_dir=default_storage_dir
+        )
+        logger.info("  ✓ Default vault client ready")
+
+        # Initialize Gleaning status manager (uses default vault)
+        gleaning_manager = GleaningStatusManager(config.vault_path / ".temoa")
+        logger.info("  ✓ Gleaning manager initialized")
+
+        # Store in app.state for access by endpoints
+        app.state.config = config
+        app.state.client_cache = client_cache
+        app.state.gleaning_manager = gleaning_manager
+
+        logger.info("=" * 60)
+        logger.info(f"Temoa server ready")
+        logger.info(f"  Vault: {config.vault_path}")
+        logger.info(f"  Model: {config.default_model}")
+        logger.info(f"  Synthesis: {config.synthesis_path}")
+        logger.info(f"  Server: http://{config.server_host}:{config.server_port}")
+        logger.info("=" * 60)
+
+    except Exception as e:
+        logger.error(f"Failed to initialize server: {e}")
+        raise
 
     yield
 
-    # Shutdown
-    logger.info("Temoa server shutting down")
+    # Shutdown - Clean up resources
+    logger.info("Temoa server shutting down...")
+    # Add cleanup here if needed (e.g., closing connections, saving state)
+    logger.info("✓ Server shutdown complete")
 
 
-def get_client_for_vault(vault_identifier: Optional[str] = None) -> tuple[SynthesisClient, Path, str]:
+def get_client_for_vault(request, vault_identifier: Optional[str] = None) -> tuple[SynthesisClient, Path, str]:
     """
     Get SynthesisClient for specified vault.
 
     Args:
+        request: FastAPI Request object (for accessing app.state)
         vault_identifier: Vault name, path, or None (use default)
 
     Returns:
@@ -107,6 +116,9 @@ def get_client_for_vault(vault_identifier: Optional[str] = None) -> tuple[Synthe
     Raises:
         HTTPException: If vault not found or invalid
     """
+    config = request.app.state.config
+    client_cache = request.app.state.client_cache
+
     try:
         # Find vault config
         if vault_identifier is None:
@@ -360,13 +372,15 @@ async def favicon():
 
 
 @app.get("/vaults")
-async def list_vaults():
+async def list_vaults(request: Request):
     """
     List available vaults with their status.
 
     Returns JSON with vault list and default vault.
     Each vault includes name, path, indexed status, and file count.
     """
+    config = request.app.state.config
+
     try:
         vaults = []
 
@@ -411,6 +425,7 @@ async def list_vaults():
 
 @app.get("/search")
 async def search(
+    request: Request,
     q: str = Query(..., description="Search query", min_length=1),
     vault: Optional[str] = Query(
         default=None,
@@ -472,6 +487,8 @@ async def search(
             "model": "all-MiniLM-L6-v2"
         }
     """
+    config = request.app.state.config
+
     # Apply default limit if not specified
     if limit is None:
         limit = config.search_default_limit
@@ -482,7 +499,7 @@ async def search(
 
     try:
         # Get client for specified vault
-        synthesis, vault_path, vault_name = get_client_for_vault(vault)
+        synthesis, vault_path, vault_name = get_client_for_vault(request, vault)
 
         # Parse type filters
         include_type_list = None
@@ -596,6 +613,7 @@ async def search(
 
 @app.get("/archaeology")
 async def archaeology(
+    request: Request,
     q: str = Query(..., description="Topic to analyze", min_length=1),
     vault: Optional[str] = Query(
         default=None,
@@ -637,7 +655,7 @@ async def archaeology(
     """
     try:
         # Get client for specified vault
-        synthesis, vault_path, vault_name = get_client_for_vault(vault)
+        synthesis, vault_path, vault_name = get_client_for_vault(request, vault)
 
         logger.info(f"Archaeology: vault='{vault_name}', query='{q}', threshold={threshold}, exclude_daily={exclude_daily}")
 
@@ -671,6 +689,7 @@ async def archaeology(
 
 @app.get("/stats")
 async def stats(
+    request: Request,
     vault: Optional[str] = Query(
         default=None,
         description="Vault name or path (default: config vault)"
@@ -689,7 +708,7 @@ async def stats(
     """
     try:
         # Get client for specified vault
-        synthesis, vault_path, vault_name = get_client_for_vault(vault)
+        synthesis, vault_path, vault_name = get_client_for_vault(request, vault)
 
         logger.debug(f"Retrieving stats for vault: {vault_name}")
 
@@ -718,7 +737,7 @@ async def stats(
 
 
 @app.get("/health")
-async def health(vault: Optional[str] = None):
+async def health(request: Request, vault: Optional[str] = None):
     """
     Health check endpoint.
 
@@ -727,9 +746,11 @@ async def health(vault: Optional[str] = None):
 
     Returns server status and Synthesis connectivity.
     """
+    config = request.app.state.config
+
     try:
         # Get client for specified vault
-        synthesis, vault_path, vault_name = get_client_for_vault(vault)
+        synthesis, vault_path, vault_name = get_client_for_vault(request, vault)
 
         # Quick test that Synthesis is accessible
         stats = synthesis.get_stats()
@@ -757,6 +778,7 @@ async def health(vault: Optional[str] = None):
 
 @app.post("/reindex")
 async def reindex(
+    request: Request,
     vault: Optional[str] = Query(
         default=None,
         description="Vault name or path (default: config vault)"
@@ -785,9 +807,12 @@ async def reindex(
             "message": "Successfully reindexed 516 files"
         }
     """
+    config = request.app.state.config
+    client_cache = request.app.state.client_cache
+
     try:
         # Get client for specified vault
-        synthesis, vault_path, vault_name = get_client_for_vault(vault)
+        synthesis, vault_path, vault_name = get_client_for_vault(request, vault)
 
         logger.info(f"Reindex requested for vault '{vault_name}' (force={force})")
 
@@ -820,6 +845,7 @@ async def reindex(
 
 @app.post("/extract")
 async def extract_gleanings(
+    request: Request,
     vault: Optional[str] = Query(
         default=None,
         description="Vault name or path (default: config vault)"
@@ -852,6 +878,9 @@ async def extract_gleanings(
             "reindexed": true
         }
     """
+    config = request.app.state.config
+    client_cache = request.app.state.client_cache
+
     if GleaningsExtractor is None:
         raise HTTPException(
             status_code=500,
@@ -860,7 +889,7 @@ async def extract_gleanings(
 
     try:
         # Get client for specified vault (for reindex later)
-        synthesis, vault_path, vault_name = get_client_for_vault(vault)
+        synthesis, vault_path, vault_name = get_client_for_vault(request, vault)
 
         logger.info(f"Extraction requested for vault '{vault_name}' (incremental={incremental}, auto_reindex={auto_reindex})")
 
@@ -967,6 +996,7 @@ async def extract_gleanings(
 
 @app.post("/gleanings/{gleaning_id}/status")
 async def mark_gleaning_status(
+    request: Request,
     gleaning_id: str,
     status: str = Query(..., regex="^(active|inactive)$", description="Status to set"),
     reason: Optional[str] = Query(None, description="Optional reason for status change")
@@ -988,6 +1018,8 @@ async def mark_gleaning_status(
             "reason": "broken link"
         }
     """
+    gleaning_manager = request.app.state.gleaning_manager
+
     try:
         logger.info(f"Marking gleaning {gleaning_id} as {status}")
 
@@ -1008,6 +1040,7 @@ async def mark_gleaning_status(
 
 @app.get("/gleanings")
 async def list_gleanings(
+    request: Request,
     status: Optional[str] = Query(
         None,
         regex="^(active|inactive)$",
@@ -1039,6 +1072,9 @@ async def list_gleanings(
             "filter": "inactive"
         }
     """
+    config = request.app.state.config
+    gleaning_manager = request.app.state.gleaning_manager
+
     try:
         gleanings_list = scan_gleaning_files(
             vault_path=config.vault_path,
@@ -1061,7 +1097,7 @@ async def list_gleanings(
 
 
 @app.get("/gleanings/{gleaning_id}")
-async def get_gleaning(gleaning_id: str):
+async def get_gleaning(request: Request, gleaning_id: str):
     """
     Get status details for a specific gleaning.
 
@@ -1077,6 +1113,8 @@ async def get_gleaning(gleaning_id: str):
             "history": [...]
         }
     """
+    gleaning_manager = request.app.state.gleaning_manager
+
     try:
         record = gleaning_manager.get_gleaning_record(gleaning_id)
 

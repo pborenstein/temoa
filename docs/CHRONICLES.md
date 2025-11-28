@@ -47,6 +47,9 @@ The chronicles have been split into chapters for easier navigation:
 **Entries 20+** | Technical Debt, Search Quality, and UX Polish
 
 - Entry 20: Multi-Vault Support - Preventing Data Loss
+- Entry 21: Multi-Vault Webapp UI
+- Entry 22: UI Cleanup - Mobile-First Space Optimization
+- Entry 23: Technical Debt Refactoring - Clean Foundation
 
 ---
 
@@ -84,6 +87,10 @@ The chronicles have been split into chapters for easier navigation:
 | DEC-044: Inline search button for mobile | 22 | Button inside search box (visible with keyboard up) |
 | DEC-045: Actions first on management page | 22 | Reorder sections (actions > stats) |
 | DEC-046: Replace gear icon with text | 22 | "Manage" text aligned right (clearer navigation) |
+| DEC-047: Lifespan over module-level init | 23 | Use FastAPI lifespan for initialization (testability, best practice) |
+| DEC-048: Keep Synthesis sys.path usage | 23 | Isolate to helper method (bundled dependency, simpler than importlib) |
+| DEC-049: App state pattern for dependencies | 23 | Store in app.state, extract in endpoints (simpler than Depends()) |
+| DEC-050: Scripts as package | 23 | Move to src/temoa/scripts/ (proper structure, no sys.path hacks) |
 
 ---
 
@@ -109,4 +116,4 @@ The chronicles have been split into chapters for easier navigation:
 
 **Created**: 2025-11-18
 **Last Updated**: 2025-11-28
-**Total Entries**: 22
+**Total Entries**: 23

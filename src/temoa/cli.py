@@ -863,12 +863,8 @@ def gleaning_maintain(check_links, add_descriptions, mark_dead_inactive, dry_run
     from .config import Config
 
     # Import the maintainer from scripts
-    scripts_path = Path(__file__).parent.parent.parent / "scripts"
-    if str(scripts_path) not in sys.path:
-        sys.path.insert(0, str(scripts_path))
-
     try:
-        from maintain_gleanings import GleaningMaintainer
+        from .scripts.maintain_gleanings import GleaningMaintainer
     except ImportError as e:
         click.echo(f"Error importing maintenance tool: {e}", err=True)
         sys.exit(1)
