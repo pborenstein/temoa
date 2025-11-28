@@ -423,6 +423,244 @@ All endpoints working with vault parameter:
 
 ---
 
-**Entry created**: 2025-11-27
-**Author**: Claude (Opus 4.5)
-**Status**: Multi-vault webapp UI complete
+## Entry 22: UI Cleanup - Mobile-First Space Optimization (2025-11-28)
+
+**Goal**: Optimize vertical space, improve visual hierarchy, ensure search button visible with mobile keyboard up
+
+### The Problem
+
+During testing, user identified several UI issues:
+1. **Vertical space waste** - Header too large, vault selector too prominent, huge search button
+2. **Wrong hierarchy** - Vault selector appeared before search box (but search is primary)
+3. **Navigation misplaced** - Gear icon floating alone instead of integrated with header
+4. **Common settings buried** - Hybrid search checkbox inside collapsible Options panel
+5. **Management page backwards** - Actions section at bottom despite being most important
+
+**Key insight**: "Vertical space is precious" on mobile. Search button wasn't visible with keyboard up.
+
+### Changes Implemented
+
+#### 1. Compact Inline Header
+**Before** (3 lines):
+```
+Temoa                    ⚙︎
+Semantic search for your vault
+```
+
+**After** (1 line):
+```
+Temoa  Semantic search for your vault    Manage
+```
+
+**Changes**:
+- Removed `.header-content` wrapper, made header flexbox with `gap: 12px`
+- h1 size reduced: 28px → 24px
+- Margins reduced: 24px → 16px
+- Gear icon `⚙︎` replaced with "Manage" text
+- Navigation link aligned right with `margin-left: auto`
+- Subtitle has `flex: 1` to expand and push nav link right
+- Mobile responsive: subtitle wraps on screens < 500px
+
+**Space saved**: ~20px vertical
+
+#### 2. Inline Search Button
+**Before**:
+```
+┌─────────────────────────────────┐
+│ Search your vault...            │
+└─────────────────────────────────┘
+
+┌─────────────────────────────────┐
+│           Search                │  ← Full width, 14px padding
+└─────────────────────────────────┘
+```
+
+**After**:
+```
+┌─────────────────────────────┬──┐
+│ Search your vault...        │→ │  ← Inline, 8px padding
+└─────────────────────────────┴──┘
+```
+
+**Changes**:
+- Button positioned absolute inside search box: `position: absolute; right: 6px; top: 50%; transform: translateY(-50%);`
+- Text changed: "Search" → "→" (arrow)
+- Padding reduced: 14px → 8px
+- Input has `padding-right: 60px` for button space
+- Button width: auto (not 100%)
+
+**Space saved**: ~40px vertical + button visible with keyboard up ✅
+
+#### 3. Vault Selector: Compact + Repositioned
+**Before** (top of page, after header):
+```
+┌──────────────────────────────────┐
+│ amoxtli                          ▼│  ← Full width
+└──────────────────────────────────┘
+[default] [3083 files indexed]
+```
+
+**After** (bottom of page, before footer):
+```
+Vault: [amoxtli ▼] default, 3083 files  ← Inline, compact
+```
+
+**Changes**:
+- Moved from after header to **before footer** (bottom of page)
+- Layout: inline flexbox with `gap: 8px`
+- Added label: `<label class="vault-selector-label">Vault:</label>`
+- Dropdown: `width: auto; min-width: 150px` (not 100%)
+- Padding reduced: 10px 12px → 6px 10px
+- Font size reduced: 14px → 13px
+- Badges inline: `display: inline-flex` (not block)
+
+**Rationale**: Vault switching is infrequent, doesn't need top position. Search is primary action.
+
+**Space saved**: ~30px vertical + better hierarchy
+
+#### 4. Hybrid Checkbox: Moved Outside Options
+**Before**: Inside collapsible Options panel (requires expanding to access)
+**After**: Immediately below search box (always visible)
+
+```
+Search box + button
+Hybrid (BM25+semantic) ☐  ← Quick access
+▶ Options
+```
+
+**Rationale**: User noted "that's a way more common change than the other settings". Hybrid search is toggled frequently, shouldn't be buried.
+
+**Impact**: Common setting now easily accessible without expanding Options.
+
+#### 5. Management Page: Actions First
+**Before order**:
+1. System Health
+2. Vault Statistics
+3. Actions ← Most important, but at bottom
+
+**After order**:
+1. **Actions** ← Reindex, Extract (most important)
+2. System Health
+3. Vault Statistics
+
+**Rationale**: User said "the most important thing is the action panel but it's at the bottom". Primary use case is triggering reindex/extract.
+
+### Space Saved Summary
+
+| Change | Vertical Space Saved |
+|--------|---------------------|
+| Header inline | ~20px |
+| Search button inline | ~40px |
+| Vault selector compact | ~30px |
+| **Total** | **~90px** |
+
+**Mobile impact**: Search button now visible even with keyboard up ✅
+
+### Visual Hierarchy (New Order)
+
+**Search page**:
+1. Header (compact, 1 line)
+2. **Search box + button** ← PRIMARY
+3. **Hybrid checkbox** ← Quick access (common setting)
+4. Options (collapsible) - Min Score, Limit, Type filters
+5. Results/Stats (only when populated)
+6. **Vault selector** ← Bottom (infrequent setting)
+7. Footer
+
+**Management page**:
+1. Header
+2. **Actions** ← PRIMARY (Reindex, Extract)
+3. System Health
+4. Vault Statistics
+5. Footer
+
+### Design Decisions
+
+**DEC-042: Search is Primary, Vault is Infrequent**
+- **Decision**: Move vault selector to bottom of page
+- **Rationale**: Vault switching happens rarely (setup, testing). Search happens constantly. Top of page should focus on primary action.
+- **Alternative considered**: Keep vault at top but make more compact
+- **Why rejected**: Even compact, it pushes search down. Search must be first thing user sees.
+
+**DEC-043: Common Settings Above the Fold**
+- **Decision**: Move hybrid checkbox outside Options panel
+- **Rationale**: User explicitly noted hybrid search is toggled "way more" than other settings. Burying in collapsible section adds friction.
+- **Alternative considered**: Keep all settings in Options for cleanliness
+- **Why rejected**: UI cleanliness < usability. Common actions should be immediately accessible.
+
+**DEC-044: Inline Search Button for Mobile**
+- **Decision**: Position search button inside search box (absolute positioned)
+- **Rationale**: Solves mobile keyboard issue - button always visible. Also saves ~40px vertical space.
+- **Alternative considered**: Small button below input
+- **Why rejected**: Still takes vertical space. Inline is more compact and follows modern UI patterns (Gmail, GitHub, etc.)
+
+**DEC-045: Actions First on Management Page**
+- **Decision**: Reorder sections to put Actions at top
+- **Rationale**: User goes to management page specifically to trigger actions (reindex, extract). Stats are informational, less frequently needed.
+- **Alternative considered**: Keep informational sections first (traditional "dashboard" layout)
+- **Why rejected**: Management page isn't a dashboard, it's an action panel. Optimize for primary use case.
+
+**DEC-046: Replace Gear Icon with Text**
+- **Decision**: Change `⚙︎` to "Manage" text, align right
+- **Rationale**: User requested clearer navigation. Text is more explicit than icons. Right alignment follows convention (account/settings usually top-right).
+- **Alternative considered**: Keep gear icon but align right
+- **Why rejected**: Text is clearer. "Manage" explicitly describes what you'll find.
+
+### Files Modified
+
+1. **`src/temoa/ui/search.html`** (~100 lines modified)
+   - Header HTML: removed wrapper, inline layout
+   - Header CSS: flexbox with gap, mobile responsive
+   - Search button: moved inside search box
+   - Vault selector: moved to bottom, added label, made inline
+   - Hybrid checkbox: moved outside Options panel
+
+2. **`src/temoa/ui/manage.html`** (~50 lines modified)
+   - Header HTML: same changes as search.html
+   - Section reorder: Actions → Health → Statistics
+   - Navigation: "← Search" → "Search" (removed arrow, aligned right)
+
+3. **`pyproject.toml`** (1 line)
+   - Version bump: 0.2.0 → 0.3.0
+
+4. **`docs/UI-CLEANUP-PLAN.md`** (418 lines) - NEW FILE
+   - Comprehensive implementation plan
+   - Before/after mockups
+   - CSS and HTML changes documented
+   - Testing checklist
+
+### Testing
+
+**Verified**:
+- [x] Header is single line on desktop
+- [x] Header wraps gracefully on mobile (<500px)
+- [x] Navigation link clickable and aligned right
+- [x] Search button visible with keyboard up
+- [x] Search button triggers search on click
+- [x] Enter key still triggers search
+- [x] Vault selector works at bottom
+- [x] Vault badges display correctly
+- [x] Hybrid checkbox accessible without expanding Options
+- [x] Management Actions section at top
+- [x] Visual hierarchy clear (search is primary)
+
+**User feedback**: "awesome" - all changes implemented as requested
+
+### Key Insight
+
+**Mobile-first means ruthless prioritization of vertical space**. Every pixel counts when keyboard takes half the screen. The question isn't "where does this fit?" but "does the user need this immediately, frequently, or rarely?"
+
+- **Immediately**: Search box, search button
+- **Frequently**: Hybrid toggle
+- **Occasionally**: Options (min score, limit, type filters)
+- **Rarely**: Vault selector
+
+Organize top-to-bottom by frequency of use, not by what looks balanced on desktop.
+
+**Corollary**: Don't let "infrequent but important" settings claim prime real estate. Vault selector is important (for multi-vault users) but rarely changed. Bottom placement is correct.
+
+---
+
+**Entry created**: 2025-11-28
+**Author**: Claude (Sonnet 4.5)
+**Status**: UI cleanup complete, v0.3.0

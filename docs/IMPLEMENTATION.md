@@ -6,8 +6,8 @@
 
 **Project**: Temoa - Local Semantic Search Server for Obsidian Vault
 **Created**: 2025-11-18
-**Status**: Phase 2 ✅ COMPLETE + CLI ✅ COMPLETE | Phase 2.5 ✅ COMPLETE | Phase 3 Part 0 ✅ COMPLETE | Multi-Vault Webapp 🔵 IN PROGRESS (Backend Complete)
-**Last Updated**: 2025-11-26
+**Status**: Phase 2 ✅ COMPLETE + CLI ✅ COMPLETE | Phase 2.5 ✅ COMPLETE | Phase 3 Part 0 ✅ COMPLETE | Multi-Vault Webapp ✅ COMPLETE | UI Cleanup ✅ COMPLETE
+**Last Updated**: 2025-11-28
 **Estimated Timeline**: 4-6 weeks for Phases 0-2, ongoing for Phases 3-4
 
 ---
@@ -1233,6 +1233,74 @@ See: `docs/chronicles/phase-3-enhanced-features.md` Entry 20 for detailed implem
 **Testing**: Verified with 3 vaults (amoxtli: 3067 files, rodeo: 9056 files, small-vault: not indexed)
 
 See: `docs/chronicles/phase-3-enhanced-features.md` Entry 21 for detailed session notes.
+
+### UI Cleanup ✅
+
+**Status**: COMPLETE (2025-11-28)
+**Branch**: `ui-cleanup`
+**Goal**: Optimize vertical space, improve visual hierarchy, make search primary focus
+
+**Changes Implemented**:
+
+1. **Compact Inline Header** ✅
+   - Header now single line: `Temoa Manage Semantic search for your vault`
+   - Reduced h1 size: 28px → 24px
+   - Reduced margins: 24px → 16px
+   - Gear icon replaced with "Manage" text, aligned right
+   - Mobile responsive: subtitle wraps on screens < 500px
+
+2. **Inline Search Button** ✅
+   - Search button now inside search box (absolute positioned right)
+   - Changed from full-width "Search" to compact "→" arrow button
+   - Reduced padding: 14px → 8px
+   - Input has `padding-right: 60px` for button space
+   - Button visible even when mobile keyboard is up
+
+3. **Vault Selector Repositioned** ✅
+   - Moved to **bottom of page** (before footer) - infrequent setting
+   - Changed from full-width to inline: `Vault: [dropdown] badges`
+   - Reduced dropdown padding: 10px 12px → 6px 10px
+   - Width: auto (not 100%), min-width: 150px
+
+4. **Hybrid Checkbox Moved** ✅
+   - Moved **outside** Options panel (immediately below search box)
+   - Common setting now easily accessible without expanding Options
+   - No longer buried in collapsible section
+
+5. **Management Page Reordered** ✅
+   - Actions section moved to **top** (most important)
+   - System Health and Vault Statistics moved below
+   - Primary actions now immediately accessible
+
+**Space Saved**: ~90px vertical on search page
+
+**Visual Hierarchy (New Order)**:
+1. Header (compact, 1 line)
+2. **Search box + button** ← PRIMARY
+3. **Hybrid checkbox** ← Quick access
+4. Options (collapsible)
+5. Results/Stats (only when populated)
+6. **Vault selector** ← Bottom (infrequent)
+7. Footer
+
+**Files Modified**:
+- `src/temoa/ui/search.html` - Complete layout restructure
+- `src/temoa/ui/manage.html` - Header cleanup, section reordering
+- `pyproject.toml` - Version bump 0.2.0 → 0.3.0
+
+**Impact**:
+- Search button visible with mobile keyboard up ✅
+- Less scrolling required on mobile
+- Clear visual hierarchy (search is primary action)
+- Frequently-used controls accessible (hybrid toggle)
+- Infrequently-used controls de-emphasized (vault selector)
+
+See: `docs/UI-CLEANUP-PLAN.md` for detailed implementation plan
+See: `docs/chronicles/phase-3-enhanced-features.md` Entry 22 for session notes
+
+---
+
+## Phase 3 Remaining Work
 
 ### Part 1: Technical Debt (Foundation)
 
