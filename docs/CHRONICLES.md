@@ -79,6 +79,11 @@ The chronicles have been split into chapters for easier navigation:
 | DEC-036: Multi-vault storage strategy | 20 | Auto-derive as vault/.temoa/ (co-location) |
 | DEC-037: Validation before operations | 20 | Fail early with clear error, require --force |
 | DEC-038: Auto-migration of old indexes | 20 | Seamless upgrade, no user action required |
+| DEC-042: Search is primary, vault is infrequent | 22 | Move vault selector to bottom (search is primary) |
+| DEC-043: Common settings above the fold | 22 | Move hybrid checkbox outside Options (frequent use) |
+| DEC-044: Inline search button for mobile | 22 | Button inside search box (visible with keyboard up) |
+| DEC-045: Actions first on management page | 22 | Reorder sections (actions > stats) |
+| DEC-046: Replace gear icon with text | 22 | "Manage" text aligned right (clearer navigation) |
 
 ---
 
@@ -103,5 +108,5 @@ The chronicles have been split into chapters for easier navigation:
 ---
 
 **Created**: 2025-11-18
-**Last Updated**: 2025-11-26
-**Total Entries**: 20
+**Last Updated**: 2025-11-28
+**Total Entries**: 22

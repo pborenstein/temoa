@@ -26,36 +26,35 @@
         }
 
         header {
-            margin-bottom: 24px;
+            margin-bottom: 16px;
             display: flex;
-            justify-content: space-between;
             align-items: center;
-        }
-
-        .header-content {
-            flex: 1;
+            gap: 12px;
+            flex-wrap: wrap;
         }
 
         h1 {
-            font-size: 28px;
+            font-size: 24px;
             font-weight: 600;
-            margin-bottom: 8px;
+            margin: 0;
             color: #ffffff;
         }
 
         .subtitle {
             color: #888888;
-            font-size: 14px;
+            font-size: 13px;
+            flex: 1;
         }
 
         .nav-link {
             color: #888888;
             text-decoration: none;
             font-size: 14px;
-            padding: 8px 12px;
+            padding: 4px 8px;
             border-radius: 6px;
             transition: all 0.2s;
             white-space: nowrap;
+            margin-left: auto;
         }
 
         .nav-link:hover {
@@ -63,14 +62,34 @@
             color: #e0e0e0;
         }
 
+        /* Mobile: stack subtitle on narrow screens */
+        @media (max-width: 500px) {
+            .subtitle {
+                flex-basis: 100%;
+                margin-top: 4px;
+            }
+        }
+
         .vault-selector {
-            margin-bottom: 16px;
+            margin-bottom: 12px;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .vault-selector-label {
+            color: #888888;
+            font-size: 12px;
         }
 
         .vault-select {
-            width: 100%;
-            padding: 10px 12px;
-            font-size: 14px;
+            display: inline-block;
+            width: auto;
+            min-width: 150px;
+            padding: 6px 10px;
+            font-size: 13px;
             border: 1px solid #404040;
             border-radius: 6px;
             background: #2a2a2a;
@@ -92,8 +111,7 @@
         .vault-info {
             font-size: 12px;
             color: #888888;
-            margin-top: 4px;
-            display: flex;
+            display: inline-flex;
             align-items: center;
             gap: 8px;
         }
@@ -359,25 +377,55 @@
 <body>
     <div class="container">
         <header>
-            <div class="header-content">
-                <h1>Temoa Management</h1>
-                <p class="subtitle">System health, stats, and operations</p>
-            </div>
-            <a href="/" class="nav-link">← Search</a>
+            <h1>Temoa Management</h1>
+            <p class="subtitle">System health, stats, and operations</p>
+            <a href="/" class="nav-link">Search</a>
         </header>
 
         <!-- Vault Selector -->
         <div class="vault-selector">
+            <label class="vault-selector-label">Vault:</label>
             <select id="vault-select" class="vault-select" onchange="onVaultChange()">
                 <option value="">Loading vaults...</option>
             </select>
-            <div id="vault-info" class="vault-info"></div>
+            <span id="vault-info" class="vault-info"></span>
         </div>
 
         <div class="message" id="message"></div>
         <div class="loading" id="loading">
             <div class="spinner"></div>
             <div style="margin-top: 8px;">Processing...</div>
+        </div>
+
+        <!-- Actions Section -->
+        <div class="section">
+            <h2 class="section-title">Actions</h2>
+
+            <button class="action-button" id="reindex-btn" onclick="reindex()">
+                Reindex Vault
+            </button>
+
+            <div style="margin-top: 12px; margin-bottom: 24px;">
+                <div class="checkbox-group">
+                    <input type="checkbox" id="full-rebuild">
+                    <label for="full-rebuild">Full rebuild (process all files)</label>
+                </div>
+            </div>
+
+            <button class="action-button" id="extract-btn" onclick="extract()">
+                Extract Gleanings
+            </button>
+
+            <div style="margin-top: 12px;">
+                <div class="checkbox-group">
+                    <input type="checkbox" id="incremental" checked>
+                    <label for="incremental">Incremental (only new files)</label>
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="auto-reindex" checked>
+                    <label for="auto-reindex">Auto-reindex after extraction</label>
+                </div>
+            </div>
         </div>
 
         <!-- System Health Section -->
@@ -413,37 +461,6 @@
             <div class="stat-row">
                 <span class="stat-label">Directories</span>
                 <span class="stat-value" id="stats-directories">-</span>
-            </div>
-        </div>
-
-        <!-- Actions Section -->
-        <div class="section">
-            <h2 class="section-title">Actions</h2>
-
-            <button class="action-button" id="reindex-btn" onclick="reindex()">
-                Reindex Vault
-            </button>
-
-            <div style="margin-top: 12px; margin-bottom: 24px;">
-                <div class="checkbox-group">
-                    <input type="checkbox" id="full-rebuild">
-                    <label for="full-rebuild">Full rebuild (process all files)</label>
-                </div>
-            </div>
-
-            <button class="action-button" id="extract-btn" onclick="extract()">
-                Extract Gleanings
-            </button>
-
-            <div style="margin-top: 12px;">
-                <div class="checkbox-group">
-                    <input type="checkbox" id="incremental" checked>
-                    <label for="incremental">Incremental (only new files)</label>
-                </div>
-                <div class="checkbox-group">
-                    <input type="checkbox" id="auto-reindex" checked>
-                    <label for="auto-reindex">Auto-reindex after extraction</label>
-                </div>
             </div>
         </div>
 

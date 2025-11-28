@@ -26,36 +26,35 @@
         }
 
         header {
-            margin-bottom: 24px;
+            margin-bottom: 16px;
             display: flex;
-            justify-content: space-between;
             align-items: center;
-        }
-
-        .header-content {
-            flex: 1;
+            gap: 12px;
+            flex-wrap: wrap;
         }
 
         h1 {
-            font-size: 28px;
+            font-size: 24px;
             font-weight: 600;
-            margin-bottom: 8px;
+            margin: 0;
             color: #ffffff;
         }
 
         .subtitle {
             color: #888888;
-            font-size: 14px;
+            font-size: 13px;
+            flex: 1;
         }
 
         .nav-link {
             color: #888888;
             text-decoration: none;
-            font-size: 18px;
-            padding: 8px 12px;
+            font-size: 14px;
+            padding: 4px 8px;
             border-radius: 6px;
             transition: all 0.2s;
             white-space: nowrap;
+            margin-left: auto;
         }
 
         .nav-link:hover {
@@ -63,14 +62,34 @@
             color: #e0e0e0;
         }
 
+        /* Mobile: stack subtitle on narrow screens */
+        @media (max-width: 500px) {
+            .subtitle {
+                flex-basis: 100%;
+                margin-top: 4px;
+            }
+        }
+
         .vault-selector {
-            margin-bottom: 16px;
+            margin-bottom: 12px;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .vault-selector-label {
+            color: #888888;
+            font-size: 12px;
         }
 
         .vault-select {
-            width: 100%;
-            padding: 10px 12px;
-            font-size: 14px;
+            display: inline-block;
+            width: auto;
+            min-width: 150px;
+            padding: 6px 10px;
+            font-size: 13px;
             border: 1px solid #404040;
             border-radius: 6px;
             background: #2a2a2a;
@@ -92,8 +111,7 @@
         .vault-info {
             font-size: 12px;
             color: #888888;
-            margin-top: 4px;
-            display: flex;
+            display: inline-flex;
             align-items: center;
             gap: 8px;
         }
@@ -122,12 +140,13 @@
 
         .search-box {
             position: relative;
-            margin-bottom: 16px;
+            margin-bottom: 12px;
         }
 
         #query {
             width: 100%;
             padding: 14px 16px;
+            padding-right: 60px;
             font-size: 16px;
             border: 1px solid #404040;
             border-radius: 8px;
@@ -294,17 +313,21 @@
         }
 
         .search-btn {
-            width: 100%;
-            padding: 14px;
-            font-size: 16px;
+            position: absolute;
+            right: 6px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: auto;
+            padding: 8px 14px;
+            font-size: 14px;
             font-weight: 600;
             background: #404040;
             color: #ffffff;
             border: none;
-            border-radius: 8px;
+            border-radius: 6px;
             cursor: pointer;
             transition: background 0.2s;
-            margin-bottom: 24px;
+            margin: 0;
         }
 
         .search-btn:hover {
@@ -721,20 +744,10 @@
 <body>
     <div class="container">
         <header>
-            <div class="header-content">
-                <h1>Temoa</h1>
-                <p class="subtitle">Semantic search for your vault</p>
-            </div>
-            <a href="/manage" class="nav-link">⚙︎</a>
+            <h1>Temoa</h1>
+            <p class="subtitle">Semantic search for your vault</p>
+            <a href="/manage" class="nav-link">Manage</a>
         </header>
-
-        <!-- Vault Selector -->
-        <div class="vault-selector">
-            <select id="vault-select" class="vault-select" onchange="onVaultChange()">
-                <option value="">Loading vaults...</option>
-            </select>
-            <div id="vault-info" class="vault-info"></div>
-        </div>
 
         <div class="search-box">
             <input
@@ -747,6 +760,15 @@
                 autocapitalize="off"
                 spellcheck="false"
             >
+            <button class="search-btn" onclick="search()">→</button>
+        </div>
+
+        <!-- Hybrid Search Toggle -->
+        <div style="margin-bottom: 12px;">
+            <div class="checkbox-group">
+                <input type="checkbox" id="hybrid-search">
+                <label for="hybrid-search">Hybrid (BM25+semantic)</label>
+            </div>
         </div>
 
         <!-- Collapsible Options (all controls consolidated) -->
@@ -764,13 +786,6 @@
             <div class="control-group">
                 <label class="control-label" for="limit">Limit</label>
                 <input type="number" id="limit" min="1" max="100" value="20">
-            </div>
-
-            <div class="control-group">
-                <div class="checkbox-group">
-                    <input type="checkbox" id="hybrid-search">
-                    <label for="hybrid-search">Hybrid (BM25+semantic)</label>
-                </div>
             </div>
 
             <!-- Type Filtering -->
@@ -813,8 +828,6 @@
                 </div>
             </div>
         </div>
-
-        <button class="search-btn" onclick="search()">Search</button>
 
         <div class="error" id="error"></div>
 
@@ -872,6 +885,15 @@
         </div>
 
         <div id="results"></div>
+
+        <!-- Vault Selector -->
+        <div class="vault-selector" style="margin-top: 24px;">
+            <label class="vault-selector-label">Vault:</label>
+            <select id="vault-select" class="vault-select" onchange="onVaultChange()">
+                <option value="">Loading vaults...</option>
+            </select>
+            <span id="vault-info" class="vault-info"></span>
+        </div>
 
         <footer>
             <a href="https://github.com/pborenstein/temoa">temoa</a>
