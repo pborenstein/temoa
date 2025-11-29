@@ -1,3 +1,9 @@
-"""Temoa version information"""
+"""Temoa version information - auto-synced from pyproject.toml"""
 
-__version__ = "0.1.3"
+import importlib.metadata
+
+try:
+    __version__ = importlib.metadata.version("temoa")
+except importlib.metadata.PackageNotFoundError:
+    # Fallback for development/uninstalled package
+    __version__ = "0.4.0-dev"
