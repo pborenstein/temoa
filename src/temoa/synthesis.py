@@ -160,13 +160,10 @@ class SynthesisClient:
             f"synthesis={synthesis_path}, model={model}"
         )
 
-        # Add Synthesis to Python path
-        synthesis_str = str(self.synthesis_path)
-        if synthesis_str not in sys.path:
-            sys.path.insert(0, synthesis_str)
-            logger.debug(f"Added {synthesis_str} to sys.path")
+        # Import Synthesis modules
+        # Note: Synthesis is a bundled external dependency, we need it on the path
+        self._ensure_synthesis_on_path()
 
-        # Import Synthesis modules (after adding to path)
         try:
             from src.embeddings import EmbeddingPipeline
             from src.embeddings.models import ModelRegistry
@@ -222,6 +219,18 @@ class SynthesisClient:
         except Exception as e:
             logger.warning(f"Could not initialize BM25 index: {e}")
             self.bm25_index = None
+
+    def _ensure_synthesis_on_path(self):
+        """
+        Ensure Synthesis directory is on sys.path for imports.
+
+        Note: Synthesis is a bundled external dependency that we import from.
+        This is cleaner than manipulating sys.path inline in __init__.
+        """
+        synthesis_str = str(self.synthesis_path)
+        if synthesis_str not in sys.path:
+            sys.path.insert(0, synthesis_str)
+            logger.debug(f"Added {synthesis_str} to sys.path")
 
     def search(
         self,

@@ -86,7 +86,9 @@ class TestValidateStorageSafe:
         vault.mkdir()
 
         # Create index with matching vault
-        index_file = storage / "index.json"
+        model_dir = storage / "all-mpnet-base-v2"
+        model_dir.mkdir(parents=True)
+        index_file = model_dir / "index.json"
         index_file.write_text(json.dumps({
             "vault_path": str(vault.resolve()),
             "vault_name": vault.name
@@ -105,7 +107,9 @@ class TestValidateStorageSafe:
         vault2.mkdir()
 
         # Create index for vault1
-        index_file = storage / "index.json"
+        model_dir = storage / "all-mpnet-base-v2"
+        model_dir.mkdir(parents=True)
+        index_file = model_dir / "index.json"
         index_file.write_text(json.dumps({
             "vault_path": str(vault1.resolve()),
             "vault_name": vault1.name
@@ -129,7 +133,9 @@ class TestValidateStorageSafe:
         vault2.mkdir()
 
         # Create index for vault1
-        index_file = storage / "index.json"
+        model_dir = storage / "all-mpnet-base-v2"
+        model_dir.mkdir(parents=True)
+        index_file = model_dir / "index.json"
         index_file.write_text(json.dumps({
             "vault_path": str(vault1.resolve()),
             "vault_name": vault1.name
@@ -146,7 +152,9 @@ class TestValidateStorageSafe:
         vault.mkdir()
 
         # Create old index without vault metadata
-        index_file = storage / "index.json"
+        model_dir = storage / "all-mpnet-base-v2"
+        model_dir.mkdir(parents=True)
+        index_file = model_dir / "index.json"
         index_file.write_text(json.dumps({
             "model_name": "all-mpnet-base-v2",
             "embedding_dim": 768
@@ -171,7 +179,9 @@ class TestValidateStorageSafe:
         vault.mkdir()
 
         # Create corrupted index
-        index_file = storage / "index.json"
+        model_dir = storage / "all-mpnet-base-v2"
+        model_dir.mkdir(parents=True)
+        index_file = model_dir / "index.json"
         index_file.write_text("{ invalid json }")
 
         # Should not raise (can't validate, so let it proceed)
@@ -186,14 +196,16 @@ class TestGetVaultMetadata:
         storage = tmp_path / "storage"
         storage.mkdir()
 
-        index_file = storage / "index.json"
+        model_dir = storage / "all-mpnet-base-v2"
+        model_dir.mkdir(parents=True)
+        index_file = model_dir / "index.json"
         index_file.write_text(json.dumps({
             "vault_path": "/Users/test/vault",
             "vault_name": "vault",
             "indexed_at": "2025-11-26T12:00:00"
         }))
 
-        metadata = get_vault_metadata(storage)
+        metadata = get_vault_metadata(storage, "all-mpnet-base-v2")
 
         assert metadata is not None
         assert metadata["vault_path"] == Path("/Users/test/vault")
@@ -205,7 +217,7 @@ class TestGetVaultMetadata:
         storage = tmp_path / "storage"
         storage.mkdir()
 
-        metadata = get_vault_metadata(storage)
+        metadata = get_vault_metadata(storage, "all-mpnet-base-v2")
 
         assert metadata is None
 
@@ -214,12 +226,14 @@ class TestGetVaultMetadata:
         storage = tmp_path / "storage"
         storage.mkdir()
 
-        index_file = storage / "index.json"
+        model_dir = storage / "all-mpnet-base-v2"
+        model_dir.mkdir(parents=True)
+        index_file = model_dir / "index.json"
         index_file.write_text(json.dumps({
             "model_name": "all-mpnet-base-v2"
         }))
 
-        metadata = get_vault_metadata(storage)
+        metadata = get_vault_metadata(storage, "all-mpnet-base-v2")
 
         assert metadata is None
 
@@ -228,9 +242,11 @@ class TestGetVaultMetadata:
         storage = tmp_path / "storage"
         storage.mkdir()
 
-        index_file = storage / "index.json"
+        model_dir = storage / "all-mpnet-base-v2"
+        model_dir.mkdir(parents=True)
+        index_file = model_dir / "index.json"
         index_file.write_text("{ invalid json }")
 
-        metadata = get_vault_metadata(storage)
+        metadata = get_vault_metadata(storage, "all-mpnet-base-v2")
 
         assert metadata is None
