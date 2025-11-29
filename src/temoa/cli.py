@@ -77,6 +77,15 @@ def server(host, port, reload, log_level):
     server_host = host or config.server_host
     server_port = port or config.server_port
 
+    # Configure logging format with timestamps
+    log_config = uvicorn.config.LOGGING_CONFIG
+    # Update default formatter (for startup/info logs)
+    log_config["formatters"]["default"]["fmt"] = '%(asctime)s %(levelprefix)s %(message)s'
+    log_config["formatters"]["default"]["datefmt"] = '%Y-%m-%d %H:%M:%S'
+    # Update access formatter (for HTTP request logs)
+    log_config["formatters"]["access"]["fmt"] = '%(asctime)s %(levelprefix)s %(client_addr)s - "%(request_line)s" %(status_code)s'
+    log_config["formatters"]["access"]["datefmt"] = '%Y-%m-%d %H:%M:%S'
+
     click.echo(f"Starting Temoa server on {server_host}:{server_port}")
     click.echo(f"Web UI: http://{server_host}:{server_port}/")
     click.echo(f"API docs: http://{server_host}:{server_port}/docs")
@@ -87,7 +96,8 @@ def server(host, port, reload, log_level):
         host=server_host,
         port=server_port,
         reload=reload,
-        log_level=log_level
+        log_level=log_level,
+        log_config=log_config
     )
 
 
