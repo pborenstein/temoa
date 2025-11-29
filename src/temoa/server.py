@@ -14,6 +14,7 @@ from .config import Config, ConfigError
 from .synthesis import SynthesisClient, SynthesisError
 from .gleanings import parse_frontmatter_status, GleaningStatusManager, scan_gleaning_files
 from .client_cache import ClientCache
+from .reranker import CrossEncoderReranker
 
 # Configure logging
 logging.basicConfig(
@@ -77,10 +78,16 @@ async def lifespan(app: FastAPI):
         gleaning_manager = GleaningStatusManager(config.vault_path / ".temoa")
         logger.info("  ✓ Gleaning manager initialized")
 
+        # Initialize cross-encoder reranker for search quality improvement
+        logger.info("  ⏳ Loading cross-encoder model (this may take 2-3 seconds)...")
+        reranker = CrossEncoderReranker()
+        logger.info("  ✓ Cross-encoder reranker ready")
+
         # Store in app.state for access by endpoints
         app.state.config = config
         app.state.client_cache = client_cache
         app.state.gleaning_manager = gleaning_manager
+        app.state.reranker = reranker
 
         logger.info("=" * 60)
         logger.info(f"Temoa server ready")
@@ -458,6 +465,10 @@ async def search(
     model: Optional[str] = Query(
         default=None,
         description="Embedding model to use (optional)"
+    ),
+    rerank: bool = Query(
+        default=True,
+        description="Use cross-encoder re-ranking for better precision (~200ms)"
     )
 ):
     """
@@ -575,8 +586,22 @@ async def search(
         if type_removed > 0:
             logger.info(f"Filtered {type_removed} results by type (include={include_type_list}, exclude={exclude_type_list})")
 
-        # Apply final limit
-        filtered_results = filtered_results[:limit] if limit else filtered_results
+        # Apply cross-encoder re-ranking if enabled
+        if rerank and filtered_results:
+            reranker = request.app.state.reranker
+            # Re-rank with more candidates than final limit for better quality
+            rerank_count = min(100, len(filtered_results))
+            logger.info(f"Re-ranking top {rerank_count} results with cross-encoder")
+            filtered_results = reranker.rerank(
+                query=q,
+                results=filtered_results,
+                top_k=limit,
+                rerank_top_n=rerank_count
+            )
+
+        # Apply final limit (if not already applied by reranker)
+        if not rerank:
+            filtered_results = filtered_results[:limit] if limit else filtered_results
 
         # Update response
         data["results"] = filtered_results

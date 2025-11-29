@@ -771,6 +771,14 @@
             </div>
         </div>
 
+        <!-- Re-ranking Toggle -->
+        <div style="margin-bottom: 12px;">
+            <div class="checkbox-group">
+                <input type="checkbox" id="use-reranker" checked>
+                <label for="use-reranker">Smart re-ranking (better precision)</label>
+            </div>
+        </div>
+
         <!-- Collapsible Options (all controls consolidated) -->
         <div class="collapsible-header" onclick="toggleOptions()">
             <span class="arrow">▶</span>
@@ -919,6 +927,7 @@
         const minScoreInput = document.getElementById('min-score');
         const limitInput = document.getElementById('limit');
         const hybridSearchCheckbox = document.getElementById('hybrid-search');
+        const useRerankerCheckbox = document.getElementById('use-reranker');
         const includeTypesSelect = document.getElementById('include-types');
         const excludeTypesSelect = document.getElementById('exclude-types');
         const showJsonCheckbox = document.getElementById('show-json');
@@ -949,6 +958,7 @@
                 minScore: 0.3,
                 limit: 20,
                 hybrid: false,
+                rerank: true,
                 includeTypes: [],
                 excludeTypes: ['daily']
             },
@@ -1237,6 +1247,7 @@
             const minScore = parseFloat(minScoreInput.value) || 0.3;
             const limit = parseInt(limitInput.value) || 20;
             const hybrid = hybridSearchCheckbox.checked;
+            const rerank = useRerankerCheckbox.checked;
             const includeTypes = getSelectedValues(includeTypesSelect);
             const excludeTypes = getSelectedValues(excludeTypesSelect);
 
@@ -1245,6 +1256,7 @@
             state.filters.minScore = minScore;
             state.filters.limit = limit;
             state.filters.hybrid = hybrid;
+            state.filters.rerank = rerank;
 
             errorDiv.classList.remove('active');
             loadingDiv.classList.add('active');
@@ -1257,7 +1269,7 @@
             searchBtn.disabled = true;
 
             try {
-                let url = `/search?q=${encodeURIComponent(query)}&limit=${limit}&min_score=${minScore}&hybrid=${hybrid}`;
+                let url = `/search?q=${encodeURIComponent(query)}&limit=${limit}&min_score=${minScore}&hybrid=${hybrid}&rerank=${rerank}`;
 
                 // Add vault parameter
                 if (state.currentVault) {

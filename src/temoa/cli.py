@@ -108,12 +108,13 @@ def server(host, port, reload, log_level):
 @click.option('--type', '-t', 'include_types', default=None, help='Include only these types (comma-separated, e.g., "gleaning,article")')
 @click.option('--exclude-type', '-x', 'exclude_types', default='daily', help='Exclude these types (comma-separated, default: "daily")')
 @click.option('--hybrid', is_flag=True, default=None, help='Use hybrid search (BM25 + semantic)')
+@click.option('--rerank/--no-rerank', default=True, help='Use cross-encoder re-ranking for better precision (default: enabled)')
 @click.option('--bm25-only', is_flag=True, help='Use BM25 keyword search only (for debugging)')
 @click.option('--model', '-m', default=None, help='Embedding model to use')
 @click.option('--json', 'output_json', is_flag=True, help='Output as JSON')
 @click.option('--vault', default=None, type=click.Path(exists=True),
               help='Vault path (default: from config)')
-def search(query, limit, min_score, include_types, exclude_types, hybrid, bm25_only, model, output_json, vault):
+def search(query, limit, min_score, include_types, exclude_types, hybrid, rerank, bm25_only, model, output_json, vault):
     """Search the vault for similar content.
 
     \b
@@ -212,8 +213,21 @@ def search(query, limit, min_score, include_types, exclude_types, hybrid, bm25_o
                 exclude_types=exclude_type_list
             )
 
-            # Apply final limit
-            filtered_results = filtered_results[:limit]
+            # Apply cross-encoder re-ranking if enabled
+            if rerank and filtered_results and not bm25_only:
+                from .reranker import CrossEncoderReranker
+                reranker = CrossEncoderReranker()
+                # Re-rank with more candidates than final limit
+                rerank_count = min(100, len(filtered_results))
+                filtered_results = reranker.rerank(
+                    query=query,
+                    results=filtered_results,
+                    top_k=limit,
+                    rerank_top_n=rerank_count
+                )
+            else:
+                # Apply final limit if not re-ranking
+                filtered_results = filtered_results[:limit]
 
             # Update result data
             result_data['results'] = filtered_results
