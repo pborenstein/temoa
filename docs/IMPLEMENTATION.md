@@ -1355,8 +1355,21 @@ See: `docs/chronicles/phase-3-enhanced-features.md` Entry 22 for session notes
 **Commits**:
 - ab0ffd1: refactor: eliminate technical debt - clean foundation for Phase 3
 - 43ba6ba: fix: incremental extraction and reindex improvements
+- b61d9de: feat: add timestamps to uvicorn server logs
 
-See: `docs/chronicles/phase-3-enhanced-features.md` Entry 23-24 for detailed session notes
+**Logging Enhancement (2025-11-29)**:
+- **Feature**: Added timestamps to all uvicorn server logs
+- **Format**: `YYYY-MM-DD HH:MM:SS LEVEL message`
+- **Pattern**: Follows apantli implementation (modify uvicorn.config.LOGGING_CONFIG)
+- **Impact**: Better log readability, easier debugging and monitoring
+- **Example Output**:
+  ```
+  2025-11-29 01:55:57 INFO: Uvicorn running on http://0.0.0.0:8080
+  2025-11-29 01:56:00 INFO: Application startup complete.
+  2025-11-29 01:56:05 INFO: 100.88.115.96:0 - "GET /search?q=test" 200 OK
+  ```
+
+See: `docs/chronicles/phase-3-enhanced-features.md` Entry 23-25 for detailed session notes
 
 ### Part 2: Search Quality (High Value)
 

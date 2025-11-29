@@ -50,6 +50,8 @@ The chronicles have been split into chapters for easier navigation:
 - Entry 21: Multi-Vault Webapp UI
 - Entry 22: UI Cleanup - Mobile-First Space Optimization
 - Entry 23: Technical Debt Refactoring - Clean Foundation
+- Entry 24: Incremental Extraction Bugs - The Devil in the Details
+- Entry 25: Logging Enhancement - Adding Timestamps
 
 ---
 
@@ -91,6 +93,9 @@ The chronicles have been split into chapters for easier navigation:
 | DEC-048: Keep Synthesis sys.path usage | 23 | Isolate to helper method (bundled dependency, simpler than importlib) |
 | DEC-049: App state pattern for dependencies | 23 | Store in app.state, extract in endpoints (simpler than Depends()) |
 | DEC-050: Scripts as package | 23 | Move to src/temoa/scripts/ (proper structure, no sys.path hacks) |
+| DEC-051: Modification time for incremental extraction | 24 | Use st_mtime for change detection (fast, already tracked) |
+| DEC-052: Incremental by default for auto-reindex | 24 | Auto-reindex uses force=False (30x speedup) |
+| DEC-053: Use uvicorn.config.LOGGING_CONFIG for timestamps | 25 | Modify uvicorn's config, don't replace it (proven pattern from apantli) |
 
 ---
 
@@ -115,5 +120,5 @@ The chronicles have been split into chapters for easier navigation:
 ---
 
 **Created**: 2025-11-18
-**Last Updated**: 2025-11-28
-**Total Entries**: 23
+**Last Updated**: 2025-11-29
+**Total Entries**: 25

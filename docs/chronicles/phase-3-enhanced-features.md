@@ -1120,3 +1120,118 @@ if migrated:
 **Bug reports**: User testing revealed all three issues
 **Resolution time**: ~2 hours (debugging + fixes + testing)
 **Impact**: Critical workflow now functional
+
+---
+
+## Entry 25: Logging Enhancement - Adding Timestamps (2025-11-29)
+
+**Context**: User requested timestamps in server logs for better monitoring and debugging.
+
+### The Request
+
+User showed example logs without timestamps:
+```
+INFO:     100.88.115.96:0 - "GET /stats?..." 200 OK
+INFO:     100.88.115.96:0 - "GET /stats/hourly?..." 200 OK
+```
+
+Wanted format with timestamps:
+```
+2025-11-28 13:34:22 INFO:     100.88.115.96:0 - "GET /stats?..." 200 OK
+2025-11-28 13:34:27 INFO:     100.88.115.96:0 - "GET /stats/hourly?..." 200 OK
+```
+
+### Implementation
+
+**Pattern**: Follow apantli's implementation - modify uvicorn's LOGGING_CONFIG directly.
+
+**Code** (cli.py:80-87):
+```python
+# Configure logging format with timestamps
+log_config = uvicorn.config.LOGGING_CONFIG
+# Update default formatter (for startup/info logs)
+log_config["formatters"]["default"]["fmt"] = '%(asctime)s %(levelprefix)s %(message)s'
+log_config["formatters"]["default"]["datefmt"] = '%Y-%m-%d %H:%M:%S'
+# Update access formatter (for HTTP request logs)
+log_config["formatters"]["access"]["fmt"] = '%(asctime)s %(levelprefix)s %(client_addr)s - "%(request_line)s" %(status_code)s'
+log_config["formatters"]["access"]["datefmt"] = '%Y-%m-%d %H:%M:%S'
+
+uvicorn.run(
+    "temoa.server:app",
+    host=server_host,
+    port=server_port,
+    reload=reload,
+    log_level=log_level,
+    log_config=log_config  # Pass modified config
+)
+```
+
+### Why This Approach
+
+**Alternatives considered**:
+1. Create custom logging.config dict from scratch
+2. Use logging.basicConfig (already in server.py)
+3. Modify uvicorn.config.LOGGING_CONFIG (chosen)
+
+**Rationale**:
+- Proven pattern from apantli (consistency across projects)
+- Minimal code (modifies existing config, doesn't replace it)
+- Handles both startup logs and access logs
+- Works with all uvicorn log levels
+- No need to duplicate entire logging config
+
+### Results
+
+**Before**:
+```
+INFO:     Will watch for changes in these directories: ['/Users/philip/projects/temoa']
+INFO:     Uvicorn running on http://0.0.0.0:8080 (Press CTRL+C to quit)
+INFO:     Started reloader process [3519] using WatchFiles
+```
+
+**After**:
+```
+2025-11-29 01:55:57 INFO:     Will watch for changes in these directories: ['/Users/philip/projects/temoa']
+2025-11-29 01:55:57 INFO:     Uvicorn running on http://0.0.0.0:8080 (Press CTRL+C to quit)
+2025-11-29 01:55:57 INFO:     Started reloader process [3519] using WatchFiles
+```
+
+### Benefits
+
+1. **Debugging**: Easy to correlate logs with events
+2. **Monitoring**: Can track when issues occurred
+3. **Production**: Essential for log analysis and troubleshooting
+4. **Consistency**: Matches apantli logging format
+
+### Design Decision
+
+**DEC-053: Use uvicorn.config.LOGGING_CONFIG for Timestamps**
+- **Decision**: Modify uvicorn's default config, don't replace it
+- **Alternative considered**: Custom logging configuration from scratch
+- **Rationale**:
+  - Leverages uvicorn's well-designed config structure
+  - Only changes what we need (format + datefmt)
+  - Future-proof (inherits uvicorn updates)
+  - Same pattern as apantli (proven in production)
+- **Trade-off**: Couples to uvicorn's config structure (acceptable - unlikely to change)
+
+### Code Changes
+
+**Files Modified**:
+- `src/temoa/cli.py` - Added timestamp configuration to server command
+
+**Commit**:
+- b61d9de: feat: add timestamps to uvicorn server logs
+
+### Key Insight
+
+**Simple improvements matter**. Timestamps in logs seem trivial, but they're essential for production use. Taking 10 minutes to add them now prevents frustration later when debugging issues in production.
+
+**Pattern reuse**: When apantli already solved this problem well, copy the pattern. Don't reinvent.
+
+---
+
+**Entry created**: 2025-11-29
+**Author**: Claude (Sonnet 4.5)
+**Type**: Housekeeping / Developer Experience
+**Duration**: 10 minutes (implementation + testing + documentation)
