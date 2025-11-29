@@ -906,7 +906,7 @@ async def extract_gleanings(
                 "created_at": extractor.state["created_at"],
                 "last_run": None,
                 "extracted_gleanings": {},
-                "processed_files": []
+                "processed_files": {}  # Dict: {path: mtime}
             }
 
         output_dir = config.vault_path / "L" / "Gleanings"
@@ -933,10 +933,9 @@ async def extract_gleanings(
                 # Update state
                 extractor.state["extracted_gleanings"][gleaning.gleaning_id] = gleaning.to_dict()
 
-            # Mark file as processed
+            # Mark file as processed with its modification time
             rel_path = str(note_path.relative_to(vault_path))
-            if rel_path not in extractor.state["processed_files"]:
-                extractor.state["processed_files"].append(rel_path)
+            extractor.state["processed_files"][rel_path] = note_path.stat().st_mtime
 
         # Save state
         extractor._save_state()
@@ -958,9 +957,9 @@ async def extract_gleanings(
 
         # Auto-reindex if requested and new gleanings were created
         if auto_reindex and new_gleanings > 0:
-            logger.info("Auto-reindexing after extraction...")
+            logger.info("Auto-reindexing after extraction (incremental)...")
             try:
-                reindex_result = synthesis.reindex(force=True)
+                reindex_result = synthesis.reindex(force=False)
                 # Invalidate cache after reindex
                 client_cache.invalidate(vault_path, config.default_model)
                 result["reindexed"] = True

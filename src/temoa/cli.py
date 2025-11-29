@@ -458,8 +458,8 @@ def extract(vault, full, dry_run):
     config = Config()
     vault_path = Path(vault) if vault else config.vault_path
 
-    # Build command for extraction script
-    script = Path(__file__).parent.parent.parent / "scripts" / "extract_gleanings.py"
+    # Build command for extraction script (now in src/temoa/scripts/)
+    script = Path(__file__).parent / "scripts" / "extract_gleanings.py"
 
     cmd = [
         sys.executable,

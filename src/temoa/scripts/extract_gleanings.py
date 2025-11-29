@@ -214,23 +214,36 @@ class GleaningsExtractor:
             )
 
         self.state_file = state_file or (self.vault_path / ".temoa" / "extraction_state.json")
-        self.state = self._load_state()
+        self.state, migrated = self._load_state()
+
+        # If migration happened, save immediately to persist it
+        if migrated:
+            self._save_state()
 
         # Initialize status manager
         self.status_manager = GleaningStatusManager(self.vault_path / ".temoa")
 
-    def _load_state(self) -> Dict:
-        """Load extraction state."""
+    def _load_state(self) -> tuple[Dict, bool]:
+        """Load extraction state. Returns (state, migrated)."""
+        migrated = False
         if self.state_file.exists():
             with open(self.state_file, 'r') as f:
-                return json.load(f)
+                state = json.load(f)
+                # Migrate old format (processed_files list) to new format (dict with mtime)
+                if isinstance(state.get("processed_files"), list):
+                    # Convert list to dict, no mtime available for old entries
+                    state["processed_files"] = {
+                        path: None for path in state["processed_files"]
+                    }
+                    migrated = True
+                return state, migrated
         return {
             "version": "1.0",
             "created_at": datetime.now().isoformat(),
             "last_run": None,
             "extracted_gleanings": {},
-            "processed_files": []
-        }
+            "processed_files": {}  # Now dict: {path: mtime}
+        }, False
 
     def _save_state(self):
         """Save extraction state."""
@@ -261,9 +274,15 @@ class GleaningsExtractor:
                 if note_resolved in seen_paths:
                     continue
 
-                # Skip if already processed in incremental mode
-                if incremental and str(note.relative_to(self.vault_path)) in self.state["processed_files"]:
-                    continue
+                # In incremental mode, check if file was modified since last processing
+                if incremental:
+                    rel_path = str(note.relative_to(self.vault_path))
+                    last_mtime = self.state["processed_files"].get(rel_path)
+                    current_mtime = note.stat().st_mtime
+
+                    # Skip if file hasn't been modified since last extraction
+                    if last_mtime is not None and current_mtime <= last_mtime:
+                        continue
 
                 seen_paths.add(note_resolved)
                 daily_notes.append(note)
@@ -517,11 +536,10 @@ class GleaningsExtractor:
                 if not dry_run:
                     self.state["extracted_gleanings"][gleaning.gleaning_id] = gleaning.to_dict()
 
-            # Mark file as processed
+            # Mark file as processed with its modification time
             if not dry_run:
                 rel_path = str(note_path.relative_to(self.vault_path))
-                if rel_path not in self.state["processed_files"]:
-                    self.state["processed_files"].append(rel_path)
+                self.state["processed_files"][rel_path] = note_path.stat().st_mtime
 
         # Save state
         if not dry_run:
