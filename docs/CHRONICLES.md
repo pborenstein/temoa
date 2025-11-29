@@ -52,6 +52,7 @@ The chronicles have been split into chapters for easier navigation:
 - Entry 23: Technical Debt Refactoring - Clean Foundation
 - Entry 24: Incremental Extraction Bugs - The Devil in the Details
 - Entry 25: Logging Enhancement - Adding Timestamps
+- Entry 26: Cross-Encoder Re-Ranking - Two-Stage Retrieval
 
 ---
 
@@ -96,6 +97,9 @@ The chronicles have been split into chapters for easier navigation:
 | DEC-051: Modification time for incremental extraction | 24 | Use st_mtime for change detection (fast, already tracked) |
 | DEC-052: Incremental by default for auto-reindex | 24 | Auto-reindex uses force=False (30x speedup) |
 | DEC-053: Use uvicorn.config.LOGGING_CONFIG for timestamps | 25 | Modify uvicorn's config, don't replace it (proven pattern from apantli) |
+| DEC-054: Enable re-ranking by default | 26 | Re-ranking on by default (significant quality gain for 200ms cost) |
+| DEC-055: Re-rank top 100 candidates | 26 | Balance between recall and speed (100 pairs @ 2ms = 200ms) |
+| DEC-056: Use ms-marco-MiniLM-L-6-v2 model | 26 | Fast (~2ms/pair), accurate (MS MARCO trained), proven in production |
 
 ---
 
@@ -121,4 +125,4 @@ The chronicles have been split into chapters for easier navigation:
 
 **Created**: 2025-11-18
 **Last Updated**: 2025-11-29
-**Total Entries**: 25
+**Total Entries**: 26
