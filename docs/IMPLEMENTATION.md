@@ -1555,10 +1555,36 @@ All three search quality features now work together in sequence:
 - [x] Changed h1 from "Temoa" to "Temoa Search" for clarity
 - [x] Tags now appear in collapsed results (after score badge)
 
+### Documentation (2025-12-01)
+
+**Status**: COMPLETE - Comprehensive documentation created and organized
+
+Created new technical reference documentation:
+- [x] **SEARCH-MECHANISMS.md** - Complete guide to all search algorithms
+  - Core search methods (semantic, BM25, hybrid/RRF)
+  - Query enhancement (expansion via TF-IDF)
+  - Result filtering (score, status, type)
+  - Ranking enhancement (time-aware, cross-encoder)
+  - Complete pipeline flow diagram
+  - Performance characteristics and decision rationale
+
+Organized documentation directory:
+- [x] **docs/README.md** - Navigation guide for all documentation
+- [x] Archived completed plans (PHASE-3-PART-2, UI-CLEANUP, copilot-learnings)
+- [x] Clean separation: active docs vs historical records
+
+**Impact**:
+- Technical reference for understanding search quality improvements
+- Clear documentation structure for contributors
+- Implementation plans archived after completion
+
+See: `docs/README.md` for complete documentation index
+
 ### Detailed Plan
 
 **Primary**: [PHASE-3-READY.md](PHASE-3-READY.md) - Consolidated from 3 comprehensive reviews
 **Reference**: [phases/phase-3-enhanced.md](phases/phase-3-enhanced.md) - Original outline
+**New**: [SEARCH-MECHANISMS.md](SEARCH-MECHANISMS.md) - Technical reference for all search algorithms
 
 ---
 

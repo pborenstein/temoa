@@ -106,6 +106,9 @@ The chronicles have been split into chapters for easier navigation:
 | DEC-060: Exponential decay (not linear) | 27 | Natural, intuitive half-life parameter, smooth gradient |
 | DEC-061: Default half-life of 90 days | 27 | Matches common vault patterns, configurable per-user |
 | DEC-062: Apply boost before re-ranking | 27 | Combines recency with relevance, clean separation |
+| DEC-063: Comprehensive search documentation | 28 | Document all mechanisms, rationale, and performance (SEARCH-MECHANISMS.md) |
+| DEC-064: Archive completed implementation plans | 28 | Clean docs/ after phase completion, preserve in archive/ |
+| DEC-065: Navigation README for docs/ | 28 | Index all documentation (docs/README.md for discovery) |
 
 ---
 
@@ -130,5 +133,5 @@ The chronicles have been split into chapters for easier navigation:
 ---
 
 **Created**: 2025-11-18
-**Last Updated**: 2025-11-29
-**Total Entries**: 26
+**Last Updated**: 2025-12-01
+**Total Entries**: 28

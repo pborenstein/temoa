@@ -1859,3 +1859,176 @@ def test_exponential_decay_formula()
 **Type**: Feature Implementation (Final Part of Phase 3 Part 2)
 **Impact**: HIGH - Completes search quality stack, ~80-90% precision expected
 **Duration**: 3 hours (implementation + integration + testing + docs)
+
+---
+
+## Entry 28: Documentation Organization - Technical Reference and Archive Cleanup (2025-12-01)
+
+**Context**: Phase 3 Part 2 complete with all three search quality features implemented. Time to document what was built and organize the docs directory.
+
+### The Problem
+
+Documentation scattered and no clear navigation:
+- Implementation plans mixed with completed work
+- No technical reference for search mechanisms
+- No index or navigation guide
+- Unclear what's active vs archived
+
+**User request**: "Document all the search mechanisms - what each does, why you chose it."
+
+### The Solution
+
+Created comprehensive technical documentation and organized the docs directory:
+
+**1. SEARCH-MECHANISMS.md** (26KB, comprehensive technical reference)
+
+Documented all search components in detail:
+
+**Core Search Methods**:
+- Semantic Search (Bi-Encoder) - How sentence-transformers work, why chosen
+- Keyword Search (BM25) - Statistical ranking, complements semantic
+- Hybrid Search (RRF) - Reciprocal Rank Fusion merging, special boosting
+
+**Query Enhancement**:
+- Query Expansion - Pseudo-relevance feedback using TF-IDF, performance impact
+
+**Result Filtering**:
+- Score Threshold - Quality control
+- Status Filtering - Removes inactive/hidden gleanings
+- Type-Based Filtering - Include/exclude by document type
+
+**Ranking Enhancement**:
+- Time-Aware Scoring - Exponential decay boost formula
+- Cross-Encoder Re-Ranking - Two-stage retrieval explanation
+
+**Plus**:
+- Complete pipeline flow diagram showing all 6 stages
+- Performance characteristics (latency breakdown, memory usage, scaling)
+- Decision rationale for each mechanism
+- Before/after examples with actual results
+- Configuration reference
+
+**2. docs/README.md** (Navigation index)
+
+Organized all documentation by purpose:
+- **User Guides** (DEPLOYMENT, GLEANINGS)
+- **Technical Reference** (ARCHITECTURE, SEARCH-MECHANISMS)
+- **Planning & Progress** (IMPLEMENTATION, CHRONICLES, PHASE-3-READY)
+- **Historical Records** (chronicles/, phases/, archive/, assets/)
+- **Quick Reference** ("I want to..." section for fast navigation)
+
+**3. Archive Cleanup**
+
+Moved completed implementation plans to `docs/archive/`:
+- `PHASE-3-PART-2-SEARCH-QUALITY.md` → Superseded by SEARCH-MECHANISMS.md
+- `UI-CLEANUP-PLAN.md` → Complete (2025-11-28)
+- `copilot-learnings.md` → Historical research reference
+
+**Result**: Clean docs/ with only active documentation and clear navigation.
+
+### Key Decisions
+
+**DEC-063: Comprehensive search documentation**
+- **Decision**: Document all mechanisms, rationale, and performance in SEARCH-MECHANISMS.md
+- **Why**: Technical reference for understanding search quality improvements
+- **Impact**: Contributors can understand the complete system
+- **Alternative**: Scattered inline comments (harder to learn from)
+
+**DEC-064: Archive completed implementation plans**
+- **Decision**: Move completed plans to archive/ after phase completion
+- **Why**: Clean separation between active planning and historical record
+- **Impact**: Easier to find current vs completed work
+- **Lifecycle**: active (docs/) → complete (archive/) → permanent history (chronicles/)
+
+**DEC-065: Navigation README for docs/**
+- **Decision**: Create docs/README.md as index/navigation guide
+- **Why**: Clear entry point for documentation discovery
+- **Impact**: New contributors can navigate without asking
+- **Structure**: By purpose (user guides, technical, planning, history)
+
+### Documentation Philosophy
+
+**Active vs Historical**:
+- Active: User guides, technical reference, living planning docs
+- Historical: Completed plans, research notes, session chronicles
+
+**Supersession Pattern**:
+- Implementation plan → Feature implementation → Technical documentation
+- Example: PHASE-3-PART-2 plan → Code implementation → SEARCH-MECHANISMS doc
+- Plan archived, code lives, technical doc explains
+
+**Navigation Hierarchy**:
+1. **docs/README.md** - Start here (index)
+2. **IMPLEMENTATION.md** - Progress tracker (what's done, what's next)
+3. **CHRONICLES.md** - Decision log (why we chose this)
+4. **Technical docs** - Deep dives (how it works)
+5. **chronicles/** - Session notes (detailed history)
+
+### Files Changed
+
+**New Files**:
+- `docs/SEARCH-MECHANISMS.md` (26KB) - Complete technical reference
+- `docs/README.md` (4.5KB) - Navigation guide
+
+**Archived** (moved to docs/archive/):
+- `PHASE-3-PART-2-SEARCH-QUALITY.md` (25KB)
+- `UI-CLEANUP-PLAN.md` (12KB)
+- `copilot-learnings.md` (29KB)
+
+**Updated**:
+- `docs/IMPLEMENTATION.md` - Added documentation section
+- `docs/CHRONICLES.md` - Added decisions DEC-063 through DEC-065
+
+### Impact
+
+**For Contributors**:
+- Clear technical reference for understanding search
+- Easy navigation via docs/README.md
+- Know what's active vs archived
+
+**For Future Development**:
+- Phase 4 LLM work can reference SEARCH-MECHANISMS.md
+- Implementation patterns documented
+- Decision rationale preserved
+
+**For Documentation Hygiene**:
+- Clean docs/ directory (7 active files + 4 subdirectories)
+- Completed plans archived (66KB reclaimed)
+- Clear lifecycle: plan → implement → document → archive
+
+### What's Next
+
+**Phase 3 Part 2**: ✅ COMPLETE
+- All three search quality features implemented
+- Comprehensive documentation created
+- Ready for production testing
+
+**Phase 3 Part 3**: UI/UX Polish (remaining)
+- PWA support (home screen install)
+- Keyboard shortcuts (/, Esc)
+- Search history
+
+**Phase 4**: Vault-First LLM (future)
+- Chat interface with vault context
+- LLM-based query reformulation
+- Citation system
+
+### Key Insights
+
+**Document after building**. Implementation plans are for planning. Technical documentation is for understanding. Don't confuse the two.
+
+**Archive completed plans**. Once implemented, move plans to archive. They served their purpose.
+
+**Navigation is a feature**. Good README saves time for everyone (including future you).
+
+**Technical reference matters**. SEARCH-MECHANISMS.md took 2 hours but will save days of "how does this work?" questions.
+
+**Lifecycle clarity**: plan (active) → implement (code) → document (reference) → archive (history)
+
+---
+
+**Entry created**: 2025-12-01
+**Author**: Claude (Sonnet 4.5)
+**Type**: Documentation & Organization
+**Impact**: MEDIUM - Better navigation and technical reference
+**Duration**: 2 hours (documentation creation + organization)
