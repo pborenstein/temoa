@@ -56,6 +56,7 @@ The chronicles have been split into chapters for easier navigation:
 - Entry 27: Query Expansion and Time-Aware Scoring - Search Quality Stack Complete
 - Entry 28: Documentation and Organization - SEARCH-MECHANISMS.md
 - Entry 29: PWA Support - One-Tap Access to Vault Search
+- Entry 30: Mobile UI Refinement - Checkbox Reorganization
 
 ---
 
@@ -116,6 +117,7 @@ The chronicles have been split into chapters for easier navigation:
 | DEC-067: rsvg-convert over ImageMagick | 29 | Proper Unicode emoji rendering in PNG icons |
 | DEC-068: Standalone display mode for PWA | 29 | Launches without browser chrome (native app feel) |
 | DEC-069: Version 0.4.0 → 0.5.0 | 29 | Minor bump for PWA (significant new capability) |
+| DEC-070: Checkbox organization by frequency | 30 | Hybrid at top, quality toggles in Options (2x2 grid) |
 
 ---
 
@@ -141,4 +143,4 @@ The chronicles have been split into chapters for easier navigation:
 
 **Created**: 2025-11-18
 **Last Updated**: 2025-12-01
-**Total Entries**: 29
+**Total Entries**: 30

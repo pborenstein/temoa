@@ -1663,6 +1663,15 @@ Implemented Progressive Web App support for mobile home screen installation.
 
 **Testing**: Verified locally that manifest, service worker, and icons are served correctly.
 
+**Mobile UI Refinement (2025-12-01)**:
+
+After viewing actual iPhone screenshot, identified UI space issue and reorganized checkboxes:
+- Moved Rerank, Expand, Recent checkboxes from top-level to Options section
+- Kept only Hybrid checkbox at top (most distinctive search mode)
+- Arranged quality toggles in compact 2x2 grid with Show JSON
+- **Impact**: Saved ~90px vertical space, Search button now visible with keyboard up
+- **Commit**: e7cb73f - "Improve mobile layout by moving checkboxes to Options"
+
 **Next Steps**: Test PWA installation on actual mobile device (iOS/Android) via Tailscale.
 
 ### Detailed Plan

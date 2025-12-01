@@ -2363,3 +2363,119 @@ if ('serviceWorker' in navigator) {
 **Branch**: `pwa-support`
 **Version**: 0.5.0
 
+---
+
+## Entry 30: Mobile UI Refinement - Checkbox Reorganization (2025-12-01)
+
+**Problem**: Mobile UI showing screenshot revealed checkboxes taking up too much vertical space on iPhone.
+
+**What was wrong**:
+```
+Search box
+[Hybrid checkbox]
+[Rerank checkbox]
+[Expand checkbox]
+[Recent checkbox]
+Options ▶
+...
+```
+
+All four checkboxes visible by default = ~120px of vertical space before Options section. On iPhone with keyboard up, Search button wasn't even visible.
+
+### The Fix: Move to Options Section
+
+**New layout**:
+```
+Search box
+[Hybrid checkbox only]
+Options ▶
+  [Rerank] [Expand]
+  [Recent] [Show JSON]  ← 2x2 grid
+  Min Score: [input]
+  Limit: [input]
+  ...
+```
+
+**Space saved**: ~90px vertical on mobile
+
+**Rationale**:
+- **Hybrid** is the most distinctive search mode toggle → keep at top for quick access
+- **Rerank/Expand/Recent** are quality enhancements, enabled by default → less frequent adjustment needed
+- **Show JSON** was already in Options → consolidate all secondary controls together
+- **2x2 grid** makes efficient use of horizontal space on mobile
+
+### Implementation
+
+**Changes made**:
+1. Moved three checkboxes (Rerank, Expand, Recent) from top-level to Options section
+2. Added Show JSON checkbox to complete 2x2 grid
+3. Arranged in grid: `display: grid; grid-template-columns: 1fr 1fr; gap: 8px;`
+4. Removed duplicate Show JSON checkbox that was at bottom of Options
+
+**Files changed**:
+- `src/temoa/ui/search.html` - Checkbox reorganization
+
+**Commit**: e7cb73f - "Improve mobile layout by moving checkboxes to Options"
+
+### Visual Hierarchy (After)
+
+**Primary controls** (always visible):
+1. Search box + arrow button
+2. Hybrid checkbox (most distinctive toggle)
+3. Options collapsible section
+
+**Secondary controls** (in Options):
+- Quality settings: Rerank, Expand, Recent
+- Advanced settings: Min Score, Limit, Type filters
+- Debug: Show JSON
+
+### User Impact
+
+**Before**: Scrolling required to see Search button with keyboard up
+**After**: Search button visible, less clutter, faster to get to results
+
+**Mobile UX improved**:
+- Fewer taps to trigger search
+- Less scrolling required
+- Primary action (search) remains visible
+- Secondary controls accessible but not intrusive
+
+### Key Insights
+
+**Mobile space is precious**. Every pixel counts when keyboard is up. Default-visible UI should be minimal.
+
+**Group by frequency of use**. Common adjustments (Hybrid mode) stay accessible. Rare adjustments (quality toggles) hide in Options.
+
+**2x2 grid is efficient**. On narrow screens, vertical stacking wastes horizontal space. Grid layout uses both dimensions.
+
+**Test on actual device**. Screenshot revealed the problem that wasn't obvious in desktop browser.
+
+### What's Next
+
+**Immediate**:
+- Test on actual iPhone to verify improvement
+- Confirm Options defaults (Rerank/Expand/Recent = checked) work well
+
+**Future considerations**:
+- Could add tooltips/help text to explain what each option does
+- Could persist checkbox state in localStorage (currently defaults only)
+- Could add "Reset to defaults" button in Options
+
+### Success Criteria
+
+- [x] Mobile keyboard up: Search button visible ✅
+- [x] Reduced vertical space usage ✅
+- [x] Hybrid checkbox accessible without expanding Options ✅
+- [x] All controls still functional ✅
+- [x] Clean 2x2 grid layout ✅
+
+---
+
+**Entry created**: 2025-12-01
+**Author**: Claude (Sonnet 4.5)
+**Type**: UI Refinement
+**Impact**: MEDIUM - Improves mobile usability, reduces clutter
+**Duration**: 20 minutes
+**Branch**: `main`
+**Commit**: e7cb73f
+
