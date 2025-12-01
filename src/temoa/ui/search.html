@@ -213,6 +213,65 @@
             user-select: none;
             font-size: 14px;
             color: #e0e0e0;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .info-icon {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            line-height: 14px;
+            text-align: center;
+            border-radius: 50%;
+            background: #404040;
+            color: #888888;
+            font-size: 10px;
+            font-weight: bold;
+            cursor: help;
+            flex-shrink: 0;
+        }
+
+        .info-icon:hover {
+            background: #505050;
+            color: #b0b0b0;
+        }
+
+        .tooltip-popup {
+            position: fixed;
+            background: #2a2a2a;
+            border: 1px solid #505050;
+            border-radius: 8px;
+            padding: 12px;
+            max-width: 280px;
+            font-size: 13px;
+            line-height: 1.5;
+            color: #e0e0e0;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            display: none;
+        }
+
+        .tooltip-popup.active {
+            display: block;
+        }
+
+        .tooltip-popup .tooltip-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #ffffff;
+        }
+
+        .tooltip-popup .tooltip-section {
+            margin-bottom: 6px;
+        }
+
+        .tooltip-popup .tooltip-label {
+            color: #888888;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         /* Type Filter Controls */
@@ -769,29 +828,40 @@
             <button class="search-btn" onclick="search()">→</button>
         </div>
 
-        <!-- Hybrid Search Toggle -->
-        <div style="margin-bottom: 12px;">
+        <!-- Search Options Toggles -->
+        <div style="margin-bottom: 12px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px;">
             <div class="checkbox-group">
                 <input type="checkbox" id="hybrid-search">
-                <label for="hybrid-search">Hybrid (BM25+semantic)</label>
+                <label for="hybrid-search">
+                    <span>Hybrid</span>
+                    <span class="info-icon" onclick="showTooltip(event, 'hybrid')">i</span>
+                </label>
             </div>
-        </div>
-
-        <!-- Search Quality Toggles -->
-        <div style="margin-bottom: 12px;">
             <div class="checkbox-group">
                 <input type="checkbox" id="use-reranker" checked>
-                <label for="use-reranker">Smart re-ranking (better precision)</label>
+                <label for="use-reranker">
+                    <span>Rerank</span>
+                    <span class="info-icon" onclick="showTooltip(event, 'rerank')">i</span>
+                </label>
             </div>
             <div class="checkbox-group">
                 <input type="checkbox" id="expand-query" checked>
-                <label for="expand-query">Query expansion (short queries)</label>
+                <label for="expand-query">
+                    <span>Expand</span>
+                    <span class="info-icon" onclick="showTooltip(event, 'expand')">i</span>
+                </label>
             </div>
             <div class="checkbox-group">
                 <input type="checkbox" id="time-boost" checked>
-                <label for="time-boost">Boost recent documents</label>
+                <label for="time-boost">
+                    <span>Recent</span>
+                    <span class="info-icon" onclick="showTooltip(event, 'recent')">i</span>
+                </label>
             </div>
         </div>
+
+        <!-- Tooltip Popup -->
+        <div id="tooltip-popup" class="tooltip-popup"></div>
 
         <!-- Collapsible Options (all controls consolidated) -->
         <div class="collapsible-header" onclick="toggleOptions()">
@@ -1043,6 +1113,102 @@
 
         // Load state on startup
         loadState();
+
+        // ========================================
+        // Tooltip System
+        // ========================================
+
+        const tooltipData = {
+            hybrid: {
+                title: 'Hybrid Search',
+                description: 'Combines keyword (BM25) and semantic search.',
+                useWhen: 'Looking for specific terms or exact phrases.',
+                dontUse: 'When searching by concept or meaning only.'
+            },
+            rerank: {
+                title: 'Smart Re-ranking',
+                description: 'After the initial search, this runs each result through a second model that looks at the query and document together. Slower but puts the best matches at the top.',
+                useWhen: 'You want the most relevant results first.',
+                dontUse: 'When speed is more important than accuracy.'
+            },
+            expand: {
+                title: 'Query Expansion',
+                description: 'Automatically adds related terms to short queries.',
+                useWhen: 'Using 1-3 word queries.',
+                dontUse: 'With long, specific queries or exact phrase searches.'
+            },
+            recent: {
+                title: 'Time Boost',
+                description: 'Gives higher scores to recently created/modified documents.',
+                useWhen: 'You want fresh, recent content.',
+                dontUse: 'When searching for older reference material.'
+            }
+        };
+
+        let currentTooltip = null;
+
+        function showTooltip(event, key) {
+            event.stopPropagation();
+            event.preventDefault();
+
+            const tooltip = document.getElementById('tooltip-popup');
+            const data = tooltipData[key];
+
+            if (!data) return;
+
+            // Toggle if clicking the same tooltip
+            if (currentTooltip === key && tooltip.classList.contains('active')) {
+                hideTooltip();
+                return;
+            }
+
+            currentTooltip = key;
+
+            // Build tooltip content
+            tooltip.innerHTML = `
+                <div class="tooltip-title">${data.title}</div>
+                <div class="tooltip-section">${data.description}</div>
+                <div class="tooltip-section">
+                    <div class="tooltip-label">Use when:</div>
+                    ${data.useWhen}
+                </div>
+                <div class="tooltip-section">
+                    <div class="tooltip-label">Don't use:</div>
+                    ${data.dontUse}
+                </div>
+            `;
+
+            // Position tooltip near the clicked icon
+            const rect = event.target.getBoundingClientRect();
+            tooltip.style.left = `${rect.left}px`;
+            tooltip.style.top = `${rect.bottom + 8}px`;
+
+            // Adjust if tooltip goes off screen
+            setTimeout(() => {
+                const tooltipRect = tooltip.getBoundingClientRect();
+                if (tooltipRect.right > window.innerWidth) {
+                    tooltip.style.left = `${window.innerWidth - tooltipRect.width - 16}px`;
+                }
+                if (tooltipRect.bottom > window.innerHeight) {
+                    tooltip.style.top = `${rect.top - tooltipRect.height - 8}px`;
+                }
+            }, 0);
+
+            tooltip.classList.add('active');
+        }
+
+        function hideTooltip() {
+            const tooltip = document.getElementById('tooltip-popup');
+            tooltip.classList.remove('active');
+            currentTooltip = null;
+        }
+
+        // Close tooltip when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.info-icon') && !e.target.closest('#tooltip-popup')) {
+                hideTooltip();
+            }
+        });
 
         // ========================================
         // Vault Management
