@@ -100,6 +100,12 @@ The chronicles have been split into chapters for easier navigation:
 | DEC-054: Enable re-ranking by default | 26 | Re-ranking on by default (significant quality gain for 200ms cost) |
 | DEC-055: Re-rank top 100 candidates | 26 | Balance between recall and speed (100 pairs @ 2ms = 200ms) |
 | DEC-056: Use ms-marco-MiniLM-L-6-v2 model | 26 | Fast (~2ms/pair), accurate (MS MARCO trained), proven in production |
+| DEC-057: TF-IDF over LLM-based expansion | 27 | Fast (~50ms), no external APIs, deterministic, proven technique |
+| DEC-058: Expand only short queries (<3 words) | 27 | Short queries benefit most, saves latency, simple rule |
+| DEC-059: Show expanded query to user | 27 | Transparency builds trust, educational, allows refinement |
+| DEC-060: Exponential decay (not linear) | 27 | Natural, intuitive half-life parameter, smooth gradient |
+| DEC-061: Default half-life of 90 days | 27 | Matches common vault patterns, configurable per-user |
+| DEC-062: Apply boost before re-ranking | 27 | Combines recency with relevance, clean separation |
 
 ---
 
