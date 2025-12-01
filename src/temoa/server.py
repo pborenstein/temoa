@@ -395,6 +395,42 @@ async def favicon():
     raise HTTPException(status_code=404, detail="Favicon not found")
 
 
+@app.get("/manifest.json")
+async def manifest():
+    """Serve PWA manifest"""
+    manifest_path = Path(__file__).parent / "ui" / "manifest.json"
+    if manifest_path.exists():
+        return FileResponse(manifest_path, media_type="application/manifest+json")
+    raise HTTPException(status_code=404, detail="Manifest not found")
+
+
+@app.get("/sw.js")
+async def service_worker():
+    """Serve service worker"""
+    sw_path = Path(__file__).parent / "ui" / "sw.js"
+    if sw_path.exists():
+        return FileResponse(sw_path, media_type="application/javascript")
+    raise HTTPException(status_code=404, detail="Service worker not found")
+
+
+@app.get("/icon-192.png")
+async def icon_192():
+    """Serve 192x192 PWA icon"""
+    icon_path = Path(__file__).parent / "ui" / "icon-192.png"
+    if icon_path.exists():
+        return FileResponse(icon_path, media_type="image/png")
+    raise HTTPException(status_code=404, detail="Icon not found")
+
+
+@app.get("/icon-512.png")
+async def icon_512():
+    """Serve 512x512 PWA icon"""
+    icon_path = Path(__file__).parent / "ui" / "icon-512.png"
+    if icon_path.exists():
+        return FileResponse(icon_path, media_type="image/png")
+    raise HTTPException(status_code=404, detail="Icon not found")
+
+
 @app.get("/vaults")
 async def list_vaults(request: Request):
     """
