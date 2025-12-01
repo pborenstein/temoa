@@ -828,34 +828,13 @@
             <button class="search-btn" onclick="search()">→</button>
         </div>
 
-        <!-- Search Options Toggles -->
-        <div style="margin-bottom: 12px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px;">
+        <!-- Hybrid Search Toggle (only one at top) -->
+        <div style="margin-bottom: 12px;">
             <div class="checkbox-group">
                 <input type="checkbox" id="hybrid-search">
                 <label for="hybrid-search">
                     <span>Hybrid</span>
                     <span class="info-icon" onclick="showTooltip(event, 'hybrid')">i</span>
-                </label>
-            </div>
-            <div class="checkbox-group">
-                <input type="checkbox" id="use-reranker" checked>
-                <label for="use-reranker">
-                    <span>Rerank</span>
-                    <span class="info-icon" onclick="showTooltip(event, 'rerank')">i</span>
-                </label>
-            </div>
-            <div class="checkbox-group">
-                <input type="checkbox" id="expand-query" checked>
-                <label for="expand-query">
-                    <span>Expand</span>
-                    <span class="info-icon" onclick="showTooltip(event, 'expand')">i</span>
-                </label>
-            </div>
-            <div class="checkbox-group">
-                <input type="checkbox" id="time-boost" checked>
-                <label for="time-boost">
-                    <span>Recent</span>
-                    <span class="info-icon" onclick="showTooltip(event, 'recent')">i</span>
                 </label>
             </div>
         </div>
@@ -870,6 +849,37 @@
         </div>
 
         <div class="collapsible-content" id="options">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px;">
+                <div class="checkbox-group">
+                    <input type="checkbox" id="use-reranker" checked>
+                    <label for="use-reranker">
+                        <span>Rerank</span>
+                        <span class="info-icon" onclick="showTooltip(event, 'rerank')">i</span>
+                    </label>
+                </div>
+
+                <div class="checkbox-group">
+                    <input type="checkbox" id="expand-query" checked>
+                    <label for="expand-query">
+                        <span>Expand</span>
+                        <span class="info-icon" onclick="showTooltip(event, 'expand')">i</span>
+                    </label>
+                </div>
+
+                <div class="checkbox-group">
+                    <input type="checkbox" id="time-boost" checked>
+                    <label for="time-boost">
+                        <span>Recent</span>
+                        <span class="info-icon" onclick="showTooltip(event, 'recent')">i</span>
+                    </label>
+                </div>
+
+                <div class="checkbox-group">
+                    <input type="checkbox" id="show-json">
+                    <label for="show-json">Show JSON</label>
+                </div>
+            </div>
+
             <div class="control-group">
                 <label class="control-label" for="min-score">Min Score</label>
                 <input type="number" id="min-score" min="0" max="1" step="0.05" value="0.30">
@@ -910,13 +920,6 @@
                         <option value="daily" selected>Daily</option>
                     </select>
                     <button type="button" class="clear-btn" onclick="clearSelect('exclude-types')">Clear</button>
-                </div>
-            </div>
-
-            <div class="control-group">
-                <div class="checkbox-group">
-                    <input type="checkbox" id="show-json">
-                    <label for="show-json">Show JSON</label>
                 </div>
             </div>
         </div>
