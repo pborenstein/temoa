@@ -15,6 +15,8 @@ from .synthesis import SynthesisClient, SynthesisError
 from .gleanings import parse_frontmatter_status, GleaningStatusManager, scan_gleaning_files
 from .client_cache import ClientCache
 from .reranker import CrossEncoderReranker
+from .query_expansion import QueryExpander
+from .time_scoring import TimeAwareScorer
 
 # Configure logging
 logging.basicConfig(
@@ -83,11 +85,26 @@ async def lifespan(app: FastAPI):
         reranker = CrossEncoderReranker()
         logger.info("  ✓ Cross-encoder reranker ready")
 
+        # Initialize query expander for short query handling
+        query_expander = QueryExpander(max_expansion_terms=3)
+        logger.info("  ✓ Query expander initialized")
+
+        # Initialize time-aware scorer for recency boost
+        time_decay_config = config._config.get("search", {}).get("time_decay", {})
+        time_scorer = TimeAwareScorer(
+            half_life_days=time_decay_config.get("half_life_days", 90),
+            max_boost=time_decay_config.get("max_boost", 0.2),
+            enabled=time_decay_config.get("enabled", True)
+        )
+        logger.info("  ✓ Time-aware scorer initialized")
+
         # Store in app.state for access by endpoints
         app.state.config = config
         app.state.client_cache = client_cache
         app.state.gleaning_manager = gleaning_manager
         app.state.reranker = reranker
+        app.state.query_expander = query_expander
+        app.state.time_scorer = time_scorer
 
         logger.info("=" * 60)
         logger.info(f"Temoa server ready")
@@ -469,6 +486,14 @@ async def search(
     rerank: bool = Query(
         default=True,
         description="Use cross-encoder re-ranking for better precision (~200ms)"
+    ),
+    expand_query: bool = Query(
+        default=True,
+        description="Expand short queries (<3 words) for better results"
+    ),
+    time_boost: bool = Query(
+        default=True,
+        description="Boost recent documents with time-decay scoring"
     )
 ):
     """
@@ -524,7 +549,7 @@ async def search(
         # Determine whether to use hybrid search
         use_hybrid = hybrid if hybrid is not None else config.hybrid_search_enabled
 
-        logger.info(f"Search: vault='{vault_name}', query='{q}', limit={limit}, min_score={min_score}, include_types={include_type_list}, exclude_types={exclude_type_list}, hybrid={use_hybrid}, model={model or 'default'}")
+        logger.info(f"Search: vault='{vault_name}', query='{q}', limit={limit}, min_score={min_score}, include_types={include_type_list}, exclude_types={exclude_type_list}, hybrid={use_hybrid}, expand={expand_query}, time_boost={time_boost}, rerank={rerank}, model={model or 'default'}")
 
         # Note: model parameter not supported yet in current wrapper
         # Would require reinitializing Synthesis with different model
@@ -537,6 +562,23 @@ async def search(
                     "current_model": config.default_model
                 }
             )
+
+        # Stage 0: Query expansion (if enabled and query is short)
+        original_query = q
+        expanded_query = None
+        if expand_query:
+            query_expander = request.app.state.query_expander
+            if query_expander.should_expand(q):
+                # Get initial results for expansion
+                logger.info(f"Query '{q}' is short, fetching initial results for expansion")
+                initial_data = synthesis.search(query=q, limit=5)
+                initial_results = initial_data.get("results", [])
+
+                # Expand query
+                q = query_expander.expand(q, initial_results, top_k=5)
+                if q != original_query:
+                    expanded_query = q
+                    logger.info(f"Query expanded: '{original_query}' → '{q}'")
 
         # Perform search (request more results to account for filtering)
         search_limit = limit * 2 if limit else 50
@@ -586,6 +628,12 @@ async def search(
         if type_removed > 0:
             logger.info(f"Filtered {type_removed} results by type (include={include_type_list}, exclude={exclude_type_list})")
 
+        # Apply time-aware boost (before re-ranking)
+        if time_boost and filtered_results:
+            time_scorer = request.app.state.time_scorer
+            logger.info(f"Applying time-aware boost to {len(filtered_results)} results")
+            filtered_results = time_scorer.apply_boost(filtered_results, vault_path)
+
         # Apply cross-encoder re-ranking if enabled
         if rerank and filtered_results:
             reranker = request.app.state.reranker
@@ -606,6 +654,9 @@ async def search(
         # Update response
         data["results"] = filtered_results
         data["total"] = len(filtered_results)
+        data["query"] = original_query  # Always show original query
+        if expanded_query:
+            data["expanded_query"] = expanded_query  # Show expansion if occurred
         data["min_score"] = min_score
         data["filtered_count"] = {
             "by_score": score_removed,
