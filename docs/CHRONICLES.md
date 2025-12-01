@@ -50,6 +50,9 @@ The chronicles have been split into chapters for easier navigation:
 - Entry 21: Multi-Vault Webapp UI
 - Entry 22: UI Cleanup - Mobile-First Space Optimization
 - Entry 23: Technical Debt Refactoring - Clean Foundation
+- Entry 24: Incremental Extraction Bugs - The Devil in the Details
+- Entry 25: Logging Enhancement - Adding Timestamps
+- Entry 26: Cross-Encoder Re-Ranking - Two-Stage Retrieval
 
 ---
 
@@ -91,6 +94,21 @@ The chronicles have been split into chapters for easier navigation:
 | DEC-048: Keep Synthesis sys.path usage | 23 | Isolate to helper method (bundled dependency, simpler than importlib) |
 | DEC-049: App state pattern for dependencies | 23 | Store in app.state, extract in endpoints (simpler than Depends()) |
 | DEC-050: Scripts as package | 23 | Move to src/temoa/scripts/ (proper structure, no sys.path hacks) |
+| DEC-051: Modification time for incremental extraction | 24 | Use st_mtime for change detection (fast, already tracked) |
+| DEC-052: Incremental by default for auto-reindex | 24 | Auto-reindex uses force=False (30x speedup) |
+| DEC-053: Use uvicorn.config.LOGGING_CONFIG for timestamps | 25 | Modify uvicorn's config, don't replace it (proven pattern from apantli) |
+| DEC-054: Enable re-ranking by default | 26 | Re-ranking on by default (significant quality gain for 200ms cost) |
+| DEC-055: Re-rank top 100 candidates | 26 | Balance between recall and speed (100 pairs @ 2ms = 200ms) |
+| DEC-056: Use ms-marco-MiniLM-L-6-v2 model | 26 | Fast (~2ms/pair), accurate (MS MARCO trained), proven in production |
+| DEC-057: TF-IDF over LLM-based expansion | 27 | Fast (~50ms), no external APIs, deterministic, proven technique |
+| DEC-058: Expand only short queries (<3 words) | 27 | Short queries benefit most, saves latency, simple rule |
+| DEC-059: Show expanded query to user | 27 | Transparency builds trust, educational, allows refinement |
+| DEC-060: Exponential decay (not linear) | 27 | Natural, intuitive half-life parameter, smooth gradient |
+| DEC-061: Default half-life of 90 days | 27 | Matches common vault patterns, configurable per-user |
+| DEC-062: Apply boost before re-ranking | 27 | Combines recency with relevance, clean separation |
+| DEC-063: Comprehensive search documentation | 28 | Document all mechanisms, rationale, and performance (SEARCH-MECHANISMS.md) |
+| DEC-064: Archive completed implementation plans | 28 | Clean docs/ after phase completion, preserve in archive/ |
+| DEC-065: Navigation README for docs/ | 28 | Index all documentation (docs/README.md for discovery) |
 
 ---
 
@@ -115,5 +133,5 @@ The chronicles have been split into chapters for easier navigation:
 ---
 
 **Created**: 2025-11-18
-**Last Updated**: 2025-11-28
-**Total Entries**: 23
+**Last Updated**: 2025-12-01
+**Total Entries**: 28

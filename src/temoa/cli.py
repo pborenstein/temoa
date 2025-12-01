@@ -77,6 +77,15 @@ def server(host, port, reload, log_level):
     server_host = host or config.server_host
     server_port = port or config.server_port
 
+    # Configure logging format with timestamps
+    log_config = uvicorn.config.LOGGING_CONFIG
+    # Update default formatter (for startup/info logs)
+    log_config["formatters"]["default"]["fmt"] = '%(asctime)s %(levelprefix)s %(message)s'
+    log_config["formatters"]["default"]["datefmt"] = '%Y-%m-%d %H:%M:%S'
+    # Update access formatter (for HTTP request logs)
+    log_config["formatters"]["access"]["fmt"] = '%(asctime)s %(levelprefix)s %(client_addr)s - "%(request_line)s" %(status_code)s'
+    log_config["formatters"]["access"]["datefmt"] = '%Y-%m-%d %H:%M:%S'
+
     click.echo(f"Starting Temoa server on {server_host}:{server_port}")
     click.echo(f"Web UI: http://{server_host}:{server_port}/")
     click.echo(f"API docs: http://{server_host}:{server_port}/docs")
@@ -87,7 +96,8 @@ def server(host, port, reload, log_level):
         host=server_host,
         port=server_port,
         reload=reload,
-        log_level=log_level
+        log_level=log_level,
+        log_config=log_config
     )
 
 
@@ -98,12 +108,15 @@ def server(host, port, reload, log_level):
 @click.option('--type', '-t', 'include_types', default=None, help='Include only these types (comma-separated, e.g., "gleaning,article")')
 @click.option('--exclude-type', '-x', 'exclude_types', default='daily', help='Exclude these types (comma-separated, default: "daily")')
 @click.option('--hybrid', is_flag=True, default=None, help='Use hybrid search (BM25 + semantic)')
+@click.option('--rerank/--no-rerank', default=True, help='Use cross-encoder re-ranking for better precision (default: enabled)')
+@click.option('--expand/--no-expand', 'expand_query', default=True, help='Expand short queries (<3 words) for better results (default: enabled)')
+@click.option('--time-boost/--no-time-boost', 'time_boost', default=True, help='Boost recent documents with time-decay scoring (default: enabled)')
 @click.option('--bm25-only', is_flag=True, help='Use BM25 keyword search only (for debugging)')
 @click.option('--model', '-m', default=None, help='Embedding model to use')
 @click.option('--json', 'output_json', is_flag=True, help='Output as JSON')
 @click.option('--vault', default=None, type=click.Path(exists=True),
               help='Vault path (default: from config)')
-def search(query, limit, min_score, include_types, exclude_types, hybrid, bm25_only, model, output_json, vault):
+def search(query, limit, min_score, include_types, exclude_types, hybrid, rerank, expand_query, time_boost, bm25_only, model, output_json, vault):
     """Search the vault for similar content.
 
     \b
@@ -159,6 +172,21 @@ def search(query, limit, min_score, include_types, exclude_types, hybrid, bm25_o
             storage_dir=storage_dir
         )
 
+        # Stage 0: Query expansion (if enabled and query is short)
+        original_query = query
+        expanded_query_str = None
+        if expand_query and not bm25_only:
+            from .query_expansion import QueryExpander
+            expander = QueryExpander(max_expansion_terms=3)
+            if expander.should_expand(query):
+                # Get initial results for expansion
+                initial_data = client.search(query, limit=5)
+                initial_results = initial_data.get('results', [])
+                # Expand query
+                query = expander.expand(query, initial_results, top_k=5)
+                if query != original_query:
+                    expanded_query_str = query
+
         # Determine search mode
         if bm25_only:
             # BM25 only for debugging
@@ -202,12 +230,39 @@ def search(query, limit, min_score, include_types, exclude_types, hybrid, bm25_o
                 exclude_types=exclude_type_list
             )
 
-            # Apply final limit
-            filtered_results = filtered_results[:limit]
+            # Apply time-aware boost (before re-ranking)
+            if time_boost and filtered_results and not bm25_only:
+                from .time_scoring import TimeAwareScorer
+                time_decay_config = config._config.get("search", {}).get("time_decay", {})
+                scorer = TimeAwareScorer(
+                    half_life_days=time_decay_config.get("half_life_days", 90),
+                    max_boost=time_decay_config.get("max_boost", 0.2),
+                    enabled=True
+                )
+                filtered_results = scorer.apply_boost(filtered_results, vault_path)
+
+            # Apply cross-encoder re-ranking if enabled
+            if rerank and filtered_results and not bm25_only:
+                from .reranker import CrossEncoderReranker
+                reranker = CrossEncoderReranker()
+                # Re-rank with more candidates than final limit
+                rerank_count = min(100, len(filtered_results))
+                filtered_results = reranker.rerank(
+                    query=query,
+                    results=filtered_results,
+                    top_k=limit,
+                    rerank_top_n=rerank_count
+                )
+            else:
+                # Apply final limit if not re-ranking
+                filtered_results = filtered_results[:limit]
 
             # Update result data
             result_data['results'] = filtered_results
             result_data['total'] = len(filtered_results)
+            result_data['query'] = original_query
+            if expanded_query_str:
+                result_data['expanded_query'] = expanded_query_str
             result_data['min_score'] = min_score
             result_data['filtered_count'] = {
                 'by_score': score_removed,
@@ -225,7 +280,14 @@ def search(query, limit, min_score, include_types, exclude_types, hybrid, bm25_o
             # Human-readable output
             search_mode = result_data.get('search_mode', 'semantic')
             mode_str = f" ({search_mode})" if search_mode else ""
-            click.echo(f"\nSearch results for: {click.style(query, fg='cyan', bold=True)}{mode_str}\n")
+
+            # Show original query and expansion if it occurred
+            if expanded_query_str:
+                click.echo(f"\nSearch results for: {click.style(original_query, fg='cyan', bold=True)}")
+                click.echo(click.style(f"Expanded to: {expanded_query_str}", dim=True))
+                click.echo()
+            else:
+                click.echo(f"\nSearch results for: {click.style(query, fg='cyan', bold=True)}{mode_str}\n")
 
             # Show applied filters
             if include_type_list or exclude_type_list:

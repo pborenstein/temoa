@@ -27,10 +27,14 @@
 
         header {
             margin-bottom: 16px;
+        }
+
+        .header-top {
             display: flex;
             align-items: center;
+            justify-content: space-between;
             gap: 12px;
-            flex-wrap: wrap;
+            margin-bottom: 4px;
         }
 
         h1 {
@@ -38,12 +42,12 @@
             font-weight: 600;
             margin: 0;
             color: #ffffff;
+            flex-shrink: 1;
         }
 
         .subtitle {
             color: #888888;
             font-size: 13px;
-            flex: 1;
         }
 
         .nav-link {
@@ -54,20 +58,12 @@
             border-radius: 6px;
             transition: all 0.2s;
             white-space: nowrap;
-            margin-left: auto;
+            flex-shrink: 0;
         }
 
         .nav-link:hover {
             background: #2a2a2a;
             color: #e0e0e0;
-        }
-
-        /* Mobile: stack subtitle on narrow screens */
-        @media (max-width: 500px) {
-            .subtitle {
-                flex-basis: 100%;
-                margin-top: 4px;
-            }
         }
 
         .vault-selector {
@@ -744,9 +740,11 @@
 <body>
     <div class="container">
         <header>
-            <h1>Temoa</h1>
+            <div class="header-top">
+                <h1>Temoa Search</h1>
+                <a href="/manage" class="nav-link">Manage</a>
+            </div>
             <p class="subtitle">Semantic search for your vault</p>
-            <a href="/manage" class="nav-link">Manage</a>
         </header>
 
         <div class="search-box">
@@ -768,6 +766,22 @@
             <div class="checkbox-group">
                 <input type="checkbox" id="hybrid-search">
                 <label for="hybrid-search">Hybrid (BM25+semantic)</label>
+            </div>
+        </div>
+
+        <!-- Search Quality Toggles -->
+        <div style="margin-bottom: 12px;">
+            <div class="checkbox-group">
+                <input type="checkbox" id="use-reranker" checked>
+                <label for="use-reranker">Smart re-ranking (better precision)</label>
+            </div>
+            <div class="checkbox-group">
+                <input type="checkbox" id="expand-query" checked>
+                <label for="expand-query">Query expansion (short queries)</label>
+            </div>
+            <div class="checkbox-group">
+                <input type="checkbox" id="time-boost" checked>
+                <label for="time-boost">Boost recent documents</label>
             </div>
         </div>
 
@@ -919,6 +933,9 @@
         const minScoreInput = document.getElementById('min-score');
         const limitInput = document.getElementById('limit');
         const hybridSearchCheckbox = document.getElementById('hybrid-search');
+        const useRerankerCheckbox = document.getElementById('use-reranker');
+        const expandQueryCheckbox = document.getElementById('expand-query');
+        const timeBoostCheckbox = document.getElementById('time-boost');
         const includeTypesSelect = document.getElementById('include-types');
         const excludeTypesSelect = document.getElementById('exclude-types');
         const showJsonCheckbox = document.getElementById('show-json');
@@ -949,6 +966,9 @@
                 minScore: 0.3,
                 limit: 20,
                 hybrid: false,
+                rerank: true,
+                expandQuery: true,
+                timeBoost: true,
                 includeTypes: [],
                 excludeTypes: ['daily']
             },
@@ -1237,6 +1257,9 @@
             const minScore = parseFloat(minScoreInput.value) || 0.3;
             const limit = parseInt(limitInput.value) || 20;
             const hybrid = hybridSearchCheckbox.checked;
+            const rerank = useRerankerCheckbox.checked;
+            const expandQuery = expandQueryCheckbox.checked;
+            const timeBoost = timeBoostCheckbox.checked;
             const includeTypes = getSelectedValues(includeTypesSelect);
             const excludeTypes = getSelectedValues(excludeTypesSelect);
 
@@ -1245,6 +1268,9 @@
             state.filters.minScore = minScore;
             state.filters.limit = limit;
             state.filters.hybrid = hybrid;
+            state.filters.rerank = rerank;
+            state.filters.expandQuery = expandQuery;
+            state.filters.timeBoost = timeBoost;
 
             errorDiv.classList.remove('active');
             loadingDiv.classList.add('active');
@@ -1257,7 +1283,7 @@
             searchBtn.disabled = true;
 
             try {
-                let url = `/search?q=${encodeURIComponent(query)}&limit=${limit}&min_score=${minScore}&hybrid=${hybrid}`;
+                let url = `/search?q=${encodeURIComponent(query)}&limit=${limit}&min_score=${minScore}&hybrid=${hybrid}&rerank=${rerank}&expand_query=${expandQuery}&time_boost=${timeBoost}`;
 
                 // Add vault parameter
                 if (state.currentVault) {
@@ -1361,7 +1387,7 @@
         }
 
         function displayResults(data) {
-            const { query, results, total } = data;
+            const { query, results, total, expanded_query } = data;
             const resultsControls = document.getElementById('results-controls');
 
             if (!results || results.length === 0) {
@@ -1376,7 +1402,12 @@
                 return;
             }
 
-            resultsHeader.textContent = `Found ${total} results for "${query}"`;
+            // Show query expansion if it occurred
+            let headerText = `Found ${total} results for "${query}"`;
+            if (expanded_query) {
+                headerText += ` (expanded to: "${expanded_query}")`;
+            }
+            resultsHeader.textContent = headerText;
             resultsControls.style.display = 'flex';
 
             // Create results table container
@@ -1547,6 +1578,13 @@
                 scoreDiv.textContent = `${((result.similarity_score || 0) * 100).toFixed(1)}%`
             }
             badgesDiv.appendChild(scoreDiv)
+
+            // Tags (inline after score)
+            if (result.tags && result.tags.length) {
+                result.tags.forEach(tag => {
+                    badgesDiv.appendChild(createTag(tag))
+                })
+            }
 
             header.appendChild(badgesDiv)
             return header
