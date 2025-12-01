@@ -11,6 +11,7 @@ A local semantic search server for your Obsidian vault. Search by meaning, not k
 
 - **Semantic search**: Find notes by meaning, not exact keywords
 - **Mobile access**: Search from your phone via HTTP
+- **PWA support**: Install on home screen for one-tap access
 - **Local processing**: All embeddings and search happen on your machine
 - **Obsidian integration**: Results open directly in Obsidian app
 - **Gleaning extraction**: Automatically extract saved links from daily notes
@@ -315,6 +316,30 @@ Temoa runs on your local network. Access from mobile using Tailscale:
 4. **Access from mobile**: `http://100.x.x.x:8080`
 
 **Security**: Tailscale encrypts all traffic. No HTTPS needed. No public exposure.
+
+### PWA Installation (Progressive Web App)
+
+Temoa can be installed as a PWA on mobile devices for quick access:
+
+**iOS (Safari)**:
+1. Open Temoa in Safari: `http://100.x.x.x:8080`
+2. Tap the Share button (box with arrow)
+3. Scroll down and tap "Add to Home Screen"
+4. Name it "Temoa" and tap "Add"
+5. Tap the Temoa icon on your home screen to launch
+
+**Android (Chrome)**:
+1. Open Temoa in Chrome: `http://100.x.x.x:8080`
+2. Tap the three-dot menu (⋮)
+3. Tap "Add to Home screen" or "Install app"
+4. Confirm by tapping "Add" or "Install"
+5. Tap the Temoa icon on your home screen to launch
+
+**Benefits**:
+- One-tap access from home screen
+- Launches like a native app (no browser UI)
+- Offline UI (search requires network)
+- Persistent state and settings
 
 ## Deployment
 

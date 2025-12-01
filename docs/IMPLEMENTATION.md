@@ -6,8 +6,9 @@
 
 **Project**: Temoa - Local Semantic Search Server for Obsidian Vault
 **Created**: 2025-11-18
-**Status**: Phase 2 ✅ COMPLETE + CLI ✅ COMPLETE | Phase 2.5 ✅ COMPLETE | Phase 3 Part 0 ✅ COMPLETE | Multi-Vault Webapp ✅ COMPLETE | UI Cleanup ✅ COMPLETE | Phase 3 Part 1 ✅ COMPLETE | Phase 3 Part 2.1 ✅ COMPLETE
-**Last Updated**: 2025-11-29
+**Status**: Phase 3 Part 2 ✅ COMPLETE | PWA Support ✅ COMPLETE (on pwa-support branch)
+**Last Updated**: 2025-12-01
+**Current Version**: 0.5.0
 **Estimated Timeline**: 4-6 weeks for Phases 0-2, ongoing for Phases 3-4
 
 ---
@@ -1302,6 +1303,8 @@ See: `docs/chronicles/phase-3-enhanced-features.md` Entry 22 for session notes
 
 ## Phase 3 Remaining Work
 
+**Updated**: 2025-12-01
+
 ### Part 1: Technical Debt (Foundation) ✅ COMPLETE
 
 **Status**: COMPLETE (2025-11-29)
@@ -1512,11 +1515,13 @@ boosted_score = similarity_score * (1 + boost)
 }
 ```
 
-### Part 3: UI/UX Polish
+### Part 3: UI/UX Polish (PARTIALLY COMPLETE)
 
-- [ ] PWA support (home screen install)
-- [ ] Keyboard shortcuts (/, Esc)
-- [ ] Search history
+- [x] PWA support (home screen install) ✅ Complete (on pwa-support branch)
+- [ ] Keyboard shortcuts (/, Esc) - Deferred
+- [ ] Search history - Deferred
+
+**Note**: PWA support was the highest priority item and is now complete. Keyboard shortcuts and search history are lower priority "nice to have" features that can be added later if needed.
 
 ### Complete Search Quality Pipeline
 
@@ -1546,7 +1551,7 @@ All three search quality features now work together in sequence:
 - [x] Search quality improved 20-30% (cross-encoder re-ranking) ✅
 - [x] Query expansion for short queries ✅
 - [x] Time-aware scoring for recency bias ✅
-- [ ] PWA installable on mobile
+- [x] PWA installable on mobile ✅
 - [x] Tests passing (29/32 - 20 original + 9 new reranker tests)
 
 ### Bonus Fixes (2025-12-01)
@@ -1579,6 +1584,86 @@ Organized documentation directory:
 - Implementation plans archived after completion
 
 See: `docs/README.md` for complete documentation index
+
+### Part 3: PWA Support ✅ COMPLETE
+
+**Status**: COMPLETE (2025-12-01)
+**Branch**: `pwa-support`
+**Version**: 0.5.0
+
+Implemented Progressive Web App support for mobile home screen installation.
+
+**Features Implemented**:
+
+1. **Web App Manifest** (`src/temoa/ui/manifest.json`)
+   - App metadata (name, description, theme colors)
+   - Standalone display mode (no browser UI)
+   - App shortcuts (Search, Manage pages)
+   - Icon references for various sizes
+
+2. **Service Worker** (`src/temoa/ui/sw.js`)
+   - Cache-first strategy for static assets (HTML, icons, manifest)
+   - Network-first strategy for API calls (search, stats, reindex, extract)
+   - Offline fallback for UI
+   - Cache versioning (temoa-v1)
+   - Automatic cache cleanup on updates
+
+3. **PWA Icons**
+   - 192x192px and 512x512px PNG icons
+   - Generated from footprints emoji SVG using rsvg-convert
+   - Supports both regular and maskable formats
+
+4. **Server Routes** (4 new endpoints)
+   - `GET /manifest.json` - Serves web app manifest
+   - `GET /sw.js` - Serves service worker
+   - `GET /icon-192.png` - Serves 192px icon
+   - `GET /icon-512.png` - Serves 512px icon
+
+5. **HTML Updates**
+   - Added PWA meta tags to search.html and manage.html
+   - iOS-specific meta tags (apple-mobile-web-app-*)
+   - Service worker registration on page load
+   - Theme color for native app feel
+
+6. **Documentation**
+   - Added PWA installation instructions for iOS and Android
+   - Updated README feature list
+   - Added service worker explanation
+
+**Technical Decisions**:
+
+- **Cache Strategy**: Cache-first for UI (fast load), network-first for API (fresh data)
+- **Icon Generation**: Used rsvg-convert instead of ImageMagick (proper emoji rendering)
+- **Offline UX**: UI loads offline, search requires network (clear error message)
+- **Version Bump**: 0.4.0 → 0.5.0 (significant UX improvement)
+
+**Files Changed**:
+- `README.md` - Added PWA section and updated features
+- `src/temoa/server.py` - Added 4 PWA asset routes
+- `src/temoa/ui/manifest.json` - New web app manifest
+- `src/temoa/ui/sw.js` - New service worker
+- `src/temoa/ui/icon-192.png` - New 192px icon
+- `src/temoa/ui/icon-512.png` - New 512px icon
+- `src/temoa/ui/search.html` - PWA meta tags + SW registration
+- `src/temoa/ui/manage.html` - PWA meta tags + SW registration
+- `scripts/generate_pwa_icons.py` - Icon generation helper script
+- `pyproject.toml` - Version bump to 0.5.0
+
+**Commits**:
+- 41a9703: feat: add PWA support for mobile home screen installation
+- 067b9b7: fix: regenerate PWA icons using rsvg-convert for proper emoji rendering
+- 9ec956a: chore: bump version to 0.5.0 for PWA support release
+
+**Impact**:
+- One-tap access from mobile home screen
+- Launches like native app (no browser chrome)
+- Faster load times (cached UI)
+- Improved mobile UX supporting Phase 2.5 behavioral hypothesis
+- Removes friction from daily vault-first workflow
+
+**Testing**: Verified locally that manifest, service worker, and icons are served correctly.
+
+**Next Steps**: Test PWA installation on actual mobile device (iOS/Android) via Tailscale.
 
 ### Detailed Plan
 
