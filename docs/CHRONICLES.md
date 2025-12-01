@@ -53,6 +53,9 @@ The chronicles have been split into chapters for easier navigation:
 - Entry 24: Incremental Extraction Bugs - The Devil in the Details
 - Entry 25: Logging Enhancement - Adding Timestamps
 - Entry 26: Cross-Encoder Re-Ranking - Two-Stage Retrieval
+- Entry 27: Query Expansion and Time-Aware Scoring - Search Quality Stack Complete
+- Entry 28: Documentation and Organization - SEARCH-MECHANISMS.md
+- Entry 29: PWA Support - One-Tap Access to Vault Search
 
 ---
 
@@ -109,6 +112,10 @@ The chronicles have been split into chapters for easier navigation:
 | DEC-063: Comprehensive search documentation | 28 | Document all mechanisms, rationale, and performance (SEARCH-MECHANISMS.md) |
 | DEC-064: Archive completed implementation plans | 28 | Clean docs/ after phase completion, preserve in archive/ |
 | DEC-065: Navigation README for docs/ | 28 | Index all documentation (docs/README.md for discovery) |
+| DEC-066: Cache-first for UI, network-first for API | 29 | Service worker uses different strategies per resource type |
+| DEC-067: rsvg-convert over ImageMagick | 29 | Proper Unicode emoji rendering in PNG icons |
+| DEC-068: Standalone display mode for PWA | 29 | Launches without browser chrome (native app feel) |
+| DEC-069: Version 0.4.0 → 0.5.0 | 29 | Minor bump for PWA (significant new capability) |
 
 ---
 
@@ -134,4 +141,4 @@ The chronicles have been split into chapters for easier navigation:
 
 **Created**: 2025-11-18
 **Last Updated**: 2025-12-01
-**Total Entries**: 28
+**Total Entries**: 29
