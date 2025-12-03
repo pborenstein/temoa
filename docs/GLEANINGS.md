@@ -247,11 +247,7 @@ The maintenance tool checks link health and enriches gleanings with metadata.
 temoa gleaning maintain
 ```
 
-The maintenance tool:
-1. **Checks if URLs are alive** - HEAD/GET requests to verify links
-2. **Fetches meta descriptions** - Extracts `<meta name="description">` from live URLs
-3. **Marks dead links inactive** - Automatically marks broken links as inactive
-4. **Updates frontmatter** - Adds descriptions and status to gleaning files
+The maintenance tool checks if URLs are alive using HEAD/GET requests, fetches meta descriptions from live URLs, automatically marks broken links as inactive, and updates frontmatter with descriptions and status information.
 
 ### Usage Examples
 
@@ -277,23 +273,13 @@ temoa gleaning maintain --timeout 15
 
 ### What Gets Updated
 
-**Description field**:
-- Uses meta description from `<meta name="description">` tag (as-is, no truncation)
-- Falls back to `<meta property="og:description">` if meta description missing
-- Only updates gleanings that don't already have descriptions
-- Preserves manually-written descriptions
+The description field uses meta description from the `<meta name="description">` tag without truncation, falling back to `<meta property="og:description">` if missing. Only gleanings without existing descriptions are updated, preserving manually-written content.
 
-**Status field**:
-- Sets `status: inactive` for dead links (404, timeout, connection error)
-- Records reason in `.temoa/gleaning_status.json`
-- Live links remain `status: active`
+The status field is set to `inactive` for dead links (404, timeout, or connection errors) with reasons recorded in `.temoa/gleaning_status.json`. Live links remain `active`.
 
 ### Rate Limiting
 
-**Important**: The tool adds a 1-second delay between requests by default. This is respectful to web servers.
-
-- Adjust with `--rate-limit 2.0` for slower checking
-- Use `--timeout 10` to control how long to wait for responses
+The tool adds a 1-second delay between requests by default to be respectful to web servers. Adjust with `--rate-limit 2.0` for slower checking, or use `--timeout 10` to control response wait time.
 
 ### Output Example
 
@@ -331,10 +317,7 @@ Marked inactive: 11
 
 ### When to Run
 
-- **After initial extraction** - Enrich all gleanings with descriptions
-- **Periodically** (monthly?) - Check for link rot
-- **Before re-indexing** - Ensure metadata is up-to-date
-- **After bulk imports** - Add missing descriptions
+Run maintenance after initial extraction to enrich gleanings with descriptions, periodically (monthly) to check for link rot, before re-indexing to ensure metadata is up-to-date, and after bulk imports to add missing descriptions.
 
 ### Script Version
 
@@ -424,12 +407,7 @@ This is expected! The system tracks:
 
 ## Best Practices
 
-1. **Consistent format**: Stick to the `- [Title](URL) - Description` pattern
-2. **Descriptive titles**: Use meaningful titles (not just domain names)
-3. **Useful descriptions**: Explain WHY you saved this link
-4. **Daily extraction**: Automate via cron/systemd for regular updates
-5. **Re-index after extraction**: Ensure new gleanings are searchable
-6. **Review periodically**: Check extraction logs for issues
+Use consistent formatting with the `- [Title](URL) - Description` pattern. Write descriptive titles (not just domain names) and useful descriptions that explain why you saved each link. Automate daily extraction via cron or systemd for regular updates, re-index after extraction to ensure new gleanings are searchable, and periodically review extraction logs for issues.
 
 ## Future Enhancements
 

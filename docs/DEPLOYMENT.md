@@ -8,18 +8,10 @@
 
 ## Prerequisites
 
-**On server machine** (Mac/Linux desktop/laptop):
-- Python 3.11+
-- uv package manager
-- Git
-- Your Obsidian vault accessible
-- Tailscale installed and running
-
-**On mobile device**:
-- iOS or Android
-- Tailscale app installed
-- Obsidian app installed
-- Connected to same Tailscale network
+| Component | Requirements |
+|:----------|:-------------|
+| Server machine (Mac/Linux) | Python 3.11+, uv package manager, Git, Obsidian vault accessible, Tailscale installed and running |
+| Mobile device | iOS or Android, Tailscale app installed, Obsidian app installed, connected to same Tailscale network |
 
 ---
 
@@ -122,20 +114,19 @@ cat > ~/.config/temoa/config.json << 'EOF'
 EOF
 ```
 
-**Multi-vault features**:
-- LRU cache (max 3 vaults in memory)
-- Independent indexes per vault (stored in `vault/.temoa/`)
-- Vault selector in web UI
-- `--vault` CLI flag for all commands
+Multi-vault support includes LRU cache (max 3 vaults in memory), independent indexes per vault (stored in `vault/.temoa/`), vault selector in web UI, and `--vault` CLI flag for all commands.
 
-**Configuration fields**:
-- `vaults`: Array of vault configurations (optional)
-- `vault_path`: Path to your Obsidian vault (or default vault)
-- `storage_dir`: Leave `null` to use `vault/.temoa/`
-- `server.port`: Change if 8080 already in use
-- `search.time_decay`: Time-aware scoring configuration (boosts recent documents)
+### Configuration Fields
 
-**Path tips**: Use `~` for home directory (auto-expanded)
+| Field | Description |
+|:------|:------------|
+| `vaults` | Array of vault configurations (optional) |
+| `vault_path` | Path to your Obsidian vault (or default vault) |
+| `storage_dir` | Leave `null` to use `vault/.temoa/` |
+| `server.port` | Change if 8080 already in use |
+| `search.time_decay` | Time-aware scoring configuration (boosts recent documents) |
+
+Use `~` for home directory in paths (auto-expanded).
 
 ---
 
@@ -147,13 +138,9 @@ EOF
 temoa index
 ```
 
-**What happens**:
-- Scans vault for all markdown files
-- Downloads sentence-transformer model (first time, cached after)
-- Generates embeddings for all files
-- Stores in `vault/.temoa/model-name/` directory with file tracking
+The indexing process scans the vault for all markdown files, downloads the sentence-transformer model (first time only, then cached), generates embeddings for all files, and stores them in the `vault/.temoa/model-name/` directory with file tracking.
 
-**Expected output**:
+Expected output:
 ```
 Building index for: /Users/you/Obsidian/vault
 Indexing vault...
@@ -162,7 +149,7 @@ Files indexed: 3,059
 Model: all-mpnet-base-v2
 ```
 
-**Performance**: First index takes 2-3 minutes. After that, use `temoa reindex` which is 30x faster (only processes changed files).
+First index takes 2-3 minutes. After that, use `temoa reindex` which is 30x faster (only processes changed files).
 
 **Multi-vault indexing**:
 ```bash
@@ -446,21 +433,14 @@ temoa extract
 temoa reindex
 ```
 
-**Incremental reindex** (default):
-- Only processes new, modified, or deleted files
-- Takes ~5 seconds when no changes
-- Takes ~6-8 seconds with 5-10 new files
-- **30x faster** than full rebuild
+Incremental reindex (default) only processes new, modified, or deleted files, taking ~5 seconds when no changes occur and ~6-8 seconds with 5-10 new files (30x faster than full rebuild).
 
-**Full rebuild** (rarely needed):
+Full rebuild (rarely needed):
 ```bash
 temoa index
 ```
 
-Use full rebuild when:
-- First time setup
-- Index corruption suspected
-- Switching models
+Use full rebuild for first time setup, when index corruption is suspected, or when switching models.
 
 **Via API**:
 ```bash
@@ -603,27 +583,35 @@ Machines → tap server → Ping
 
 ## Performance Notes
 
-**Expected timings**:
-- Server startup: 15-20s (loads bi-encoder + cross-encoder models)
-- Search from mobile:
-  - Semantic: ~400ms
-  - Hybrid (BM25 + semantic): ~450ms
-  - With re-ranking: ~600ms
-  - Short query with expansion + re-ranking: ~800-1000ms
-- Full index rebuild: 2-3 minutes for ~3000 files
-- Incremental reindex (no changes): ~5 seconds
-- Incremental reindex (5-10 new files): ~6-8 seconds
+### Expected Timings
 
-**Reindexing comparison** (3,059 file vault):
-- Full: 159s (all files)
-- Incremental: 4.8s (no changes) - 30x faster
-- Incremental: 6-8s (5 new files) - 25x faster
+| Operation | Time |
+|:----------|:-----|
+| Server startup | 15-20s (loads bi-encoder + cross-encoder models) |
+| Search from mobile (semantic) | ~400ms |
+| Search from mobile (hybrid BM25 + semantic) | ~450ms |
+| Search with re-ranking | ~600ms |
+| Short query with expansion + re-ranking | ~800-1000ms |
+| Full index rebuild (~3000 files) | 2-3 minutes |
+| Incremental reindex (no changes) | ~5 seconds |
+| Incremental reindex (5-10 new files) | ~6-8 seconds |
 
-**Resource usage**:
-- Memory (single vault): ~800 MB (bi-encoder + cross-encoder)
-- Memory (multi-vault, 3 cached): ~1.5 GB
-- Disk: ~10 MB per 2000 files (embeddings index)
-- CPU: Spike during search/indexing, idle otherwise
+### Reindexing Comparison (3,059 file vault)
+
+| Operation | Time | Speedup |
+|:----------|:-----|:--------|
+| Full | 159s (all files) | baseline |
+| Incremental (no changes) | 4.8s | 30x faster |
+| Incremental (5 new files) | 6-8s | 25x faster |
+
+### Resource Usage
+
+| Resource | Usage |
+|:---------|:------|
+| Memory (single vault) | ~800 MB (bi-encoder + cross-encoder) |
+| Memory (multi-vault, 3 cached) | ~1.5 GB |
+| Disk (~2000 files) | ~10 MB (embeddings index) |
+| CPU | Spike during search/indexing, idle otherwise |
 
 ---
 
@@ -661,11 +649,7 @@ Temoa can be installed as a Progressive Web App on mobile devices.
 3. Tap "Add to Home screen" or "Install app"
 4. Tap "Add" or "Install"
 
-**Benefits**:
-- One-tap access from home screen
-- Launches without browser UI
-- Offline UI (search requires network)
-- Persistent state and settings
+Installing as a PWA provides one-tap access from your home screen, launches without browser UI, provides offline UI (search requires network), and maintains persistent state and settings.
 
 ---
 

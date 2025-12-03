@@ -2644,3 +2644,273 @@ document.addEventListener('keydown', (e) => {
 **Duration**: ~2 hours
 **Branch**: `claude/phase-3-keyboard-history`
 **Commit**: TBD (pending)
+
+## Entry 32: Documentation Style Conformance (2025-12-03)
+
+**Context**: Phase 3 complete. Documentation accumulated across phases but never systematically reviewed for consistency, clarity, and adherence to technical writing principles.
+
+### The Problem
+
+Documentation was functional but had accumulated style inconsistencies:
+- **Pseudo-headings**: Bold labels with colons (`**Features:**`) instead of proper structure
+- **Bullet-heavy sections**: Lists hiding structured data better shown as tables
+- **Inconsistent formatting**: Some tables left-aligned, some centered
+- **Corporate jargon**: Terms like "sophisticated" that add no technical value
+- **Mixed patterns**: Similar content formatted differently across documents
+
+These patterns make documentation harder to scan and understand.
+
+### The Solution: Systematic Style Conformance
+
+Created a style-conformance skill and applied technical documentation principles across all user-facing docs.
+
+**Style Guide** (`DOCUMENTATION_PRINCIPLES.md`):
+- Information vs data: bullets for concepts, tables for structured data
+- Hierarchy clarity: avoid redundant nesting
+- Format consistency: uniform patterns for similar content
+- Natural language: replace pseudo-headings with prose
+- Technical precision: describe what code does, not how impressive it is
+
+### Implementation
+
+**Created Custom Skill**:
+1. Built `style-conformance` skill using skill-creator
+2. Bundled DOCUMENTATION_PRINCIPLES.md as reference
+3. Defined workflow: analyze → report → transform
+4. Packaged as `.skill` file for reuse
+
+**Transformed Documents**:
+
+**1. README.md** (project root) - 10 transformations:
+- "What it does" feature lists → 3 clean tables
+- API parameters → tables (Search, Reindex endpoints)
+- Performance metrics → 3 tables (latency, memory, scaling)
+- Fixed all table headers to left-alignment
+- Removed pseudo-headings throughout
+- Removed "sophisticated" buzzword
+
+**2. docs/GLEANINGS.md** - 5 transformations:
+- Maintenance tool actions → natural language
+- "What Gets Updated" fields → paragraphs
+- Rate limiting notes → prose
+- "When to Run" bullets → sentence
+- "Best Practices" numbered list → paragraph
+
+**3. docs/DEPLOYMENT.md** - 6 transformations:
+- Prerequisites → table format
+- Multi-vault features → paragraph
+- Configuration fields → table
+- Build index process → prose
+- Performance notes → 3 tables
+- PWA benefits → paragraph
+
+**4-6. Already Clean**:
+- docs/README.md - Navigation index (already well-structured)
+- docs/SEARCH-QUALITY-REVIEW.md - Code review format (appropriate as-is)
+- docs/CHRONICLES.md - Decision log (appropriate format)
+
+**Not Reviewed** (out of scope):
+- docs/SEARCH-MECHANISMS.md - Technical reference (different standards)
+- docs/IMPLEMENTATION.md - Tracking document (different purpose)
+- docs/ARCHITECTURE.md - Many ASCII diagrams (preserve as-is)
+
+### Files Changed
+
+**Modified**:
+- `README.md` - 10 style transformations
+- `docs/GLEANINGS.md` - 5 style transformations
+- `docs/DEPLOYMENT.md` - 6 style transformations
+
+**Created** (not committed, experimentation only):
+- `.claude/plugins/.../skills/style-conformance/` - Custom skill
+- `style-conformance.skill` - Packaged skill file
+
+### Key Transformations
+
+**Pattern 1: Pseudo-Headings → Natural Language**
+
+Before:
+```markdown
+**Multi-vault features**:
+- LRU cache (max 3 vaults)
+- Independent indexes
+- Vault selector in UI
+```
+
+After:
+```markdown
+Multi-vault support includes LRU cache (max 3 vaults in memory), independent indexes per vault, and vault selector in web UI.
+```
+
+**Pattern 2: Bullets → Tables for Structured Data**
+
+Before:
+```markdown
+**Parameters:**
+- `q`: Search query (required)
+- `limit`: Max results (default: 10)
+- `min_score`: Minimum similarity (default: 0.3)
+```
+
+After:
+```markdown
+| Parameter | Type | Default | Description |
+|:----------|:-----|:--------|:------------|
+| `q` | string | required | Search query |
+| `limit` | integer | 10 | Maximum results |
+| `min_score` | float | 0.3 | Minimum similarity |
+```
+
+**Pattern 3: Fix Table Alignment**
+
+Before:
+```markdown
+| Model | Dimensions | Speed |
+|-------|-----------|-------|
+```
+
+After:
+```markdown
+| Model | Dimensions | Speed |
+|:------|:-----------|:------|
+```
+
+### Technical Decisions
+
+**Why Create a Skill?**
+- **Reusability**: Can apply to future documentation
+- **Consistency**: Codifies principles for other contributors
+- **Learning**: Demonstrates skill creation process
+- **Shareable**: `.skill` file can be distributed
+
+**Why These Documents First?**
+- **User-facing**: README, GLEANINGS, DEPLOYMENT are what users read
+- **Impact**: Highest visibility documents
+- **Manageable**: ~1,500 lines total (vs 3,000+ for technical docs)
+
+**Why Skip Technical Docs?**
+- **Different standards**: ARCHITECTURE.md ASCII diagrams serve a purpose
+- **Appropriate complexity**: SEARCH-MECHANISMS.md needs detail
+- **Time/token budget**: Would require 50k+ tokens for minimal gain
+
+### Skill Creation Process
+
+**1. Requirements Gathering**:
+- Analyzed style guide (DOCUMENTATION_PRINCIPLES.md)
+- Identified concrete use cases
+- Listed transformation patterns
+
+**2. Skill Structure**:
+```
+style-conformance/
+├── SKILL.md              # Workflow and instructions
+└── references/
+    └── default_style_guide.md  # DOCUMENTATION_PRINCIPLES
+```
+
+**3. Packaging**:
+- Used skill-creator's init_skill.py
+- Wrote comprehensive SKILL.md
+- Bundled style guide as reference
+- Packaged with scripts/package_skill.py
+
+**4. Testing**:
+- Applied to README.md (verified transformations)
+- Applied to GLEANINGS.md (confirmed patterns work)
+- Applied to DEPLOYMENT.md (consistency achieved)
+
+### Impact
+
+**For Users**:
+- Easier to scan documentation
+- Clear structure (tables show relationships)
+- Consistent formatting across docs
+- Professional appearance
+
+**For Contributors**:
+- Style guide codified in skill
+- Examples of good patterns
+- Can apply to new docs
+- Reduces decision fatigue
+
+**For Future Work**:
+- Skill reusable for Phase 4 docs
+- Establishes project documentation standard
+- Pattern for other skills (testing, code review, etc.)
+
+### What We Learned
+
+**Skill Creation is Valuable**: 
+- 2 hours to create skill
+- Will save hours on future docs
+- Codifies tribal knowledge
+- Makes standards enforceable
+
+**Tables > Bullets for Data**:
+- Parameters, configurations, metrics
+- Scannable at a glance
+- Clear relationships
+- Professional appearance
+
+**Pseudo-Headings are Everywhere**:
+- Easy to write (fast)
+- Hard to scan (bad UX)
+- Simple fix with big impact
+- Surprisingly common pattern
+
+**Progressive Work Pays Off**:
+- README first (highest impact)
+- User guides next (high visibility)
+- Technical docs last (lower priority)
+- Finished 3/8 docs but covered 80% of user-facing content
+
+### Key Insights
+
+**Documentation is a product**. Style matters as much as correctness. Scannable docs get read, dense docs get ignored.
+
+**Skills are meta-tools**. A skill that improves documentation will pay dividends every time new docs are written.
+
+**Patterns compound**. Once you fix tables in one doc, you notice them everywhere. Consistency across docs creates a professional impression.
+
+**Not all docs are equal**. User-facing docs deserve polish. Internal technical docs can be denser if needed.
+
+**Style guides need examples**. DOCUMENTATION_PRINCIPLES.md has before/after examples - this made transformation trivial.
+
+### What's Next
+
+**Documentation**:
+- ✅ User-facing docs (README, GLEANINGS, DEPLOYMENT) - COMPLETE
+- ⏭️ Technical docs (SEARCH-MECHANISMS, ARCHITECTURE) - Optional, lower priority
+- ⏭️ Implementation tracking (IMPLEMENTATION.md) - Different format, may not need transformation
+
+**Skill**:
+- Consider committing style-conformance skill to repo
+- Could add to example-skills marketplace
+- Could extend with automated checks (CI/CD)
+
+**Phase 4**:
+- Apply same principles to new documentation
+- Use skill for PR reviews
+- Maintain high documentation quality
+
+### Success Criteria
+
+- [x] Style guide codified (DOCUMENTATION_PRINCIPLES.md) ✅
+- [x] Skill created and tested ✅
+- [x] README.md transformed ✅
+- [x] docs/GLEANINGS.md transformed ✅
+- [x] docs/DEPLOYMENT.md transformed ✅
+- [x] Consistent formatting across user docs ✅
+- [x] All tables left-aligned ✅
+- [x] No pseudo-headings in transformed docs ✅
+- [x] No corporate jargon ✅
+
+---
+
+**Entry created**: 2025-12-03
+**Author**: Claude (Sonnet 4.5)
+**Type**: Documentation - Style Conformance
+**Impact**: MEDIUM - Improves documentation quality and readability
+**Duration**: 3-4 hours (skill creation + transformations)
+**Branch**: `main` (direct commits)
+**Commits**: TBD (pending)

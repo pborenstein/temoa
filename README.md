@@ -9,26 +9,35 @@ A local semantic search server for your Obsidian vault. Search by meaning, not k
 
 ## What it does
 
-**Core Search**:
-- **Semantic search**: Find notes by meaning, not exact keywords
-- **Hybrid search**: Combine BM25 keyword search with semantic embeddings
-- **Cross-encoder re-ranking**: Two-stage retrieval for 20-30% better precision
-- **Query expansion**: Automatically expand short queries using TF-IDF
-- **Time-aware scoring**: Boost recent documents with configurable decay
-- **Type filtering**: Filter by document type (gleaning, writering, daily, etc.)
+### Core Search Features
 
-**Mobile Experience**:
-- **Mobile-first UI**: Optimized for phone use with compact collapsible results
-- **PWA support**: Install on home screen for one-tap access
-- **Search history**: Last 10 searches saved locally
-- **Keyboard shortcuts**: `/` to focus search, `Esc` to clear, `t` to toggle expanded query
+| Feature | Description |
+|:--------|:------------|
+| Semantic search | Find notes by meaning, not exact keywords |
+| Hybrid search | Combine BM25 keyword search with semantic embeddings |
+| Cross-encoder re-ranking | Two-stage retrieval for 20-30% better precision |
+| Query expansion | Automatically expand short queries using TF-IDF |
+| Time-aware scoring | Boost recent documents with configurable decay |
+| Type filtering | Filter by document type (gleaning, writering, daily, etc.) |
 
-**Infrastructure**:
-- **Multi-vault support**: Search across multiple vaults with fast switching
-- **Local processing**: All embeddings and search happen on your machine
-- **Obsidian integration**: Results open directly in Obsidian app
-- **Gleaning extraction**: Automatically extract saved links from daily notes
-- **Incremental reindexing**: 30x faster updates (5s vs 159s)
+### Mobile Experience
+
+| Feature | Description |
+|:--------|:------------|
+| Mobile-first UI | Optimized for phone use with compact collapsible results |
+| PWA support | Install on home screen for one-tap access |
+| Search history | Last 10 searches saved locally |
+| Keyboard shortcuts | `/` to focus search, `Esc` to clear, `t` to toggle expanded query |
+
+### Infrastructure
+
+| Feature | Description |
+|:--------|:------------|
+| Multi-vault support | Search across multiple vaults with fast switching |
+| Local processing | All embeddings and search happen on your machine |
+| Obsidian integration | Results open directly in Obsidian app |
+| Gleaning extraction | Automatically extract saved links from daily notes |
+| Incremental reindexing | 30x faster updates (5s vs 159s) |
 
 ## Installation
 
@@ -106,29 +115,27 @@ To search across multiple vaults, use the `vaults` array:
 }
 ```
 
-**Multi-vault features**:
-- LRU cache (max 3 vaults in memory, ~1.5GB RAM)
-- Fast vault switching (~400ms when cached)
-- Independent indexes per vault (stored in `vault/.temoa/`)
-- Vault selector in web UI
-- `--vault` CLI flag for all commands
+Multi-vault support includes LRU cache (max 3 vaults in memory, ~1.5GB RAM), fast vault switching (~400ms when cached), independent indexes per vault (stored in `vault/.temoa/`), vault selector in web UI, and `--vault` CLI flag for all commands.
 
-**Config search order:**
+Configuration files are searched in priority order:
+
 1. `~/.config/temoa/config.json` (recommended)
 2. `~/.temoa.json` (alternative)
 3. `./config.json` (development)
 
-**Config fields:**
-- `vaults`: Array of vault configurations (optional, for multi-vault)
-- `vault_path`: Path to your Obsidian vault (or default vault)
-- `synthesis_path`: Path to Synthesis engine (bundled in `synthesis/`)
-- `storage_dir`: Where to store embeddings index (default: `vault/.temoa/`)
-- `default_model`: Embedding model (see Available Models below)
-- `server`: HTTP server settings
-- `search.time_decay`: Time-aware scoring configuration
-  - `enabled`: Enable recency boost (default: true)
-  - `half_life_days`: Days for 50% decay (default: 90)
-  - `max_boost`: Maximum boost for today's docs (default: 0.2 = 20%)
+### Configuration Fields
+
+| Field | Description |
+|:------|:------------|
+| `vaults` | Array of vault configurations (optional, for multi-vault) |
+| `vault_path` | Path to your Obsidian vault (or default vault) |
+| `synthesis_path` | Path to Synthesis engine (bundled in `synthesis/`) |
+| `storage_dir` | Where to store embeddings index (default: `vault/.temoa/`) |
+| `default_model` | Embedding model (see Available Models below) |
+| `server` | HTTP server settings |
+| `search.time_decay.enabled` | Enable recency boost (default: true) |
+| `search.time_decay.half_life_days` | Days for 50% decay (default: 90) |
+| `search.time_decay.max_boost` | Maximum boost for today's docs (default: 0.2 = 20%) |
 
 ## Quick Start
 
@@ -149,7 +156,7 @@ temoa search "semantic search"
 # http://<tailscale-ip>:8080
 ```
 
-**First startup**: Model download takes 30-60s (one-time). Subsequent starts: ~15s.
+First startup requires model download (30-60s one-time). Subsequent starts take ~15s.
 
 ## CLI Commands
 
@@ -182,29 +189,20 @@ temoa server --reload     # Start with auto-reload (dev)
 
 ### Index vs Reindex
 
-**`temoa index`** - Full rebuild
-- Processes all files in the vault (3,000+ files)
-- Takes ~2-3 minutes
-- Use when: First time setup, or index corruption
+| Command | Description | Files Processed | Time | Use Case |
+|:--------|:------------|:----------------|:-----|:---------|
+| `temoa index` | Full rebuild | All files (3,000+) | ~2-3 minutes | First time setup, index corruption |
+| `temoa reindex` | Incremental update | New, modified, deleted | ~5 seconds | Daily use (30x faster) |
 
-**`temoa reindex`** - Incremental update (recommended)
-- Only processes new, modified, or deleted files
-- Takes ~5 seconds when no changes
-- Takes ~6-8 seconds with 5-10 new files
-- **30x faster** than full rebuild for typical daily use
-
-**Performance example** (3,059 file vault):
+#### Performance Example (3,059 file vault)
 
 | Operation | Time | Files Processed |
-|-----------|------|-----------------|
+|:----------|:-----|:----------------|
 | Full index | 159s | 3,059 files |
 | Incremental (no changes) | 4.8s | 0 files |
 | Incremental (5 new files) | 6-8s | 5 files |
 
-**Incremental reindexing** detects:
-- New files (not in previous index)
-- Modified files (changed modification timestamp)
-- Deleted files (in index but not in vault)
+Incremental reindexing detects new files (not in previous index), modified files (changed modification timestamp), and deleted files (in index but not in vault).
 
 ## HTTP API
 
@@ -213,17 +211,18 @@ temoa server --reload     # Start with auto-reload (dev)
 GET /search?q=<query>&limit=10&min_score=0.3&exclude_types=daily&vault=main
 ```
 
-**Parameters:**
-- `q`: Search query (required)
-- `limit`: Max results (default: 10, max: 100)
-- `min_score`: Minimum similarity score 0-1 (default: 0.3)
-- `exclude_types`: Comma-separated types to exclude (default: "daily")
-- `include_types`: Comma-separated types to include (optional)
-- `hybrid`: Use hybrid search (BM25 + semantic) (default: false)
-- `rerank`: Enable cross-encoder re-ranking (default: true)
-- `expand_query`: Auto-expand short queries (<3 words) (default: true)
-- `time_boost`: Apply time-decay boost to recent docs (default: true)
-- `vault`: Vault name to search (optional, defaults to config vault)
+| Parameter | Type | Default | Description |
+|:----------|:-----|:--------|:------------|
+| `q` | string | required | Search query |
+| `limit` | integer | 10 | Maximum results (max: 100) |
+| `min_score` | float | 0.3 | Minimum similarity score (0-1) |
+| `exclude_types` | string | "daily" | Comma-separated types to exclude |
+| `include_types` | string | none | Comma-separated types to include |
+| `hybrid` | boolean | false | Use hybrid search (BM25 + semantic) |
+| `rerank` | boolean | true | Enable cross-encoder re-ranking |
+| `expand_query` | boolean | true | Auto-expand short queries (<3 words) |
+| `time_boost` | boolean | true | Apply time-decay boost to recent docs |
+| `vault` | string | config | Vault name to search |
 
 **Example:**
 ```bash
@@ -294,8 +293,9 @@ POST /reindex?force=false
 
 Update embedding index with new/modified files.
 
-**Parameters:**
-- `force`: `false` (incremental - default) or `true` (full rebuild)
+| Parameter | Type | Default | Description |
+|:----------|:-----|:--------|:------------|
+| `force` | boolean | false | `false` for incremental update, `true` for full rebuild |
 
 **Examples:**
 ```bash
@@ -320,7 +320,7 @@ curl -X POST "http://localhost:8080/reindex?force=true"
 ## Available Models
 
 | Model | Dimensions | Speed | Quality | Use Case |
-|-------|-----------|-------|---------|----------|
+|:------|:-----------|:------|:--------|:---------|
 | `all-MiniLM-L6-v2` | 384 | Fast | Good | Quick searches |
 | `all-MiniLM-L12-v2` | 384 | Medium | Better | Balanced |
 | `all-mpnet-base-v2` | 768 | Slower | Best | Default (quality) |
@@ -357,12 +357,7 @@ temoa extract --full
 temoa extract --dry-run
 ```
 
-**Multiple formats supported:**
-- Markdown links: `- [Title](URL) - Description`
-- Naked URLs with bullet: `- https://...`
-- Naked URLs bare: `https://...`
-- Multi-line descriptions (lines starting with `>`)
-- Timestamps: `[HH:MM]` preserved in date field
+Supports multiple formats including markdown links (`- [Title](URL) - Description`), naked URLs with bullets (`- https://...`), bare naked URLs (`https://...`), multi-line descriptions (lines starting with `>`), and timestamps (`[HH:MM]` preserved in date field).
 
 ### Gleaning Management
 
@@ -377,10 +372,7 @@ temoa gleaning mark abc123 --status hidden --reason "duplicate"
 temoa gleaning maintain --check-links --mark-dead-inactive
 ```
 
-**Three status types:**
-- `active`: Normal, included in search
-- `inactive`: Dead link, excluded from search, auto-restores if link comes back
-- `hidden`: Manually hidden, never auto-restored
+Gleanings have three status types: `active` (normal, included in search), `inactive` (dead link, excluded from search, auto-restores if link comes back), and `hidden` (manually hidden, never auto-restored).
 
 ## Mobile Access via Tailscale
 
@@ -391,7 +383,7 @@ Temoa runs on your local network. Access from mobile using Tailscale:
 3. **Get server IP**: `tailscale ip -4` (e.g., `100.x.x.x`)
 4. **Access from mobile**: `http://100.x.x.x:8080`
 
-**Security**: Tailscale encrypts all traffic. No HTTPS needed. No public exposure.
+Tailscale encrypts all traffic, eliminating the need for HTTPS and preventing public exposure.
 
 ### PWA Installation (Progressive Web App)
 
@@ -411,11 +403,7 @@ Temoa can be installed as a PWA on mobile devices for quick access:
 4. Confirm by tapping "Add" or "Install"
 5. Tap the Temoa icon on your home screen to launch
 
-**Benefits**:
-- One-tap access from home screen
-- Launches like a native app (no browser UI)
-- Offline UI (search requires network)
-- Persistent state and settings
+Installing as a PWA provides one-tap access from your home screen, launches like a native app without browser UI, provides offline UI (search requires network), and maintains persistent state and settings.
 
 ## Deployment
 
@@ -480,71 +468,56 @@ Synthesis Engine (sentence-transformers)
 Obsidian Vault + .temoa/index
 ```
 
-**Key components:**
-- **FastAPI server**: HTTP API, web UI, request handling
-- **Synthesis engine**: Semantic search, embeddings, similarity calculation
-- **sentence-transformers**: Pre-trained embedding models
-- **Storage**: `.temoa/` directory in vault (embeddings index, state)
+The architecture includes a FastAPI server for HTTP API and web UI, Synthesis engine for semantic search and embeddings, sentence-transformers for pre-trained models, and local storage in the `.temoa/` directory within the vault for embeddings index and state.
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed architecture documentation.
 
 ## Performance
 
-**Search latency** (3,000 file vault):
-- Semantic search: ~400ms
-- Hybrid search (BM25 + semantic): ~450ms
-- With cross-encoder re-ranking: ~600ms
-- Short query with expansion + re-ranking: ~800-1000ms
+### Search Latency (3,000 file vault)
 
-**Memory usage**:
-- Single vault: ~600 MB (bi-encoder model in RAM)
-- With re-ranking: ~800 MB (bi-encoder + cross-encoder)
-- Multi-vault (3 vaults cached): ~1.5 GB
+| Operation | Time |
+|:----------|:-----|
+| Semantic search | ~400ms |
+| Hybrid search (BM25 + semantic) | ~450ms |
+| With cross-encoder re-ranking | ~600ms |
+| Short query with expansion + re-ranking | ~800-1000ms |
 
-**Startup**: ~15-20s (model loading)
+### Memory Usage
 
-**Reindexing** (3,059 file vault):
-- Full rebuild: ~159s (all files)
-- Incremental (no changes): ~5s (30x faster)
-- Incremental (5-10 new files): ~6-8s
+| Configuration | Memory |
+|:--------------|:-------|
+| Single vault | ~600 MB (bi-encoder model) |
+| With re-ranking | ~800 MB (bi-encoder + cross-encoder) |
+| Multi-vault (3 vaults cached) | ~1.5 GB |
 
-**Scales**: Linear to 10,000+ files
+### Other Metrics
+
+| Metric | Value |
+|:-------|:------|
+| Startup time | ~15-20s (model loading) |
+| Full reindex (3,059 files) | ~159s |
+| Incremental reindex (no changes) | ~5s (30x faster) |
+| Incremental reindex (5-10 new files) | ~6-8s |
+| Scalability | Linear to 10,000+ files |
 
 ## Search Quality Pipeline
 
-Temoa uses a sophisticated multi-stage search pipeline for high precision:
+Temoa uses a multi-stage search pipeline for high precision:
 
-1. **Query Enhancement** (optional, for short queries)
-   - Auto-expand queries <3 words using TF-IDF
-   - Example: `"AI"` → `"AI machine learning neural networks"`
+1. Query Enhancement (optional, for short queries) - Auto-expand queries <3 words using TF-IDF. Example: `"AI"` → `"AI machine learning neural networks"`
 
-2. **Initial Retrieval**
-   - **Semantic**: Fast bi-encoder similarity (all-mpnet-base-v2)
-   - **Hybrid**: BM25 keyword + semantic with RRF fusion
-   - Returns top 100 candidates
+2. Initial Retrieval - Fast bi-encoder similarity (all-mpnet-base-v2) for semantic search, or BM25 keyword + semantic with RRF fusion for hybrid search. Returns top 100 candidates.
 
-3. **Filtering**
-   - Score threshold (min_score)
-   - Status filter (exclude inactive gleanings)
-   - Type filter (exclude/include by document type)
+3. Filtering - Apply score threshold (min_score), status filter (exclude inactive gleanings), and type filter (exclude/include by document type).
 
-4. **Time-Aware Boost** (optional)
-   - Recent documents get exponential decay boost
-   - Configurable half-life (default: 90 days)
-   - Max boost 20% for today's documents
+4. Time-Aware Boost (optional) - Recent documents get exponential decay boost with configurable half-life (default: 90 days) and max boost of 20% for today's documents.
 
-5. **Cross-Encoder Re-Ranking** (optional, enabled by default)
-   - Precise two-stage retrieval using ms-marco-MiniLM-L-6-v2
-   - Re-ranks top 100 candidates for 20-30% precision improvement
-   - ~200ms latency for significant quality gain
+5. Cross-Encoder Re-Ranking (optional, enabled by default) - Precise two-stage retrieval using ms-marco-MiniLM-L-6-v2. Re-ranks top 100 candidates for 20-30% precision improvement with ~200ms latency.
 
-6. **Top-K Selection**
-   - Return final results (default: 10)
+6. Top-K Selection - Return final results (default: 10).
 
-**Expected Quality**:
-- Precision@5: 80-90% (up from 60-70% without re-ranking)
-- Short queries: Much better with expansion
-- Recent topics: Better ranking with time boost
+Expected quality improvements include Precision@5 of 80-90% (up from 60-70% without re-ranking), much better results for short queries with expansion, and improved ranking for recent topics with time boost.
 
 See [docs/SEARCH-MECHANISMS.md](docs/SEARCH-MECHANISMS.md) for detailed technical reference.
 
@@ -562,14 +535,10 @@ See [docs/SEARCH-MECHANISMS.md](docs/SEARCH-MECHANISMS.md) for detailed technica
 ## Project Status
 
 **Version**: 0.6.0
+
 **Phase**: Phase 3 Complete ✅
 
-**Completed Phases**:
-- ✅ Phase 0: Discovery & Validation
-- ✅ Phase 1: Minimal Viable Search
-- ✅ Phase 2: Gleanings Integration
-- ✅ Phase 2.5: Mobile Validation & UI Optimization
-- ✅ Phase 3: Enhanced Features (Multi-vault, Search Quality, UX Polish)
+All major phases completed: Phase 0 (Discovery & Validation), Phase 1 (Minimal Viable Search), Phase 2 (Gleanings Integration), Phase 2.5 (Mobile Validation & UI Optimization), and Phase 3 (Enhanced Features including multi-vault, search quality, and UX polish).
 
 **Next**: Phase 4 (Vault-First LLM) or Production Hardening
 
