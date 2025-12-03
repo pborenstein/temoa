@@ -150,7 +150,7 @@
         #query {
             width: 100%;
             padding: 14px 16px;
-            padding-right: 60px;
+            padding-right: 110px;
             font-size: 16px;
             border: 1px solid #404040;
             border-radius: 8px;
@@ -166,6 +166,48 @@
 
         #query::placeholder {
             color: #666666;
+        }
+
+        .history-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            margin-top: 4px;
+            background: #2a2a2a;
+            border: 1px solid #404040;
+            border-radius: 8px;
+            overflow: hidden;
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+        }
+
+        .history-item {
+            padding: 12px 16px;
+            color: #e0e0e0;
+            cursor: pointer;
+            transition: background 0.15s;
+            border-bottom: 1px solid #333333;
+            font-size: 14px;
+        }
+
+        .history-item:hover {
+            background: #333333;
+        }
+
+        .history-clear {
+            padding: 10px 16px;
+            color: #888888;
+            cursor: pointer;
+            transition: all 0.15s;
+            font-size: 13px;
+            text-align: center;
+        }
+
+        .history-clear:hover {
+            background: #333333;
+            color: #c0c0c0;
         }
 
         .control-group {
@@ -375,6 +417,32 @@
             display: grid;
         }
 
+        .history-btn {
+            position: absolute;
+            right: 56px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: auto;
+            padding: 8px 10px;
+            font-size: 16px;
+            background: #404040;
+            color: #ffffff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin: 0;
+            z-index: 10;
+        }
+
+        .history-btn:hover {
+            background: #4a4a4a;
+        }
+
+        .history-btn:active {
+            background: #505050;
+        }
+
         .search-btn {
             position: absolute;
             right: 6px;
@@ -391,6 +459,7 @@
             cursor: pointer;
             transition: background 0.2s;
             margin: 0;
+            z-index: 10;
         }
 
         .search-btn:hover {
@@ -825,11 +894,13 @@
                 autocapitalize="off"
                 spellcheck="false"
             >
+            <button class="history-btn" onclick="toggleHistoryDropdown()" title="Search history">🕐︎</button>
             <button class="search-btn" onclick="search()">→</button>
+            <div id="history-dropdown" class="history-dropdown"></div>
         </div>
 
         <!-- Hybrid Search Toggle (only one at top) -->
-        <div style="margin-bottom: 12px;">
+        <div style="margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
             <div class="checkbox-group">
                 <input type="checkbox" id="hybrid-search">
                 <label for="hybrid-search">
@@ -837,6 +908,7 @@
                     <span class="info-icon" onclick="showTooltip(event, 'hybrid')">i</span>
                 </label>
             </div>
+            <a href="#" onclick="showKeyboardHelp(event); return false;" style="font-size: 12px; color: #888888; text-decoration: none;">⌨︎ Shortcuts</a>
         </div>
 
         <!-- Tooltip Popup -->
@@ -1043,6 +1115,7 @@
             vaults: [],  // List of available vaults
             currentVault: null,  // Currently selected vault name
             defaultVault: null,  // Default vault from config
+            searchHistory: [],  // Recent searches (max 10)
             filters: {
                 minScore: 0.3,
                 limit: 20,
@@ -1075,6 +1148,11 @@
                     state.currentVault = data.currentVault;
                 }
 
+                // Restore search history
+                if (Array.isArray(data.searchHistory)) {
+                    state.searchHistory = data.searchHistory;
+                }
+
                 // Restore UI preferences
                 if (data.ui) {
                     // Convert expandedResults array back to Set
@@ -1095,6 +1173,7 @@
             try {
                 const toSave = {
                     currentVault: state.currentVault,  // Remember last selected vault
+                    searchHistory: state.searchHistory,  // Recent searches
                     ui: {
                         expandedResults: Array.from(state.ui.expandedResults),  // Convert Set to array
                         statsExpanded: state.ui.statsExpanded,
@@ -1116,6 +1195,129 @@
 
         // Load state on startup
         loadState();
+
+        // ========================================
+        // Search History Management
+        // ========================================
+
+        function addToSearchHistory(query) {
+            if (!query || !query.trim()) return;
+
+            const trimmedQuery = query.trim();
+
+            // Remove if already exists (will add to front)
+            state.searchHistory = state.searchHistory.filter(q => q !== trimmedQuery);
+
+            // Add to front
+            state.searchHistory.unshift(trimmedQuery);
+
+            // Keep max 10 items
+            if (state.searchHistory.length > 10) {
+                state.searchHistory = state.searchHistory.slice(0, 10);
+            }
+
+            saveState();
+        }
+
+        function clearSearchHistory() {
+            state.searchHistory = [];
+            saveState();
+            renderHistoryDropdown();
+        }
+
+        function toggleHistoryDropdown() {
+            const dropdown = document.getElementById('history-dropdown');
+            if (!dropdown) return;
+
+            if (dropdown.style.display === 'block') {
+                dropdown.style.display = 'none';
+            } else {
+                renderHistoryDropdown();
+            }
+        }
+
+        function renderHistoryDropdown() {
+            const dropdown = document.getElementById('history-dropdown');
+            if (!dropdown) return;
+
+            if (state.searchHistory.length === 0) {
+                dropdown.style.display = 'none';
+                return;
+            }
+
+            dropdown.innerHTML = '';
+            dropdown.style.display = 'block';
+
+            // Add history items
+            state.searchHistory.forEach(query => {
+                const item = document.createElement('div');
+                item.className = 'history-item';
+                item.textContent = query;
+                item.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    queryInput.value = query;
+                    dropdown.style.display = 'none';
+                    queryInput.focus();
+                });
+                dropdown.appendChild(item);
+            });
+
+            // Add clear button
+            const clearBtn = document.createElement('div');
+            clearBtn.className = 'history-clear';
+            clearBtn.textContent = 'Clear history';
+            clearBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                clearSearchHistory();
+            });
+            dropdown.appendChild(clearBtn);
+        }
+
+        // History dropdown only toggles via button - no auto-show on focus
+
+        // ========================================
+        // Keyboard Shortcuts
+        // ========================================
+
+        function showKeyboardHelp(event) {
+            if (event) event.preventDefault();
+
+            const message = `Keyboard Shortcuts:
+
+• / (slash) - Focus search box
+• Esc - Clear search box
+• t - Toggle all results (expand/collapse)
+• 🕐︎ button - View search history`;
+
+            alert(message);
+        }
+
+        document.addEventListener('keydown', (e) => {
+            // '/' to focus search (like GitHub)
+            if (e.key === '/' && document.activeElement !== queryInput) {
+                e.preventDefault();
+                queryInput.focus();
+                queryInput.select();
+            }
+
+            // Escape to clear and blur
+            if (e.key === 'Escape' && document.activeElement === queryInput) {
+                queryInput.value = '';
+                queryInput.blur();
+                const dropdown = document.getElementById('history-dropdown');
+                if (dropdown) dropdown.style.display = 'none';
+            }
+
+            // 't' to toggle all results
+            if (e.key === 't' || e.key === 'T') {
+                // If any are expanded, collapse all; otherwise expand all
+                if (state.ui.expandedResults.size > 0) {
+                    collapseAllResults();
+                } else {
+                    expandAllResults();
+                }
+            }
+        });
 
         // ========================================
         // Tooltip System
@@ -1428,6 +1630,10 @@
                 return;
             }
 
+            // Hide history dropdown when searching
+            const dropdown = document.getElementById('history-dropdown');
+            if (dropdown) dropdown.style.display = 'none';
+
             // Increment request ID to detect stale responses
             const requestId = ++state.currentRequestId;
 
@@ -1501,6 +1707,9 @@
 
                 state.results = data.results || [];
                 window.lastSearchData = data;
+
+                // Add to search history
+                addToSearchHistory(query);
 
                 displayResults(data);
                 displayStats(data);

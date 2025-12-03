@@ -1,6 +1,6 @@
 [project]
 name = "temoa"
-version = "0.5.0"
+version = "0.6.0"
 description = "Local semantic search server for Obsidian vault"
 requires-python = ">=3.11"
 dependencies = [

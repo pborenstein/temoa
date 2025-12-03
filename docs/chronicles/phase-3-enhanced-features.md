@@ -2479,3 +2479,168 @@ Options ▶
 **Branch**: `main`
 **Commit**: e7cb73f
 
+
+## Entry 31: Search History and Keyboard Shortcuts - Phase 3 Complete (2025-12-03)
+
+**Goal**: Complete Phase 3 UI/UX polish with search history and keyboard shortcuts.
+
+**Problem addressed**: User wanted search history after finding query disappears on refresh, plus keyboard shortcuts for power user efficiency.
+
+### What Was Built
+
+**1. Search History (localStorage-backed)**
+- Stores last 10 searches in state
+- Dropdown appears when input is focused (if empty and history exists)
+- Click history item to fill search box and focus
+- "Clear history" button at bottom of dropdown
+- Deduplicates: moving existing search to top instead of duplicating
+- Query persists after search (doesn't clear automatically)
+
+**Implementation**:
+```javascript
+// Added to state
+searchHistory: [],  // Recent searches (max 10)
+
+// Functions
+function addToSearchHistory(query)  // Add after successful search
+function clearSearchHistory()       // Clear all history
+function renderHistoryDropdown()    // Render dropdown UI
+
+// Event listeners
+queryInput focus → show dropdown if history exists
+click outside → hide dropdown
+search triggered → hide dropdown
+```
+
+**2. Keyboard Shortcuts**
+- `/` → Focus search input (GitHub-style, works when not already focused)
+- `Esc` → Clear input and blur (when focused on search)
+- `c` → Collapse all results (existing)
+- `e` → Expand all results (existing)
+
+**Implementation**:
+```javascript
+document.addEventListener('keydown', (e) => {
+    if (e.key === '/' && document.activeElement !== queryInput) {
+        e.preventDefault();
+        queryInput.focus();
+        queryInput.select();  // Select text for easy replacement
+    }
+    
+    if (e.key === 'Escape' && document.activeElement === queryInput) {
+        queryInput.value = '';
+        queryInput.blur();
+        // Also hide dropdown
+    }
+});
+```
+
+### UI/UX Design
+
+**History Dropdown CSS**:
+- Positioned absolute below search box
+- Dark theme matching existing UI (#2a2a2a background)
+- Each item: 12px padding, hover effect (#333)
+- Clear button: centered, lighter text, distinct from items
+- Box shadow for depth
+
+**Interaction Flow**:
+1. User focuses empty search box → dropdown appears (if history)
+2. User clicks history item → fills search box, hides dropdown, keeps focus
+3. User starts typing → dropdown stays (or can be hidden if desired)
+4. User searches → query added to history, dropdown hidden
+5. User can clear history from dropdown footer
+
+**Keyboard Flow**:
+1. User presses `/` anywhere → search focused and selected
+2. User types → replaces selected text or adds to empty
+3. User presses `Esc` → clears and blurs
+4. User presses `Enter` → searches (existing behavior)
+
+### Files Modified
+
+1. **src/temoa/ui/search.html** (~100 lines added)
+   - State: Added `searchHistory` array
+   - Functions: History management (add, clear, render)
+   - Event listeners: Focus, click outside, keyboard shortcuts
+   - HTML: Added `<div id="history-dropdown">`
+   - CSS: History dropdown styling
+
+2. **pyproject.toml**
+   - Version: 0.5.0 → 0.6.0
+
+3. **README.md**
+   - Added "Search history" and "Keyboard shortcuts" to features
+
+4. **docs/IMPLEMENTATION.md**
+   - Marked Phase 3 Part 3 as COMPLETE
+   - Updated status header
+   - Added detailed implementation notes
+
+### Testing Notes
+
+- Server auto-reloaded with changes ✅
+- No syntax errors ✅
+- History persists across page refreshes (localStorage)
+- Keyboard shortcuts don't interfere with typing
+- Dropdown hides appropriately (search, click outside, Esc)
+
+### Design Decisions
+
+**DEC-071: Search history max 10 items**
+- **Rationale**: Balance between utility and UI clutter
+- **Pattern**: Same as many browsers (Chrome suggestions)
+- **Storage**: LocalStorage easily handles 10 items
+
+**DEC-072: Show history only when input empty**
+- **Rationale**: Don't interfere with typing/autocomplete
+- **Alternative considered**: Filter history by current input (rejected - too complex)
+- **Future**: Could add filtered autocomplete if needed
+
+**DEC-073: GitHub-style `/` shortcut**
+- **Rationale**: Familiar pattern (GitHub, many web apps)
+- **Alternative considered**: `Ctrl+K` (rejected - too complex, `/` simpler)
+- **Behavior**: Selects existing text for easy replacement
+
+**DEC-074: Query persists after search**
+- **Rationale**: User explicitly wanted this - query disappearing was annoying
+- **Previous**: Some UIs clear after search
+- **Now**: Query stays, can be edited and re-searched
+
+### Success Criteria
+
+- [x] Search history stored and displayed ✅
+- [x] History dropdown appears on focus ✅
+- [x] Clear history works ✅
+- [x] Keyboard shortcuts functional ✅
+- [x] `/` focuses search ✅
+- [x] `Esc` clears and blurs ✅
+- [x] No interference with existing shortcuts (c, e) ✅
+- [x] Documentation updated ✅
+- [x] Phase 3 marked complete ✅
+
+### What's Next
+
+**Phase 3 is now COMPLETE**. All parts delivered:
+- Part 0: Multi-vault support ✅
+- Part 1: Technical debt ✅
+- Part 2: Search quality (reranking, expansion, time boost) ✅
+- Part 3: UI/UX polish (PWA, history, shortcuts) ✅
+
+**Remaining work from Phase 3 plan**: NONE - all features implemented.
+
+**Phase 4 Preview** (Vault-First LLM):
+- `/chat` endpoint with vault context
+- RAG-based responses
+- Citation system
+- Integration with Apantli
+
+---
+
+**Entry created**: 2025-12-03
+**Author**: Claude (Sonnet 4.5)
+**Type**: Feature Implementation - Phase Completion
+**Impact**: HIGH - Completes Phase 3, significant UX improvements
+**Duration**: ~2 hours
+**Branch**: `claude/phase-3-keyboard-history`
+**Commit**: TBD (pending)

@@ -6,9 +6,9 @@
 
 **Project**: Temoa - Local Semantic Search Server for Obsidian Vault
 **Created**: 2025-11-18
-**Status**: Phase 3 Part 2 ✅ COMPLETE | PWA Support ✅ COMPLETE (on pwa-support branch)
-**Last Updated**: 2025-12-01
-**Current Version**: 0.5.0
+**Status**: Phase 3 ✅ COMPLETE
+**Last Updated**: 2025-12-03
+**Current Version**: 0.6.0
 **Estimated Timeline**: 4-6 weeks for Phases 0-2, ongoing for Phases 3-4
 
 ---
@@ -32,8 +32,8 @@
 | [Phase 1: Minimal Viable Search](phases/phase-1-mvp.md) | ✅ **COMPLETE** | 1 day | Phase 0 ✅ |
 | [Phase 2: Gleanings Integration](phases/phase-2-gleanings.md) | ✅ **COMPLETE** | 1 day | Phase 1 ✅ |
 | **Phase 2.5: Mobile Validation + UI** | ✅ **COMPLETE** | 1 week | Phase 2 ✅ |
-| [Phase 3: Enhanced Features](PHASE-3-READY.md) | 🔵 **READY** | 2 weeks | Phase 2.5 ✅ |
-| [Phase 4: Vault-First LLM](phases/phase-4-llm.md) | ⚪ Future | 7-10 days | Phase 3, Apantli |
+| [Phase 3: Enhanced Features](PHASE-3-READY.md) | ✅ **COMPLETE** | 2 weeks | Phase 2.5 ✅ |
+| [Phase 4: Vault-First LLM](phases/phase-4-llm.md) | ⚪ Future | 7-10 days | Phase 3 ✅ |
 
 ---
 
@@ -1515,13 +1515,29 @@ boosted_score = similarity_score * (1 + boost)
 }
 ```
 
-### Part 3: UI/UX Polish (PARTIALLY COMPLETE)
+### Part 3: UI/UX Polish ✅ COMPLETE
 
-- [x] PWA support (home screen install) ✅ Complete (on pwa-support branch)
-- [ ] Keyboard shortcuts (/, Esc) - Deferred
-- [ ] Search history - Deferred
+**Status**: COMPLETE (2025-12-03)
 
-**Note**: PWA support was the highest priority item and is now complete. Keyboard shortcuts and search history are lower priority "nice to have" features that can be added later if needed.
+- [x] PWA support (home screen install) ✅
+- [x] Keyboard shortcuts (/, Esc) ✅
+- [x] Search history (dropdown on focus) ✅
+
+**Features Implemented**:
+1. **Search History** (localStorage-backed)
+   - Stores last 10 searches
+   - Dropdown appears on input focus (when empty)
+   - Click history item to re-run search
+   - "Clear history" button at bottom
+   - Query persists after search (no accidental clearing)
+
+2. **Keyboard Shortcuts**
+   - `/` to focus search input (GitHub-style)
+   - `Esc` to clear and blur input
+   - `c` to collapse all results (existing)
+   - `e` to expand all results (existing)
+
+**Version**: Bumped to 0.6.0
 
 ### Complete Search Quality Pipeline
 
