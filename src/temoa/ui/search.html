@@ -150,7 +150,7 @@
         #query {
             width: 100%;
             padding: 14px 16px;
-            padding-right: 60px;
+            padding-right: 110px;
             font-size: 16px;
             border: 1px solid #404040;
             border-radius: 8px;
@@ -415,6 +415,31 @@
 
         .collapsible-content.expanded {
             display: grid;
+        }
+
+        .history-btn {
+            position: absolute;
+            right: 56px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: auto;
+            padding: 8px 10px;
+            font-size: 16px;
+            background: #404040;
+            color: #ffffff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin: 0;
+        }
+
+        .history-btn:hover {
+            background: #4a4a4a;
+        }
+
+        .history-btn:active {
+            background: #505050;
         }
 
         .search-btn {
@@ -867,12 +892,13 @@
                 autocapitalize="off"
                 spellcheck="false"
             >
+            <button class="history-btn" onclick="toggleHistoryDropdown()" title="Search history">🕐</button>
             <button class="search-btn" onclick="search()">→</button>
             <div id="history-dropdown" class="history-dropdown"></div>
         </div>
 
         <!-- Hybrid Search Toggle (only one at top) -->
-        <div style="margin-bottom: 12px;">
+        <div style="margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
             <div class="checkbox-group">
                 <input type="checkbox" id="hybrid-search">
                 <label for="hybrid-search">
@@ -880,6 +906,7 @@
                     <span class="info-icon" onclick="showTooltip(event, 'hybrid')">i</span>
                 </label>
             </div>
+            <a href="#" onclick="showKeyboardHelp(event); return false;" style="font-size: 12px; color: #888888; text-decoration: none;">⌨️ Shortcuts</a>
         </div>
 
         <!-- Tooltip Popup -->
@@ -1196,6 +1223,17 @@
             renderHistoryDropdown();
         }
 
+        function toggleHistoryDropdown() {
+            const dropdown = document.getElementById('history-dropdown');
+            if (!dropdown) return;
+
+            if (dropdown.style.display === 'block') {
+                dropdown.style.display = 'none';
+            } else {
+                renderHistoryDropdown();
+            }
+        }
+
         function renderHistoryDropdown() {
             const dropdown = document.getElementById('history-dropdown');
             if (!dropdown) return;
@@ -1251,6 +1289,20 @@
         // ========================================
         // Keyboard Shortcuts
         // ========================================
+
+        function showKeyboardHelp(event) {
+            if (event) event.preventDefault();
+
+            const message = `Keyboard Shortcuts:
+
+• / (slash) - Focus search box
+• Esc - Clear search box
+• c - Collapse all results
+• e - Expand all results
+• 🕐 button - View search history`;
+
+            alert(message);
+        }
 
         document.addEventListener('keydown', (e) => {
             // '/' to focus search (like GitHub)
