@@ -12,6 +12,8 @@ A local semantic search server for your Obsidian vault. Search by meaning, not k
 - **Semantic search**: Find notes by meaning, not exact keywords
 - **Mobile access**: Search from your phone via HTTP
 - **PWA support**: Install on home screen for one-tap access
+- **Search history**: Recent searches saved locally, accessible on focus
+- **Keyboard shortcuts**: `/` to focus search, `Esc` to clear
 - **Local processing**: All embeddings and search happen on your machine
 - **Obsidian integration**: Results open directly in Obsidian app
 - **Gleaning extraction**: Automatically extract saved links from daily notes
