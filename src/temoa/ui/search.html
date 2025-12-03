@@ -1273,20 +1273,7 @@
             dropdown.appendChild(clearBtn);
         }
 
-        // Show history when input focused (if has history)
-        queryInput.addEventListener('focus', () => {
-            if (state.searchHistory.length > 0 && !queryInput.value) {
-                renderHistoryDropdown();
-            }
-        });
-
-        // Hide history when clicking outside
-        document.addEventListener('click', (e) => {
-            const dropdown = document.getElementById('history-dropdown');
-            if (dropdown && !queryInput.contains(e.target) && !dropdown.contains(e.target)) {
-                dropdown.style.display = 'none';
-            }
-        });
+        // History dropdown only toggles via button - no auto-show on focus
 
         // ========================================
         // Keyboard Shortcuts
