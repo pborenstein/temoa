@@ -3,8 +3,8 @@
 > **Purpose**: This document explains the technical architecture of Temoa, how components interact, and how semantic search with embeddings works.
 
 **Created**: 2025-11-22
-**Last Updated**: 2025-11-23
-**Status**: Phase 2.5 (Mobile Validation + Type Filtering)
+**Last Updated**: 2025-12-03
+**Status**: Phase 3 Complete (Multi-stage Search Pipeline)
 
 ---
 
@@ -259,73 +259,128 @@ Where:
 
 ## Request Flow
 
-### Search Request Flow
+### Multi-Stage Search Pipeline (Phase 3)
+
+Temoa uses a sophisticated multi-stage pipeline for high-precision search:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │ 1. User Action (Mobile)                                         │
 └─────────────────────────────────────────────────────────────────┘
-    User types "obsidian plugins" and presses Search
+    User types "AI" and presses Search
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │ 2. HTTP Request                                                 │
 └─────────────────────────────────────────────────────────────────┘
-    GET http://100.x.x.x:8080/search?q=obsidian+plugins&limit=10
+    GET http://100.x.x.x:8080/search?q=AI&limit=10
+        &rerank=true&expand_query=true&time_boost=true
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │ 3. FastAPI Endpoint (src/temoa/server.py)                       │
 └─────────────────────────────────────────────────────────────────┘
-    @app.get("/search")
-    async def search_vault(q: str, limit: int = 10):
-        results = synthesis.search(q, limit)
+    Six-stage pipeline:
+                              │
+                              ▼
+    ╔═══════════════════════════════════════════════════════════╗
+    ║ STAGE 0: Query Enhancement (optional)                     ║
+    ╚═══════════════════════════════════════════════════════════╝
+    Query: "AI" (<3 words, triggers expansion)
+       ↓ QueryExpander (TF-IDF from top 5 initial results)
+    Expanded: "AI machine learning neural networks"
+    Time: ~400ms (only for short queries)
+                              │
+                              ▼
+    ╔═══════════════════════════════════════════════════════════╗
+    ║ STAGE 1: Initial Retrieval (bi-encoder)                   ║
+    ╚═══════════════════════════════════════════════════════════╝
+    Method: Semantic OR Hybrid (BM25 + semantic with RRF)
+       ↓ Synthesis Engine (all-mpnet-base-v2)
+    Returns: Top 100 candidates
+    Time: ~400ms
+                              │
+                              ▼
+    ╔═══════════════════════════════════════════════════════════╗
+    ║ STAGE 2: Filtering                                        ║
+    ╚═══════════════════════════════════════════════════════════╝
+    - Score threshold (min_score)
+    - Status filter (exclude inactive gleanings)
+    - Type filter (exclude/include by frontmatter type)
+    Time: <1ms
+                              │
+                              ▼
+    ╔═══════════════════════════════════════════════════════════╗
+    ║ STAGE 3: Time-Aware Boost (optional)                      ║
+    ╚═══════════════════════════════════════════════════════════╝
+    Formula: boost = max_boost * (0.5 ** (days_old / half_life))
+    Example: Today's doc → +20%, 90 days old → +10%, 1 year → +2%
+    Time: <5ms
+                              │
+                              ▼
+    ╔═══════════════════════════════════════════════════════════╗
+    ║ STAGE 4: Cross-Encoder Re-Ranking (optional, default on)  ║
+    ╚═══════════════════════════════════════════════════════════╝
+    Model: ms-marco-MiniLM-L-6-v2 (cross-encoder)
+       ↓ Precise pairwise scoring (query, doc)
+    Re-ranks: Top 100 candidates
+    Precision: +20-30% improvement
+    Time: ~200ms
+                              │
+                              ▼
+    ╔═══════════════════════════════════════════════════════════╗
+    ║ STAGE 5: Top-K Selection                                  ║
+    ╚═══════════════════════════════════════════════════════════╝
+    Returns: Final 10 results (or user-specified limit)
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│ 4. SynthesisClient Wrapper (src/temoa/synthesis.py)             │
+│ 4. Return Results                                               │
 └─────────────────────────────────────────────────────────────────┘
-    def search(self, query: str, limit: int):
-        # Direct function call (model already loaded)
-        embeddings = self.searcher.search(query, limit)
+    {
+      "query": "AI",
+      "expanded_query": "AI machine learning neural networks",
+      "results": [
+        {
+          "title": "Neural Networks Overview",
+          "similarity_score": 0.78,
+          "cross_encoder_score": 4.52,
+          "frontmatter": {"type": "gleaning"},
+          "obsidian_uri": "obsidian://open?vault=..."
+        },
+        ...
+      ]
+    }
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│ 5. Synthesis Engine (old-ideas/synthesis/)                      │
+│ 5. Render in UI (search.html)                                   │
 └─────────────────────────────────────────────────────────────────┘
-    - Generate query embedding (50-100ms)
-    - Load stored embeddings from .temoa/embeddings.pkl (100-150ms)
-    - Calculate cosine similarities (100-150ms)
-    - Rank results (10-20ms)
+    - Display expanded query (if applied)
+    - Render collapsible results
+    - Show cross-encoder scores (when re-ranking enabled)
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│ 6. Return Results                                               │
-└─────────────────────────────────────────────────────────────────┘
-    [
-      {
-        "path": "L/Gleanings/abc123.md",
-        "title": "Dataview Plugin Guide",
-        "similarity_score": 0.95,
-        "obsidian_uri": "obsidian://open?vault=..."
-      },
-      ...
-    ]
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│ 7. Render in UI (search.html)                                   │
-└─────────────────────────────────────────────────────────────────┘
-    JavaScript updates results div with clickable links
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│ 8. User Clicks Result                                           │
+│ 6. User Clicks Result                                           │
 └─────────────────────────────────────────────────────────────────┘
     obsidian:// URI triggers Obsidian app to open the note
 
-Total Time: ~400ms (meets <2s target)
+Total Time:
+  - Semantic only: ~400ms
+  - With re-ranking: ~600ms
+  - Short query with expansion + re-ranking: ~800-1000ms
+  (All well under <2s mobile target)
 ```
+
+**Key Improvements Over Simple Search**:
+- **Query expansion**: Handles short, ambiguous queries better
+- **Cross-encoder re-ranking**: 20-30% precision improvement
+- **Time-aware scoring**: Recent documents surface naturally
+- **Type filtering**: Noise reduction (exclude daily notes by default)
+- **Hybrid search**: Combines keyword (BM25) + semantic for best recall
+
+See [SEARCH-MECHANISMS.md](SEARCH-MECHANISMS.md) for detailed technical reference.
 
 ### Type Filtering Flow
 

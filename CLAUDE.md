@@ -2,19 +2,28 @@
 
 > **Purpose**: This document provides context and guidance for Claude AI when working on the Temoa project across multiple sessions.
 
-**Last Updated**: 2025-11-26
-**Project Status**: Phase 3 Part 0 Complete, Multi-Vault Webapp In Progress
-**Current Branch**: `claude/multi-vault-webapp-support`
+**Last Updated**: 2025-12-03
+**Project Status**: Phase 3 Complete ✅
+**Current Version**: 0.6.0
+**Current Branch**: `main`
 
 ---
 
 ## Project Overview
 
-**Temoa** is a local semantic search server for an Obsidian vault, enabling vault-first research workflows. It wraps the existing **Synthesis** semantic search engine with an HTTP API and mobile-friendly interface.
+**Temoa** is a local semantic search server for Obsidian vaults, enabling vault-first research workflows. It wraps the **Synthesis** semantic search engine with an HTTP API and mobile-friendly interface.
 
 **Problem Solved**: Saved links and notes accumulate but never resurface when needed during research. Temoa makes your vault the first place to check before external search.
 
-**Core Architecture**: FastAPI server → Synthesis subprocess → Sentence-transformer embeddings → Results
+**Core Architecture**: FastAPI server → Direct Synthesis imports → Multi-stage search pipeline → Results
+
+**Current Features** (Phase 3 Complete):
+- Multi-vault support with LRU caching
+- Search quality pipeline (query expansion, cross-encoder re-ranking, time-aware scoring)
+- PWA support (installable on mobile)
+- Incremental reindexing (30x faster)
+- Type filtering and gleaning management
+- Search history and keyboard shortcuts
 
 ---
 
@@ -151,7 +160,7 @@ uv run main.py models
 
 ## Development Phases
 
-### Phase 0: Discovery & Validation (Current)
+### Phase 0: Discovery & Validation ✅
 **Goal**: Answer open questions before implementation
 
 **Tasks**:
@@ -163,7 +172,7 @@ uv run main.py models
 
 **Success Criteria**: Clear answers to architecture questions, performance validated
 
-### Phase 1: Minimal Viable Search (Next)
+### Phase 1: Minimal Viable Search ✅
 **Goal**: Basic semantic search working from mobile
 
 **Deliverables**:
@@ -185,16 +194,24 @@ uv run main.py models
 
 **Success Criteria**: All gleanings searchable, new ones captured regularly
 
-### Phase 3: Enhanced Features
-**Goal**: Make Temoa indispensable
+### Phase 3: Enhanced Features ✅
+**Goal**: Improve search quality and UX based on real usage
 
-**Deliverables**:
-- `/archaeology` endpoint (temporal analysis)
-- `/stats` endpoint (vault insights)
-- Improved UI (filters, previews, model selection)
+**Completed**:
+- Multi-vault support (webapp + CLI with LRU cache)
+- Search quality pipeline:
+  - Cross-encoder re-ranking (20-30% precision improvement)
+  - Query expansion (TF-IDF for short queries)
+  - Time-aware scoring (90-day half-life boost)
+  - Hybrid search (BM25 + semantic with RRF)
 - PWA support (installable on mobile)
+- Search history (last 10 searches)
+- Keyboard shortcuts (`/`, `Esc`, `t`)
+- UI optimization (inline search button, compact header)
+- Incremental reindexing (30x speedup)
+- Type filtering and gleaning management
 
-**Success Criteria**: Daily usage exceeds Obsidian native search
+**Success Criteria**: Phase 3 complete, ready for Phase 4 or production hardening
 
 ### Phase 4: Vault-First LLM (Future)
 **Goal**: LLMs check vault before internet
@@ -505,31 +522,75 @@ def grep_filter(query: str, vault_path: Path) -> list[Path]:
 
 ---
 
-## Open Questions to Answer in Phase 0
+## Current State Summary (Phase 3 Complete)
 
-### Technical
-- [ ] Does Synthesis currently index daily notes? (where gleanings live now)
-- [ ] How fast is Synthesis search? (cold start vs warm)
-- [ ] What's the subprocess overhead for calling Synthesis?
-- [ ] Should we cache results? (measure first)
+### Completed Features
 
-### Gleanings
-- [ ] Should gleanings stay in daily notes + get extracted? Or create directly?
-- [ ] What metadata is essential vs nice-to-have?
-- [ ] How to handle duplicate gleanings?
-- [ ] What about updating existing gleanings?
+**Search Quality**:
+- ✅ Multi-stage pipeline (expansion → retrieval → filtering → time-boost → re-ranking)
+- ✅ Cross-encoder re-ranking (ms-marco-MiniLM-L-6-v2)
+- ✅ Query expansion (TF-IDF, <3 words)
+- ✅ Time-aware scoring (exponential decay, 90-day half-life)
+- ✅ Hybrid search (BM25 + semantic with RRF fusion)
+- ✅ Type filtering (exclude/include by document type)
 
-### UX
-- [ ] Do obsidian:// URIs work reliably on mobile?
-- [ ] Web UI vs Obsidian plugin - which first?
-- [ ] How to display results on small screens?
-- [ ] Should search history be tracked?
+**Multi-Vault**:
+- ✅ LRU cache (max 3 vaults, ~1.5GB RAM)
+- ✅ Independent indexes per vault (vault/.temoa/)
+- ✅ Vault selector in web UI
+- ✅ `--vault` CLI flag for all commands
+- ✅ Validation to prevent data loss
 
-### Deployment
-- [x] Same server as Apantli or separate? → **Separate service**
-- [x] Systemd vs simple script? → **Manual/nohup for dev, systemd for production**
-- [x] Where should Temoa code live? → **~/projects/temoa (separate repo)**
-- [ ] How to handle Synthesis updates/re-indexing?
+**UX/UI**:
+- ✅ PWA support (installable on mobile)
+- ✅ Search history (last 10 searches, localStorage)
+- ✅ Keyboard shortcuts (`/` focus, `Esc` clear, `t` toggle expanded)
+- ✅ Compact collapsible results (default collapsed)
+- ✅ Inline search button (visible with keyboard up)
+- ✅ Management page (reindex, extract controls)
+
+**Performance**:
+- ✅ Incremental reindexing (30x speedup: 5s vs 159s)
+- ✅ Direct imports (not subprocess, 10x faster)
+- ✅ Search: ~400-1000ms depending on options
+- ✅ FastAPI lifespan pattern (proper initialization)
+
+**Gleanings**:
+- ✅ Extraction from daily notes (multiple formats)
+- ✅ Status management (active/inactive/hidden)
+- ✅ Auto-restore for dead links that come back
+- ✅ Maintenance tools (link checking, descriptions)
+
+### Performance Characteristics
+
+**Search latency** (3,000 file vault):
+- Semantic: ~400ms
+- Hybrid: ~450ms
+- With re-ranking: ~600ms
+- Short query with expansion + re-ranking: ~800-1000ms
+
+**Memory**:
+- Single vault: ~800 MB (bi-encoder + cross-encoder)
+- Multi-vault (3 cached): ~1.5 GB
+
+**Reindexing** (3,059 file vault):
+- Full: ~159s
+- Incremental (no changes): ~5s (30x faster)
+- Incremental (5 new files): ~6-8s
+
+### Next Steps
+
+**Option A: Phase 4 - Vault-First LLM**
+- `/chat` endpoint with vault context
+- Integration with Apantli LLM proxy
+- Citation system for vault sources
+
+**Option B: Production Hardening**
+- Error handling and edge cases
+- Performance monitoring/metrics
+- Backup/recovery procedures
+- More comprehensive testing
+- User documentation
 
 ---
 

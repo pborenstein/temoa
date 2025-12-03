@@ -1,9 +1,8 @@
 # Temoa Deployment Guide
 
-> Get Temoa running and accessible from your phone in ~10 minutes
-
-**Last Updated**: 2025-11-22
-**For**: Phase 2.5 Mobile Validation
+**Last Updated**: 2025-12-03
+**Version**: 0.6.0
+**For**: Phase 3 Complete - Production Deployment
 
 ---
 
@@ -78,16 +77,63 @@ cat > ~/.config/temoa/config.json << 'EOF'
   "search": {
     "default_limit": 10,
     "max_limit": 100,
-    "timeout": 10
+    "timeout": 10,
+    "time_decay": {
+      "enabled": true,
+      "half_life_days": 90,
+      "max_boost": 0.2
+    }
   }
 }
 EOF
 ```
 
-**Adjust**:
-- `vault_path`: Path to your Obsidian vault
+### Multi-Vault Configuration
+
+For multiple vaults, add a `vaults` array:
+
+```bash
+cat > ~/.config/temoa/config.json << 'EOF'
+{
+  "vaults": [
+    {"name": "main", "path": "~/Obsidian/main-vault", "is_default": true},
+    {"name": "work", "path": "~/Obsidian/work-vault", "is_default": false},
+    {"name": "archive", "path": "~/Obsidian/archive", "is_default": false}
+  ],
+  "vault_path": "~/Obsidian/main-vault",
+  "synthesis_path": "~/projects/temoa/synthesis",
+  "storage_dir": null,
+  "default_model": "all-mpnet-base-v2",
+  "server": {
+    "host": "0.0.0.0",
+    "port": 8080
+  },
+  "search": {
+    "default_limit": 10,
+    "max_limit": 100,
+    "timeout": 10,
+    "time_decay": {
+      "enabled": true,
+      "half_life_days": 90,
+      "max_boost": 0.2
+    }
+  }
+}
+EOF
+```
+
+**Multi-vault features**:
+- LRU cache (max 3 vaults in memory)
+- Independent indexes per vault (stored in `vault/.temoa/`)
+- Vault selector in web UI
+- `--vault` CLI flag for all commands
+
+**Configuration fields**:
+- `vaults`: Array of vault configurations (optional)
+- `vault_path`: Path to your Obsidian vault (or default vault)
 - `storage_dir`: Leave `null` to use `vault/.temoa/`
 - `server.port`: Change if 8080 already in use
+- `search.time_decay`: Time-aware scoring configuration (boosts recent documents)
 
 **Path tips**: Use `~` for home directory (auto-expanded)
 
@@ -116,7 +162,15 @@ Files indexed: 3,059
 Model: all-mpnet-base-v2
 ```
 
-**Performance note**: First index takes 2-3 minutes. After that, use `temoa reindex` which is **30x faster** (only processes changed files).
+**Performance**: First index takes 2-3 minutes. After that, use `temoa reindex` which is 30x faster (only processes changed files).
+
+**Multi-vault indexing**:
+```bash
+# Index specific vault
+temoa index --vault work
+
+# Each vault gets independent index at vault/.temoa/
+```
 
 **Troubleshooting**:
 - "No config file found" → Create config (see above)
@@ -550,19 +604,24 @@ Machines → tap server → Ping
 ## Performance Notes
 
 **Expected timings**:
-- Server startup: 13-15s (loads model)
-- Search from mobile: <2s (usually ~400-500ms)
+- Server startup: 15-20s (loads bi-encoder + cross-encoder models)
+- Search from mobile:
+  - Semantic: ~400ms
+  - Hybrid (BM25 + semantic): ~450ms
+  - With re-ranking: ~600ms
+  - Short query with expansion + re-ranking: ~800-1000ms
 - Full index rebuild: 2-3 minutes for ~3000 files
 - Incremental reindex (no changes): ~5 seconds
 - Incremental reindex (5-10 new files): ~6-8 seconds
 
 **Reindexing comparison** (3,059 file vault):
 - Full: 159s (all files)
-- Incremental: 4.8s (no changes) - **30x faster**
-- Incremental: 6-8s (5 new files) - **25x faster**
+- Incremental: 4.8s (no changes) - 30x faster
+- Incremental: 6-8s (5 new files) - 25x faster
 
 **Resource usage**:
-- Memory: ~600 MB (model in RAM)
+- Memory (single vault): ~800 MB (bi-encoder + cross-encoder)
+- Memory (multi-vault, 3 cached): ~1.5 GB
 - Disk: ~10 MB per 2000 files (embeddings index)
 - CPU: Spike during search/indexing, idle otherwise
 
@@ -586,19 +645,27 @@ Machines → tap server → Ping
 
 ---
 
-## Next Steps
+## PWA Installation
 
-After deployment, start **Phase 2.5: Mobile Validation**:
+Temoa can be installed as a Progressive Web App on mobile devices.
 
-1. ✅ Server deployed and accessible
-2. ✅ Mobile bookmark created
-3. ✅ Test search works
-4. ⏭️ **Use daily for 1-2 weeks**
-5. ⏭️ Track usage patterns
-6. ⏭️ Document friction points
-7. ⏭️ Review findings
+**iOS (Safari)**:
+1. Open Temoa in Safari: `http://100.x.x.x:8080`
+2. Tap the Share button
+3. Scroll down and tap "Add to Home Screen"
+4. Tap "Add"
 
-See [IMPLEMENTATION.md - Phase 2.5](IMPLEMENTATION.md#phase-25-mobile-validation-) for validation criteria.
+**Android (Chrome)**:
+1. Open Temoa in Chrome: `http://100.x.x.x:8080`
+2. Tap the three-dot menu
+3. Tap "Add to Home screen" or "Install app"
+4. Tap "Add" or "Install"
+
+**Benefits**:
+- One-tap access from home screen
+- Launches without browser UI
+- Offline UI (search requires network)
+- Persistent state and settings
 
 ---
 
@@ -612,5 +679,5 @@ See [IMPLEMENTATION.md - Phase 2.5](IMPLEMENTATION.md#phase-25-mobile-validation
 ---
 
 **Created**: 2025-11-19
-**Last Updated**: 2025-11-22
-**Purpose**: Production deployment guide
+**Last Updated**: 2025-12-03
+**Version**: 0.6.0

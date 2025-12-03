@@ -2,21 +2,23 @@
 
 > **Purpose**: Technical documentation of all search algorithms, ranking methods, and quality enhancements in Temoa.
 
-**Last Updated**: 2025-12-01
-**Status**: Phase 3 Part 2 Complete
+**Last Updated**: 2025-12-03
+**Status**: Phase 3 Complete
+**Version**: 0.6.0
 
 ---
 
 ## Overview
 
-Temoa provides a multi-stage search pipeline that combines several proven information retrieval techniques to deliver high-quality, relevant results. This document explains each mechanism, why it was chosen, and how they work together.
+Temoa uses a multi-stage search pipeline. This document explains each mechanism, why it was chosen, and how they work together.
 
 The search pipeline consists of:
 
-1. **Core Search Methods** - Primary retrieval mechanisms
-2. **Query Enhancement** - Pre-processing to improve query quality
-3. **Result Filtering** - Post-processing to remove unwanted results
-4. **Ranking Enhancement** - Re-ranking and boosting for better precision
+1. **Core Search Methods** - Primary retrieval mechanisms (semantic, BM25, hybrid)
+2. **Query Enhancement** - Pre-processing to improve query quality (expansion)
+3. **Result Filtering** - Post-processing to remove unwanted results (status, type, score)
+4. **Ranking Enhancement** - Re-ranking and boosting for better precision (time-aware, cross-encoder)
+5. **Multi-Vault Support** - Search across multiple vaults with independent indexes
 
 ---
 
@@ -35,6 +37,7 @@ The search pipeline consists of:
 - [Ranking Enhancement](#ranking-enhancement)
   - [Time-Aware Scoring](#1-time-aware-scoring)
   - [Cross-Encoder Re-Ranking](#2-cross-encoder-re-ranking)
+- [Multi-Vault Support](#multi-vault-support)
 - [Complete Pipeline Flow](#complete-pipeline-flow)
 - [Performance Characteristics](#performance-characteristics)
 
@@ -99,8 +102,8 @@ The search pipeline consists of:
 3. Uses `rank_bm25` library (implementation of Okapi BM25)
 
 **Why we chose it**:
-- **Exact mention detection**: Perfect complement to semantic search's weakness
-- **Proven algorithm**: BM25 is the gold standard for keyword search (used by Elasticsearch, Lucene)
+- **Exact mention detection**: Finds things semantic search misses
+- **Standard algorithm**: BM25 is used by Elasticsearch and Lucene
 - **Fast**: Index fits in memory, search takes milliseconds
 - **Lightweight**: ~5MB index for 3,000 documents
 
@@ -148,9 +151,9 @@ The search pipeline consists of:
 4. Results include `similarity_score`, `bm25_score`, and `rrf_score` fields
 
 **Why we chose it**:
-- **Best of both worlds**: Semantic recall + keyword precision
-- **Simple but effective**: RRF is surprisingly robust (used by many search engines)
-- **Complementary strengths**: Semantic finds conceptual matches, BM25 catches exact mentions
+- **Combines strengths**: Semantic recall + keyword precision
+- **Simple algorithm**: RRF is used by many search engines
+- **Complementary**: Semantic finds conceptual matches, BM25 catches exact mentions
 
 **How RRF works in detail**:
 - Documents appearing in both lists get highest scores (strong signal!)
@@ -211,7 +214,7 @@ The search pipeline consists of:
 **Why we chose it**:
 - **No LLM needed**: TF-IDF is fast, deterministic, and doesn't require API calls
 - **User's intent**: Initial results reflect what the user might be looking for
-- **Proven technique**: Pseudo-relevance feedback is standard in IR research
+- **Standard technique**: Pseudo-relevance feedback is used in information retrieval
 - **Minimal latency**: Only ~50ms for TF-IDF computation
 
 **Strengths**:
@@ -447,10 +450,10 @@ Cross-Encoder (re-ranking):
 ```
 
 **Why we chose it**:
-- **Proven effectiveness**: 20-30% improvement in Precision@5 (research-backed)
-- **Industry standard**: Used by Elasticsearch, Weaviate, Pinecone
+- **Measured improvement**: 20-30% improvement in Precision@5
+- **Standard approach**: Used by Elasticsearch, Weaviate, Pinecone
 - **Acceptable latency**: ~200ms for 100 pairs is fast enough for mobile
-- **Best of both**: Bi-encoder recall + cross-encoder precision
+- **Two-stage retrieval**: Bi-encoder recall + cross-encoder precision
 
 **Performance**:
 - Model loading: ~1s (one-time at startup)
@@ -483,6 +486,68 @@ Notice: Cross-encoder correctly ranks "obsidiantools" #1 despite lower bi-encode
 - Speed is critical (saves ~200ms)
 - Very large result sets (re-ranking 1000+ items)
 - Debugging (to isolate bi-encoder performance)
+
+---
+
+## Multi-Vault Support
+
+**File**: `src/temoa/client_cache.py`, `src/temoa/config.py`
+
+**What it does**: Search across multiple Obsidian vaults with independent indexes and fast vault switching.
+
+**How it works**:
+1. Each vault has independent index stored in `vault/.temoa/model-name/`
+2. LRU cache keeps up to 3 vaults in memory (~1.5GB RAM total)
+3. Vault switching is fast when cached (~400ms), slower on first load (~15-20s for model loading)
+4. Web UI provides vault selector dropdown
+5. CLI supports `--vault` flag for all commands
+
+**Architecture**:
+```python
+# Config format
+{
+  "vaults": [
+    {"name": "main", "path": "~/Obsidian/main-vault", "is_default": true},
+    {"name": "work", "path": "~/Obsidian/work-vault", "is_default": false}
+  ]
+}
+
+# LRU cache (max 3 vaults)
+client_cache = {
+  "main": SynthesisClient(...),    # Most recently used
+  "work": SynthesisClient(...),    # Second most recent
+  "archive": SynthesisClient(...)  # Least recent (evicted next)
+}
+```
+
+**Why we chose it**:
+- **Independent indexes**: Each vault has its own embeddings, no cross-contamination
+- **LRU caching**: Fast switching between frequently-used vaults
+- **Memory-bounded**: Limits to 3 vaults to prevent memory bloat
+- **Co-location**: Index stored in vault (`.temoa/`) for simplicity
+
+**Performance**:
+- Cached vault switch: ~400ms (already in memory)
+- Uncached vault switch: ~15-20s (load models + index)
+- Memory per vault: ~500-800MB (model + embeddings + BM25 index)
+
+**Configuration**:
+```
+# Search specific vault via API
+GET /search?q=obsidian&vault=work
+
+# Search specific vault via CLI
+temoa search "obsidian" --vault work
+
+# Index specific vault
+temoa index --vault work
+```
+
+**Validation**:
+- Each vault index includes metadata (vault path, model)
+- Server validates vault path matches before operations
+- Prevents accidental index corruption from wrong vault
+- `--force` flag allows override with warning
 
 ---
 
@@ -628,8 +693,8 @@ Total:                ~900ms
 | Mechanism | Why Chosen | Alternative Considered |
 |-----------|------------|------------------------|
 | **Semantic (Bi-Encoder)** | Fast, good recall, understands concepts | OpenAI embeddings (requires API, cost) |
-| **BM25** | Industry standard, catches exact mentions | TF-IDF (BM25 is strictly better) |
-| **Hybrid (RRF)** | Simple, proven effective | Learned fusion (too complex) |
+| **BM25** | Catches exact mentions | TF-IDF (BM25 is strictly better) |
+| **Hybrid (RRF)** | Simple, effective | Learned fusion (too complex) |
 | **Query Expansion** | No LLM needed, uses vault content | LLM reformulation (Phase 4) |
 | **Cross-Encoder** | 20-30% quality boost, acceptable latency | More candidates (diminishing returns) |
 | **Time Boost** | Near-zero cost, gentle improvement | Manual date filters (less automatic) |
@@ -678,16 +743,16 @@ GET /search?
 
 **Not Yet Implemented** (see Phase 4):
 
-- **LLM-based query reformulation**: More sophisticated query understanding
+- **LLM-based query reformulation**: Better query understanding
 - **Result clustering**: Group similar results together
 - **Multi-field boosting**: Weight title matches higher than body matches
 - **Learning to rank**: Machine learning model trained on user clicks
 
-**Explicitly Skipped** (YAGNI):
+**Explicitly Skipped**:
 
 - Elasticsearch/Solr integration (too heavy for local use)
 - Graph-based retrieval (vault not connected enough)
-- Neural search with ONNX (sentence-transformers is good enough)
+- Neural search with ONNX (sentence-transformers works)
 
 ---
 

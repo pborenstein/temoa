@@ -9,14 +9,26 @@ A local semantic search server for your Obsidian vault. Search by meaning, not k
 
 ## What it does
 
+**Core Search**:
 - **Semantic search**: Find notes by meaning, not exact keywords
-- **Mobile access**: Search from your phone via HTTP
+- **Hybrid search**: Combine BM25 keyword search with semantic embeddings
+- **Cross-encoder re-ranking**: Two-stage retrieval for 20-30% better precision
+- **Query expansion**: Automatically expand short queries using TF-IDF
+- **Time-aware scoring**: Boost recent documents with configurable decay
+- **Type filtering**: Filter by document type (gleaning, writering, daily, etc.)
+
+**Mobile Experience**:
+- **Mobile-first UI**: Optimized for phone use with compact collapsible results
 - **PWA support**: Install on home screen for one-tap access
-- **Search history**: Recent searches saved locally, accessible on focus
-- **Keyboard shortcuts**: `/` to focus search, `Esc` to clear
+- **Search history**: Last 10 searches saved locally
+- **Keyboard shortcuts**: `/` to focus search, `Esc` to clear, `t` to toggle expanded query
+
+**Infrastructure**:
+- **Multi-vault support**: Search across multiple vaults with fast switching
 - **Local processing**: All embeddings and search happen on your machine
 - **Obsidian integration**: Results open directly in Obsidian app
 - **Gleaning extraction**: Automatically extract saved links from daily notes
+- **Incremental reindexing**: 30x faster updates (5s vs 159s)
 
 ## Installation
 
@@ -51,11 +63,55 @@ cat > ~/.config/temoa/config.json << 'EOF'
   "search": {
     "default_limit": 10,
     "max_limit": 100,
-    "timeout": 10
+    "timeout": 10,
+    "time_decay": {
+      "enabled": true,
+      "half_life_days": 90,
+      "max_boost": 0.2
+    }
   }
 }
 EOF
 ```
+
+### Multi-Vault Configuration
+
+To search across multiple vaults, use the `vaults` array:
+
+```json
+{
+  "vaults": [
+    {"name": "main", "path": "~/Obsidian/main-vault", "is_default": true},
+    {"name": "work", "path": "~/Obsidian/work-vault", "is_default": false},
+    {"name": "archive", "path": "~/Obsidian/archive", "is_default": false}
+  ],
+  "vault_path": "~/Obsidian/main-vault",
+  "synthesis_path": "~/projects/temoa/synthesis",
+  "storage_dir": null,
+  "default_model": "all-mpnet-base-v2",
+  "server": {
+    "host": "0.0.0.0",
+    "port": 8080
+  },
+  "search": {
+    "default_limit": 10,
+    "max_limit": 100,
+    "timeout": 10,
+    "time_decay": {
+      "enabled": true,
+      "half_life_days": 90,
+      "max_boost": 0.2
+    }
+  }
+}
+```
+
+**Multi-vault features**:
+- LRU cache (max 3 vaults in memory, ~1.5GB RAM)
+- Fast vault switching (~400ms when cached)
+- Independent indexes per vault (stored in `vault/.temoa/`)
+- Vault selector in web UI
+- `--vault` CLI flag for all commands
 
 **Config search order:**
 1. `~/.config/temoa/config.json` (recommended)
@@ -63,12 +119,16 @@ EOF
 3. `./config.json` (development)
 
 **Config fields:**
-- `vault_path`: Path to your Obsidian vault
+- `vaults`: Array of vault configurations (optional, for multi-vault)
+- `vault_path`: Path to your Obsidian vault (or default vault)
 - `synthesis_path`: Path to Synthesis engine (bundled in `synthesis/`)
 - `storage_dir`: Where to store embeddings index (default: `vault/.temoa/`)
 - `default_model`: Embedding model (see Available Models below)
 - `server`: HTTP server settings
-- `search`: Search defaults and limits
+- `search.time_decay`: Time-aware scoring configuration
+  - `enabled`: Enable recency boost (default: true)
+  - `half_life_days`: Days for 50% decay (default: 90)
+  - `max_boost`: Maximum boost for today's docs (default: 0.2 = 20%)
 
 ## Quick Start
 
@@ -150,7 +210,7 @@ temoa server --reload     # Start with auto-reload (dev)
 
 ### Search
 ```bash
-GET /search?q=<query>&limit=10&min_score=0.3&exclude_types=daily
+GET /search?q=<query>&limit=10&min_score=0.3&exclude_types=daily&vault=main
 ```
 
 **Parameters:**
@@ -160,6 +220,10 @@ GET /search?q=<query>&limit=10&min_score=0.3&exclude_types=daily
 - `exclude_types`: Comma-separated types to exclude (default: "daily")
 - `include_types`: Comma-separated types to include (optional)
 - `hybrid`: Use hybrid search (BM25 + semantic) (default: false)
+- `rerank`: Enable cross-encoder re-ranking (default: true)
+- `expand_query`: Auto-expand short queries (<3 words) (default: true)
+- `time_boost`: Apply time-decay boost to recent docs (default: true)
+- `vault`: Vault name to search (optional, defaults to config vault)
 
 **Example:**
 ```bash
@@ -170,20 +234,30 @@ curl "http://localhost:8080/search?q=semantic+search&limit=5"
 ```json
 {
   "query": "semantic search",
+  "expanded_query": null,
   "results": [
     {
       "title": "Semantic Search Tools",
       "relative_path": "L/Gleanings/abc123.md",
       "similarity_score": 0.847,
+      "cross_encoder_score": 4.523,
       "obsidian_uri": "obsidian://open?vault=...",
       "description": "Overview of semantic search implementations",
-      "tags": ["search", "ai"]
+      "tags": ["search", "ai"],
+      "frontmatter": {
+        "type": "gleaning",
+        "date": "2025-01-15"
+      }
     }
   ],
   "total": 15,
-  "model": "all-mpnet-base-v2"
+  "filtered_count": 10,
+  "model": "all-mpnet-base-v2",
+  "vault": "main"
 }
 ```
+
+**Note**: When query expansion is triggered (short queries), `expanded_query` shows the enhanced query used for search.
 
 ### Archaeology (Temporal Analysis)
 ```bash
@@ -416,22 +490,90 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed architecture docum
 
 ## Performance
 
-**Search**: ~400ms average (2,000+ files)
-**Memory**: ~600 MB (model loaded in RAM)
-**Startup**: ~15s (model loading)
+**Search latency** (3,000 file vault):
+- Semantic search: ~400ms
+- Hybrid search (BM25 + semantic): ~450ms
+- With cross-encoder re-ranking: ~600ms
+- Short query with expansion + re-ranking: ~800-1000ms
+
+**Memory usage**:
+- Single vault: ~600 MB (bi-encoder model in RAM)
+- With re-ranking: ~800 MB (bi-encoder + cross-encoder)
+- Multi-vault (3 vaults cached): ~1.5 GB
+
+**Startup**: ~15-20s (model loading)
+
+**Reindexing** (3,059 file vault):
+- Full rebuild: ~159s (all files)
+- Incremental (no changes): ~5s (30x faster)
+- Incremental (5-10 new files): ~6-8s
+
 **Scales**: Linear to 10,000+ files
+
+## Search Quality Pipeline
+
+Temoa uses a sophisticated multi-stage search pipeline for high precision:
+
+1. **Query Enhancement** (optional, for short queries)
+   - Auto-expand queries <3 words using TF-IDF
+   - Example: `"AI"` → `"AI machine learning neural networks"`
+
+2. **Initial Retrieval**
+   - **Semantic**: Fast bi-encoder similarity (all-mpnet-base-v2)
+   - **Hybrid**: BM25 keyword + semantic with RRF fusion
+   - Returns top 100 candidates
+
+3. **Filtering**
+   - Score threshold (min_score)
+   - Status filter (exclude inactive gleanings)
+   - Type filter (exclude/include by document type)
+
+4. **Time-Aware Boost** (optional)
+   - Recent documents get exponential decay boost
+   - Configurable half-life (default: 90 days)
+   - Max boost 20% for today's documents
+
+5. **Cross-Encoder Re-Ranking** (optional, enabled by default)
+   - Precise two-stage retrieval using ms-marco-MiniLM-L-6-v2
+   - Re-ranks top 100 candidates for 20-30% precision improvement
+   - ~200ms latency for significant quality gain
+
+6. **Top-K Selection**
+   - Return final results (default: 10)
+
+**Expected Quality**:
+- Precision@5: 80-90% (up from 60-70% without re-ranking)
+- Short queries: Much better with expansion
+- Recent topics: Better ranking with time boost
+
+See [docs/SEARCH-MECHANISMS.md](docs/SEARCH-MECHANISMS.md) for detailed technical reference.
 
 ## Documentation
 
+- **[docs/README.md](docs/README.md)**: Documentation index and navigation
 - **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**: System architecture with diagrams
+- **[docs/SEARCH-MECHANISMS.md](docs/SEARCH-MECHANISMS.md)**: Search algorithms and quality pipeline
 - **[docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md)**: Implementation progress and plans
-- **[docs/CHRONICLES.md](docs/CHRONICLES.md)**: Design decisions and history
+- **[docs/CHRONICLES.md](docs/CHRONICLES.md)**: Design decisions and history (split into chapters)
 - **[docs/GLEANINGS.md](docs/GLEANINGS.md)**: Gleaning extraction guide
+- **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)**: Production deployment guide
 - **[CLAUDE.md](CLAUDE.md)**: Development guide for AI sessions
 
 ## Project Status
 
-See [docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md) for current phase and progress.
+**Version**: 0.6.0
+**Phase**: Phase 3 Complete ✅
+
+**Completed Phases**:
+- ✅ Phase 0: Discovery & Validation
+- ✅ Phase 1: Minimal Viable Search
+- ✅ Phase 2: Gleanings Integration
+- ✅ Phase 2.5: Mobile Validation & UI Optimization
+- ✅ Phase 3: Enhanced Features (Multi-vault, Search Quality, UX Polish)
+
+**Next**: Phase 4 (Vault-First LLM) or Production Hardening
+
+See [docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md) for complete history and next steps.
 
 ## Philosophy
 
@@ -454,4 +596,5 @@ See [docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md) for current phase and progr
 ---
 
 **Created**: 2025-11-17
-**Last Updated**: 2025-11-22
+**Last Updated**: 2025-12-03
+**Version**: 0.6.0
