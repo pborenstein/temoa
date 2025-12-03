@@ -1286,8 +1286,7 @@
 
 • / (slash) - Focus search box
 • Esc - Clear search box
-• c - Collapse all results
-• e - Expand all results
+• t - Toggle all results (expand/collapse)
 • 🕐︎ button - View search history`;
 
             alert(message);
@@ -1307,6 +1306,16 @@
                 queryInput.blur();
                 const dropdown = document.getElementById('history-dropdown');
                 if (dropdown) dropdown.style.display = 'none';
+            }
+
+            // 't' to toggle all results
+            if (e.key === 't' || e.key === 'T') {
+                // If any are expanded, collapse all; otherwise expand all
+                if (state.ui.expandedResults.size > 0) {
+                    collapseAllResults();
+                } else {
+                    expandAllResults();
+                }
             }
         });
 
