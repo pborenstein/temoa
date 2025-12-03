@@ -327,7 +327,7 @@ After retrieving results, several filters refine the list before presenting to u
 **Why we chose it**:
 - **Noise reduction**: Daily notes often clutter results
 - **Focus search**: "Show only gleanings" or "hide reference docs"
-- **Flexible**: Both whitelist and blacklist modes
+- **Flexible**: Both allowlist and blocklist modes
 
 **Performance**: <1ms (uses cached frontmatter)
 
@@ -589,8 +589,8 @@ User Query: "AI" (short query)
     ↓
 ┌─────────────────────────────────────────────────────┐
 │ Stage 4: Type Filtering                             │
-│ - Apply include_types (whitelist)                   │
-│ - Apply exclude_types (blacklist, default: daily)   │
+│ - Apply include_types (allowlist)                   │
+│ - Apply exclude_types (blocklist, default: daily)   │
 └─────────────────────────────────────────────────────┘
     ↓
 ┌─────────────────────────────────────────────────────┐
