@@ -2913,4 +2913,143 @@ style-conformance/
 **Impact**: MEDIUM - Improves documentation quality and readability
 **Duration**: 3-4 hours (skill creation + transformations)
 **Branch**: `main` (direct commits)
-**Commits**: TBD (pending)
+**Commits**: f038964
+
+---
+
+## Entry 33: Production Hardening - Query Expansion Default Change (2025-12-06)
+
+**Context**: With Phase 3 complete, we entered a production hardening phase based on real-world usage feedback.
+
+### The Problem
+
+**User report**: Query expansion (enabled by default) was unhelpful for person names.
+
+**Root cause**:
+- Query expansion triggers on short queries (<3 words)
+- Many short queries are person names: "Philip Borenstein", "John Smith"
+- TF-IDF expansion adds topical terms that add noise for name searches
+- Example: "Philip Borenstein" might expand to "Philip Borenstein software development" → worse results
+
+**Why expansion doesn't help names**:
+- Names are proper nouns (semantic search handles them well)
+- Name searches need exact matching (BM25 hybrid works better)
+- Expansion adds generic terms that dilute specificity
+
+### The Fix
+
+**Changed default from `True` to `False` in 3 places**:
+```python
+# CLI (src/temoa/cli.py:112)
+@click.option('--expand/--no-expand', 'expand_query',
+              default=False,  # was: True
+              help='Expand short queries (<3 words) with TF-IDF terms (default: disabled)')
+
+# Server API (src/temoa/server.py:526-529)
+expand_query: bool = Query(
+    default=False,  # was: True
+    description="Expand short queries (<3 words) with TF-IDF terms"
+)
+
+# Web UI (src/temoa/ui/search.html:1124)
+expandQuery: false,  // was: true
+```
+
+**Documentation updates**:
+- README.md API table: `expand_query | boolean | false`
+- Help text clarified: "default: disabled" (was "default: enabled")
+
+### Future Enhancement: Smart Query Suggestions
+
+**Added TODO** in `src/temoa/query_expansion.py`:
+```python
+"""
+TODO (Phase 4+): Smart query-aware suggestions
+    Based on real-world usage, query expansion is often not useful for person names.
+    Future enhancement: Analyze query content and suggest search modes intelligently:
+    - If query looks like a person name → suggest hybrid search, disable expansion
+    - If query is short but not a name → suggest expansion
+    - If query contains technical terms → suggest semantic search
+    Examples:
+        "Philip Borenstein" → hybrid on, expansion off
+        "AI" → expansion on (gets "AI machine learning neural")
+        "React hooks" → semantic (concept-based)
+"""
+```
+
+**Added to Phase 4 plan** (docs/IMPLEMENTATION.md):
+- Task 4.3: Smart Query Suggestions
+- Detection heuristics:
+  - **Person name**: Capitalized words, 2-3 tokens, not in technical vocab
+  - **Technical term**: Framework/library names, acronyms
+  - **Topic**: General vocabulary, benefits from expansion
+- UI: Suggestion chips (e.g., "This looks like a name. Try hybrid search?")
+- Smart defaults: Auto-apply suggested modes with user override
+- Implementation: NLP patterns or simple heuristics (<50ms)
+
+### Design Decision: DEC-075
+
+**DEC-075: Query expansion opt-in by default**
+
+**Decision**: Disable query expansion by default, make it an opt-in feature.
+
+**Rationale**:
+1. **Real-world usage patterns**: Short queries are often proper nouns (names), not topics
+2. **Better alternatives exist**: Hybrid search (BM25 + semantic) works better for names
+3. **Expansion adds noise**: TF-IDF terms dilute specificity for exact matches
+4. **Keep flexibility**: Users can still enable with `--expand` flag or checkbox
+5. **Future smart suggestions**: Phase 4+ will detect query type and suggest optimal mode
+
+**Trade-offs**:
+- ✅ Better default behavior for name searches (most common short query type)
+- ✅ Cleaner search results (no spurious expansion terms)
+- ⚠️ Topical short queries may benefit from expansion (user must opt-in)
+- ⏭️ Future: Smart detection eliminates need for manual toggling
+
+### Testing
+
+**All server tests pass** (10/10):
+```bash
+tests/test_server.py::test_search_endpoint_basic PASSED
+tests/test_server.py::test_health_endpoint PASSED
+# ... (8 more)
+======================== 10 passed, 2 warnings in 4.27s ========================
+```
+
+**Behavior validated**:
+- Default searches no longer expand short queries
+- Expansion still available via `--expand` CLI flag or UI checkbox
+- API parameter `expand_query=false` documented correctly
+
+### Key Insight
+
+**Production usage reveals UX gaps**. Even well-designed features (query expansion) can have poor defaults when real user behavior differs from design assumptions.
+
+**Short queries ≠ ambiguous queries**. The assumption that "short queries need expansion" breaks down when short queries are proper nouns.
+
+**Phase 4+ opportunity**: Don't guess user intent—detect it. Smart query analysis can suggest optimal search modes without manual toggling.
+
+### What's Next
+
+**Production Hardening**:
+- Continue monitoring real-world usage
+- Identify other friction points
+- Optimize defaults based on actual behavior patterns
+- Consider error handling, performance metrics, testing
+
+**Phase 4 Enhancement**:
+- Implement smart query-aware suggestions
+- Detect name patterns (capitalization, common name lists)
+- Detect technical terms (framework databases)
+- Auto-suggest hybrid for names, expansion for topics
+
+---
+
+**Entry created**: 2025-12-06
+**Author**: Claude (Sonnet 4.5)
+**Type**: Production Hardening - Default Change
+**Impact**: HIGH - Improves default search experience for common use case (name queries)
+**Duration**: <30 minutes (small targeted fix)
+**Branch**: `minor-tweaks`
+**Commits**: 79aa611
+**Files changed**: 6 (cli.py, server.py, search.html, query_expansion.py, IMPLEMENTATION.md, README.md)

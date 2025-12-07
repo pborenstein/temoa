@@ -44,7 +44,7 @@ The chronicles have been split into chapters for easier navigation:
 - Entry 19: Incremental Reindexing - 30x Speedup for Daily Use
 
 ### [Phase 3: Enhanced Features](chronicles/phase-3-enhanced-features.md) ✅ COMPLETE
-**Entries 20-32** | Technical Debt, Search Quality, and UX Polish
+**Entries 20-33** | Technical Debt, Search Quality, UX Polish, and Production Hardening
 
 - Entry 20: Multi-Vault Support - Preventing Data Loss
 - Entry 21: Multi-Vault Webapp UI
@@ -59,6 +59,7 @@ The chronicles have been split into chapters for easier navigation:
 - Entry 30: Mobile UI Refinement - Checkbox Reorganization
 - Entry 31: Search History and Keyboard Shortcuts - Phase 3 Complete
 - Entry 32: Documentation Style Conformance
+- Entry 33: Production Hardening - Query Expansion Default Change
 
 ---
 
@@ -124,6 +125,7 @@ The chronicles have been split into chapters for easier navigation:
 | DEC-072: Show history only when input empty | 31 | Don't interfere with typing/autocomplete |
 | DEC-073: GitHub-style `/` shortcut | 31 | Familiar pattern, selects text for replacement |
 | DEC-074: Query persists after search | 31 | User feedback - query disappearing was annoying |
+| DEC-075: Query expansion opt-in | 33 | Real-world usage: short queries often names, not topics |
 
 ---
 
@@ -148,5 +150,5 @@ The chronicles have been split into chapters for easier navigation:
 ---
 
 **Created**: 2025-11-18
-**Last Updated**: 2025-12-03
-**Total Entries**: 32
+**Last Updated**: 2025-12-06
+**Total Entries**: 33

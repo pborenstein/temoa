@@ -6,9 +6,10 @@
 
 **Project**: Temoa - Local Semantic Search Server for Obsidian Vault
 **Created**: 2025-11-18
-**Status**: Phase 3 ✅ COMPLETE
-**Last Updated**: 2025-12-03
+**Status**: Phase 3 ✅ COMPLETE → Production Hardening 🔵 ONGOING
+**Last Updated**: 2025-12-06
 **Current Version**: 0.6.0
+**Current Branch**: `minor-tweaks`
 **Estimated Timeline**: 4-6 weeks for Phases 0-2, ongoing for Phases 3-4
 
 ---
@@ -1695,6 +1696,47 @@ After viewing actual iPhone screenshot, identified UI space issue and reorganize
 **Primary**: [PHASE-3-READY.md](PHASE-3-READY.md) - Consolidated from 3 comprehensive reviews
 **Reference**: [phases/phase-3-enhanced.md](phases/phase-3-enhanced.md) - Original outline
 **New**: [SEARCH-MECHANISMS.md](SEARCH-MECHANISMS.md) - Technical reference for all search algorithms
+
+---
+
+## Production Hardening (Post-Phase 3) 🔵
+
+**Status**: ONGOING (started 2025-12-06)
+**Goal**: Polish and optimize based on real-world usage feedback
+**Branch**: `minor-tweaks`
+
+### Completed Work
+
+#### Query Expansion Default Change (2025-12-06)
+
+**Issue Identified**: Real-world usage showed query expansion (enabled by default) was unhelpful for person names. Short queries (<3 words) are often names, not topics that benefit from TF-IDF expansion.
+
+**Changes Made**:
+- Changed `expand_query` default from `True` to `False` in:
+  - CLI (`--expand/--no-expand` flag)
+  - Server API (`/search` endpoint)
+  - Web UI (expansion checkbox)
+- Updated API documentation in README.md
+- Added TODO in `src/temoa/query_expansion.py` for future smart suggestions
+- Added Phase 4+ task "Smart Query Suggestions" to Phase 4 plan
+
+**Rationale**:
+- Person names ("Philip Borenstein") are common short queries → expansion adds noise
+- Hybrid search works better for exact name matching (BM25 component)
+- Keep expansion as opt-in feature for topical queries
+
+**Future Enhancement**: Smart query-aware suggestions (see Phase 4.3 below)
+
+**Commit**: 79aa611 - "fix: disable query expansion by default based on production usage"
+
+### Next Production Hardening Items
+
+Based on continued real-world usage, consider:
+- [ ] Error handling edge cases
+- [ ] Performance monitoring/metrics
+- [ ] Additional UX improvements from user feedback
+- [ ] Mobile validation of PWA installation
+- [ ] More comprehensive testing
 
 ---
 
