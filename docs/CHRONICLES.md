@@ -60,6 +60,7 @@ The chronicles have been split into chapters for easier navigation:
 - Entry 31: Search History and Keyboard Shortcuts - Phase 3 Complete
 - Entry 32: Documentation Style Conformance
 - Entry 33: Production Hardening - Query Expansion Default Change
+- Entry 34: State Management Refactoring - Eliminating "Hodge Podge"
 
 ---
 
@@ -126,6 +127,7 @@ The chronicles have been split into chapters for easier navigation:
 | DEC-073: GitHub-style `/` shortcut | 31 | Familiar pattern, selects text for replacement |
 | DEC-074: Query persists after search | 31 | User feedback - query disappearing was annoying |
 | DEC-075: Query expansion opt-in | 33 | Real-world usage: short queries often names, not topics |
+| DEC-076: JavaScript state is single source of truth | 34 | Per-vault filter preferences, eliminate HTML/JS sync bugs |
 
 ---
 

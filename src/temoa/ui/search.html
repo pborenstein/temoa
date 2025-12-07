@@ -923,7 +923,7 @@
         <div class="collapsible-content" id="options">
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px;">
                 <div class="checkbox-group">
-                    <input type="checkbox" id="use-reranker" checked>
+                    <input type="checkbox" id="use-reranker">
                     <label for="use-reranker">
                         <span>Rerank</span>
                         <span class="info-icon" onclick="showTooltip(event, 'rerank')">i</span>
@@ -939,7 +939,7 @@
                 </div>
 
                 <div class="checkbox-group">
-                    <input type="checkbox" id="time-boost" checked>
+                    <input type="checkbox" id="time-boost">
                     <label for="time-boost">
                         <span>Recent</span>
                         <span class="info-icon" onclick="showTooltip(event, 'recent')">i</span>
@@ -954,12 +954,12 @@
 
             <div class="control-group">
                 <label class="control-label" for="min-score">Min Score</label>
-                <input type="number" id="min-score" min="0" max="1" step="0.05" value="0.30">
+                <input type="number" id="min-score" min="0" max="1" step="0.05">
             </div>
 
             <div class="control-group">
                 <label class="control-label" for="limit">Limit</label>
-                <input type="number" id="limit" min="1" max="100" value="20">
+                <input type="number" id="limit" min="1" max="100">
             </div>
 
             <!-- Type Filtering -->
@@ -989,7 +989,7 @@
                         <option value="article">Article</option>
                         <option value="reference">Reference</option>
                         <option value="note">Note</option>
-                        <option value="daily" selected>Daily</option>
+                        <option value="daily">Daily</option>
                     </select>
                     <button type="button" class="clear-btn" onclick="clearSelect('exclude-types')">Clear</button>
                 </div>
@@ -1116,7 +1116,9 @@
             currentVault: null,  // Currently selected vault name
             defaultVault: null,  // Default vault from config
             searchHistory: [],  // Recent searches (max 10)
-            filters: {
+
+            // Global filter defaults (fallback for all vaults)
+            defaultFilters: {
                 minScore: 0.3,
                 limit: 20,
                 hybrid: false,
@@ -1126,6 +1128,15 @@
                 includeTypes: [],
                 excludeTypes: ['daily']
             },
+
+            // Per-vault filter preferences (persisted to localStorage)
+            // Example: { 'amoxtli': { hybrid: true }, 'rodeo': { excludeTypes: [] } }
+            vaultFilters: {},
+
+            // Active filters (computed from vaultFilters[currentVault] || defaultFilters)
+            // This is the working copy that gets updated as user changes filters
+            filters: {},
+
             ui: {
                 expandedResults: new Set(),  // Track which results are expanded
                 statsExpanded: false,
@@ -1139,9 +1150,22 @@
         function loadState() {
             try {
                 const stored = localStorage.getItem(STORAGE_KEY);
-                if (!stored) return;
+                if (!stored) {
+                    // No stored state - initialize filters from defaults
+                    state.filters = { ...state.defaultFilters };
+                    return;
+                }
 
                 const data = JSON.parse(stored);
+
+                // Migration: old format without vaultFilters
+                if (!data.vaultFilters) {
+                    data.vaultFilters = {};
+                    // If old format had global filters, migrate to current vault
+                    if (data.filters && data.currentVault) {
+                        data.vaultFilters[data.currentVault] = data.filters;
+                    }
+                }
 
                 // Restore vault preference (fallback for when no URL param)
                 if (data.currentVault) {
@@ -1151,6 +1175,11 @@
                 // Restore search history
                 if (Array.isArray(data.searchHistory)) {
                     state.searchHistory = data.searchHistory;
+                }
+
+                // Restore per-vault filter preferences
+                if (data.vaultFilters) {
+                    state.vaultFilters = data.vaultFilters;
                 }
 
                 // Restore UI preferences
@@ -1165,6 +1194,8 @@
                 }
             } catch (err) {
                 console.warn('Failed to load state from localStorage:', err);
+                // On error, initialize filters from defaults
+                state.filters = { ...state.defaultFilters };
             }
         }
 
@@ -1174,6 +1205,7 @@
                 const toSave = {
                     currentVault: state.currentVault,  // Remember last selected vault
                     searchHistory: state.searchHistory,  // Recent searches
+                    vaultFilters: state.vaultFilters,  // Per-vault filter preferences
                     ui: {
                         expandedResults: Array.from(state.ui.expandedResults),  // Convert Set to array
                         statsExpanded: state.ui.statsExpanded,
@@ -1191,6 +1223,109 @@
         function updateState(updates) {
             Object.assign(state, updates);
             saveState();
+        }
+
+        // Load filters for specific vault (merge vault-specific prefs with defaults)
+        function loadFiltersForVault(vaultName) {
+            if (!vaultName) {
+                // No vault selected - use defaults
+                state.filters = { ...state.defaultFilters };
+                return;
+            }
+
+            // Use per-vault preferences if available, otherwise defaults
+            if (state.vaultFilters[vaultName]) {
+                // Merge: start with defaults, override with vault-specific prefs
+                state.filters = { ...state.defaultFilters, ...state.vaultFilters[vaultName] };
+            } else {
+                // No saved preferences for this vault - use defaults
+                state.filters = { ...state.defaultFilters };
+            }
+        }
+
+        // Save current filters for current vault
+        function saveFiltersForVault() {
+            if (!state.currentVault) return;
+
+            // Save current filter state for this vault
+            state.vaultFilters[state.currentVault] = { ...state.filters };
+            saveState();
+        }
+
+        // Restore filter state to HTML elements (state → HTML)
+        function restoreFilterState() {
+            // Set HTML checkboxes from state
+            document.getElementById('hybrid-search').checked = state.filters.hybrid;
+            document.getElementById('use-reranker').checked = state.filters.rerank;
+            document.getElementById('expand-query').checked = state.filters.expandQuery;
+            document.getElementById('time-boost').checked = state.filters.timeBoost;
+            document.getElementById('show-json').checked = state.ui.showJson;
+
+            // Set numerical inputs from state
+            minScoreInput.value = state.filters.minScore;
+            limitInput.value = state.filters.limit;
+
+            // Set multi-selects from state
+            setMultiSelectValues('include-types', state.filters.includeTypes);
+            setMultiSelectValues('exclude-types', state.filters.excludeTypes);
+        }
+
+        // Helper to set multi-select values
+        function setMultiSelectValues(selectId, values) {
+            const select = document.getElementById(selectId);
+            if (!select) return;
+
+            Array.from(select.options).forEach(opt => {
+                opt.selected = values.includes(opt.value);
+            });
+        }
+
+        // Setup filter change listeners (listen for user changes and persist)
+        function setupFilterListeners() {
+            // Checkbox listeners
+            ['hybrid-search', 'use-reranker', 'expand-query', 'time-boost'].forEach(id => {
+                const element = document.getElementById(id);
+                if (!element) return;
+
+                element.addEventListener('change', (e) => {
+                    // Convert kebab-case to camelCase (e.g., 'hybrid-search' → 'hybrid')
+                    const key = id.replace('hybrid-search', 'hybrid')
+                        .replace('use-reranker', 'rerank')
+                        .replace('expand-query', 'expandQuery')
+                        .replace('time-boost', 'timeBoost');
+
+                    state.filters[key] = e.target.checked;
+                    saveFiltersForVault();  // Persist to current vault
+                });
+            });
+
+            // Number input listeners
+            if (minScoreInput) {
+                minScoreInput.addEventListener('change', (e) => {
+                    state.filters.minScore = parseFloat(e.target.value) || 0.3;
+                    saveFiltersForVault();
+                });
+            }
+
+            if (limitInput) {
+                limitInput.addEventListener('change', (e) => {
+                    state.filters.limit = parseInt(e.target.value) || 20;
+                    saveFiltersForVault();
+                });
+            }
+
+            // Multi-select listeners
+            ['include-types', 'exclude-types'].forEach(id => {
+                const element = document.getElementById(id);
+                if (!element) return;
+
+                element.addEventListener('change', (e) => {
+                    // Convert to camelCase
+                    const key = id === 'include-types' ? 'includeTypes' : 'excludeTypes';
+                    state.filters[key] = Array.from(e.target.selectedOptions).map(opt => opt.value);
+                    saveFiltersForVault();
+                });
+            });
         }
 
         // Load state on startup
@@ -1510,7 +1645,17 @@
         // Handle vault change
         function onVaultChange() {
             state.currentVault = vaultSelect.value;
+
+            // Load filters for new vault
+            loadFiltersForVault(state.currentVault);
+
+            // Update HTML to reflect new filter state
+            restoreFilterState();
+
+            // Persist vault selection
             saveState();
+
+            // Update vault info badges
             updateVaultInfo();
 
             // Update URL parameter (for shareable links)
@@ -1594,7 +1739,19 @@
 
         window.addEventListener('load', async () => {
             await fetchVaults();  // Load vault list first
+
+            // Load filters for current vault
+            loadFiltersForVault(state.currentVault);
+
+            // Restore UI state (panels, expanded results)
             restoreUIState();
+
+            // Restore filter state to HTML elements
+            restoreFilterState();
+
+            // Setup filter change listeners
+            setupFilterListeners();
+
             queryInput.focus();
         });
 
