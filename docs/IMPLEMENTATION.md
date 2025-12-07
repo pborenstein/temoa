@@ -1708,6 +1708,7 @@ After viewing actual iPhone screenshot, identified UI space issue and reorganize
 
 - [ ] 4.1: Chat Endpoint with Context
 - [ ] 4.2: Citation System
+- [ ] 4.3: Smart Query Suggestions (Phase 4+)
 
 ### Deliverables
 
@@ -1715,12 +1716,37 @@ After viewing actual iPhone screenshot, identified UI space issue and reorganize
 - [ ] Apantli integration
 - [ ] Citation system
 - [ ] Vault-first chat UI
+- [ ] Smart query-aware search mode suggestions
 
 ### Success Criteria
 
 - [ ] Vault-first becomes default research mode
 - [ ] LLM responses build on existing knowledge
 - [ ] Citations work reliably
+
+### Future Enhancement: Smart Query Suggestions
+
+**Context**: Real-world usage (Phase 3 production hardening) revealed that query expansion is often unhelpful for person names. Short queries < 3 words are frequently names, not topics needing expansion.
+
+**Examples**:
+- `"Philip Borenstein"` → Query expansion OFF, Hybrid search ON (BM25 helps with exact name matching)
+- `"AI"` → Query expansion ON (becomes "AI machine learning neural networks")
+- `"React hooks"` → Semantic search (concept-based understanding)
+
+**Proposed Feature** (Phase 4+):
+- Analyze query content before search
+- Suggest optimal search modes based on query patterns
+- Detection heuristics:
+  - **Person name**: Capitalized words, 2-3 tokens, not in technical vocabulary
+  - **Technical term**: Known framework/library names, acronyms
+  - **Topic**: General vocabulary, benefit from expansion
+- UI: Show suggestion chips (e.g., "This looks like a name. Try hybrid search?")
+- Smart defaults: Auto-apply suggested modes with user override
+
+**Implementation Notes**:
+- Use NLP patterns or simple heuristics (capitalization, length, vocabulary lists)
+- Store user preferences (learn from overrides)
+- Keep it lightweight (<50ms analysis time)
 
 ### Detailed Plan
 

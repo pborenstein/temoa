@@ -220,7 +220,7 @@ GET /search?q=<query>&limit=10&min_score=0.3&exclude_types=daily&vault=main
 | `include_types` | string | none | Comma-separated types to include |
 | `hybrid` | boolean | false | Use hybrid search (BM25 + semantic) |
 | `rerank` | boolean | true | Enable cross-encoder re-ranking |
-| `expand_query` | boolean | true | Auto-expand short queries (<3 words) |
+| `expand_query` | boolean | false | Auto-expand short queries (<3 words) using TF-IDF |
 | `time_boost` | boolean | true | Apply time-decay boost to recent docs |
 | `vault` | string | config | Vault name to search |
 

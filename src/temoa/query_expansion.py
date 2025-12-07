@@ -1,4 +1,16 @@
-"""Query expansion using pseudo-relevance feedback for better short query handling."""
+"""Query expansion using pseudo-relevance feedback for better short query handling.
+
+TODO (Phase 4+): Smart query-aware suggestions
+    Based on real-world usage, query expansion is often not useful for person names.
+    Future enhancement: Analyze query content and suggest search modes intelligently:
+    - If query looks like a person name → suggest hybrid search, disable expansion
+    - If query is short but not a name → suggest expansion
+    - If query contains technical terms → suggest semantic search
+    Examples:
+        "Philip Borenstein" → hybrid on, expansion off
+        "AI" → expansion on (gets "AI machine learning neural")
+        "React hooks" → semantic (concept-based)
+"""
 
 from typing import List, Dict, Any
 from sklearn.feature_extraction.text import TfidfVectorizer

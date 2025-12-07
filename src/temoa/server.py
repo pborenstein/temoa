@@ -524,8 +524,8 @@ async def search(
         description="Use cross-encoder re-ranking for better precision (~200ms)"
     ),
     expand_query: bool = Query(
-        default=True,
-        description="Expand short queries (<3 words) for better results"
+        default=False,
+        description="Expand short queries (<3 words) with TF-IDF terms"
     ),
     time_boost: bool = Query(
         default=True,
