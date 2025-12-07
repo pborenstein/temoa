@@ -2936,9 +2936,9 @@ style-conformance/
 - Name searches need exact matching (BM25 hybrid works better)
 - Expansion adds generic terms that dilute specificity
 
-### The Fix
+### The Fix (Two-Part)
 
-**Changed default from `True` to `False` in 3 places**:
+**Part 1: Changed default from `True` to `False` in 3 places** (commit 79aa611):
 ```python
 # CLI (src/temoa/cli.py:112)
 @click.option('--expand/--no-expand', 'expand_query',
@@ -2958,6 +2958,28 @@ expandQuery: false,  // was: true
 **Documentation updates**:
 - README.md API table: `expand_query | boolean | false`
 - Help text clarified: "default: disabled" (was "default: enabled")
+
+**Part 2: Removed HTML `checked` attribute** (commit b97310c):
+
+User correctly noted: "when I start a new session, expand checkbox is selected by default"
+
+**Root cause**: The HTML element had `checked` attribute that overrode JavaScript defaults:
+```html
+<!-- Before (line 934) -->
+<input type="checkbox" id="expand-query" checked>
+
+<!-- After -->
+<input type="checkbox" id="expand-query">
+```
+
+**Why Part 1 wasn't enough**:
+- Filter preferences are NOT persisted to localStorage (unlike UI state)
+- `loadState()` only restores: currentVault, searchHistory, UI prefs
+- Checkbox state is read directly from DOM: `expandQueryCheckbox.checked`
+- HTML `checked` attribute is the ONLY source of truth for initial state
+- JavaScript state default (`expandQuery: false`) was a red herring
+
+**Lesson**: In web UIs, HTML attributes trump JavaScript defaults when state isn't persisted.
 
 ### Future Enhancement: Smart Query Suggestions
 
@@ -3051,5 +3073,9 @@ tests/test_server.py::test_health_endpoint PASSED
 **Impact**: HIGH - Improves default search experience for common use case (name queries)
 **Duration**: <30 minutes (small targeted fix)
 **Branch**: `minor-tweaks`
-**Commits**: 79aa611
-**Files changed**: 6 (cli.py, server.py, search.html, query_expansion.py, IMPLEMENTATION.md, README.md)
+**Commits**:
+- 79aa611 - Part 1: Change defaults in CLI, server, and JavaScript state
+- b97310c - Part 2: Remove HTML checked attribute (actual fix after user caught bug)
+**Files changed**: 7 total
+- Part 1: cli.py, server.py, search.html (JS state), query_expansion.py, IMPLEMENTATION.md, README.md
+- Part 2: search.html (HTML attribute)

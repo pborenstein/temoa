@@ -1727,7 +1727,11 @@ After viewing actual iPhone screenshot, identified UI space issue and reorganize
 
 **Future Enhancement**: Smart query-aware suggestions (see Phase 4.3 below)
 
-**Commit**: 79aa611 - "fix: disable query expansion by default based on production usage"
+**Commits**:
+- 79aa611 - "fix: disable query expansion by default based on production usage"
+- b97310c - "fix: remove checked attribute from expand-query checkbox (actual fix)"
+
+**Note**: Two-part fix was needed. Part 1 changed defaults in code, but checkbox still appeared checked due to HTML `checked` attribute (not persisted in localStorage).
 
 ### Next Production Hardening Items
 
