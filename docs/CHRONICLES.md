@@ -61,6 +61,7 @@ The chronicles have been split into chapters for easier navigation:
 - Entry 32: Documentation Style Conformance
 - Entry 33: Production Hardening - Query Expansion Default Change
 - Entry 34: State Management Refactoring - Eliminating "Hodge Podge"
+- Entry 35: Unicode Surrogate Sanitization
 
 ---
 
@@ -128,6 +129,9 @@ The chronicles have been split into chapters for easier navigation:
 | DEC-074: Query persists after search | 31 | User feedback - query disappearing was annoying |
 | DEC-075: Query expansion opt-in | 33 | Real-world usage: short queries often names, not topics |
 | DEC-076: JavaScript state is single source of truth | 34 | Per-vault filter preferences, eliminate HTML/JS sync bugs |
+| DEC-077: Sanitize at endpoint level | 35 | Vault data unchanged on disk, only JSON output affected |
+| DEC-078: Use replacement character | 35 | Preserves text length/structure (� instead of drop/skip) |
+| DEC-079: Recursive sanitization | 35 | Catches surrogates in all nested structures |
 
 ---
 
@@ -152,5 +156,5 @@ The chronicles have been split into chapters for easier navigation:
 ---
 
 **Created**: 2025-11-18
-**Last Updated**: 2025-12-06
-**Total Entries**: 33
+**Last Updated**: 2025-12-08
+**Total Entries**: 35

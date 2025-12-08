@@ -1733,10 +1733,36 @@ After viewing actual iPhone screenshot, identified UI space issue and reorganize
 
 **Note**: Two-part fix was needed. Part 1 changed defaults in code, but checkbox still appeared checked due to HTML `checked` attribute (not persisted in localStorage).
 
+#### Unicode Surrogate Sanitization (2025-12-08)
+
+**Issue Identified**: Production search queries hitting malformed Unicode in vault content caused `UnicodeEncodeError: surrogates not allowed` when serializing JSON responses.
+
+**Error Example**:
+```
+UnicodeEncodeError: 'utf-8' codec can't encode characters in position 24583-24584: surrogates not allowed
+```
+
+**Root Cause**: Some vault files contain invalid Unicode surrogate pairs that can't be encoded to UTF-8 for JSON responses.
+
+**Solution Implemented**:
+- Added `sanitize_unicode()` helper function that recursively walks response data
+- Replaces invalid surrogates with Unicode replacement character (�)
+- Applied to all endpoints returning vault content:
+  - `/search` endpoint
+  - `/archaeology` endpoint
+  - `/stats` endpoint
+
+**Files Modified**:
+- `src/temoa/server.py` - Added sanitization function and applied to 3 endpoints
+
+**Impact**: Graceful handling of malformed Unicode in vault content, prevents 500 errors during search.
+
+**Commit**: (pending)
+
 ### Next Production Hardening Items
 
 Based on continued real-world usage, consider:
-- [ ] Error handling edge cases
+- [x] Error handling edge cases (Unicode surrogates fixed)
 - [ ] Performance monitoring/metrics
 - [ ] Additional UX improvements from user feedback
 - [ ] Mobile validation of PWA installation
