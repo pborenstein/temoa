@@ -2643,7 +2643,7 @@ document.addEventListener('keydown', (e) => {
 **Impact**: HIGH - Completes Phase 3, significant UX improvements
 **Duration**: ~2 hours
 **Branch**: `claude/phase-3-keyboard-history`
-**Commit**: TBD (pending)
+**Commit**: TBD 03d3468 - "fix: sanitize Unicode surrogates in JSON responses"
 
 ## Entry 32: Documentation Style Conformance (2025-12-03)
 
@@ -3541,7 +3541,7 @@ return JSONResponse(content=data)  # ✅ Success
 **Impact**: HIGH - Prevents production crashes from malformed vault content
 **Duration**: 15 minutes (diagnosis, implementation, testing)
 **Branch**: `minor-tweaks`
-**Commits**: (pending)
+**Commits**: 03d3468 - "fix: sanitize Unicode surrogates in JSON responses"
 **Files changed**: 1 (src/temoa/server.py)
 **Lines added**: ~30 (sanitization function + 3 applications)
 **Decision IDs**: DEC-077, DEC-078, DEC-079

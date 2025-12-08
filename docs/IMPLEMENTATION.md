@@ -1757,7 +1757,7 @@ UnicodeEncodeError: 'utf-8' codec can't encode characters in position 24583-2458
 
 **Impact**: Graceful handling of malformed Unicode in vault content, prevents 500 errors during search.
 
-**Commit**: (pending)
+**Commit**: 03d3468 - "fix: sanitize Unicode surrogates in JSON responses"
 
 ### Next Production Hardening Items
 
