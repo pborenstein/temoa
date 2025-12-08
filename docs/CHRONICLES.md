@@ -43,8 +43,8 @@ The chronicles have been split into chapters for easier navigation:
 - Entry 18: Management Page - Centralizing Vault Operations
 - Entry 19: Incremental Reindexing - 30x Speedup for Daily Use
 
-### [Phase 3: Enhanced Features](chronicles/phase-3-enhanced-features.md) ✅ COMPLETE
-**Entries 20-33** | Technical Debt, Search Quality, UX Polish, and Production Hardening
+### [Phase 3: Implementation](chronicles/phase-3-implementation.md) ✅ COMPLETE
+**Entries 20-32** | Technical Debt, Search Quality, and UX Polish
 
 - Entry 20: Multi-Vault Support - Preventing Data Loss
 - Entry 21: Multi-Vault Webapp UI
@@ -59,6 +59,10 @@ The chronicles have been split into chapters for easier navigation:
 - Entry 30: Mobile UI Refinement - Checkbox Reorganization
 - Entry 31: Search History and Keyboard Shortcuts - Phase 3 Complete
 - Entry 32: Documentation Style Conformance
+
+### [Production Hardening](chronicles/production-hardening.md) 🔵 ONGOING
+**Entries 33-35+** | Real-World Usage Fixes
+
 - Entry 33: Production Hardening - Query Expansion Default Change
 - Entry 34: State Management Refactoring - Eliminating "Hodge Podge"
 - Entry 35: Unicode Surrogate Sanitization
