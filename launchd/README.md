@@ -68,7 +68,7 @@ rm ~/Library/LaunchAgents/dev.$(whoami).temoa.plist
 Use `dev.sh` to run Temoa with auto-reload during development:
 
 ```bash
-./launchd/dev.sh
+./dev.sh
 ```
 
 This script:
@@ -82,9 +82,9 @@ This script:
 ### Using Helper Script
 
 ```bash
-./launchd/view-logs.sh          # Both stdout and stderr
-./launchd/view-logs.sh stderr   # Errors only
-./launchd/view-logs.sh stdout   # Output only
+./view-logs.sh          # Both stdout and stderr
+./view-logs.sh stderr   # Errors only
+./view-logs.sh stdout   # Output only
 ```
 
 ### Manual Log Access

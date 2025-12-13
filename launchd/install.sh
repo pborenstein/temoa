@@ -87,7 +87,7 @@ fi
 
 echo
 echo -e "${BLUE}View logs:${NC}"
-echo "  $PROJECT_DIR/launchd/view-logs.sh"
+echo "  $PROJECT_DIR/view-logs.sh"
 echo
 echo -e "${BLUE}Manage service:${NC}"
 echo "  Stop:    launchctl unload ~/Library/LaunchAgents/dev.$USERNAME.temoa.plist"
