@@ -7,9 +7,9 @@
 **Project**: Temoa - Local Semantic Search Server for Obsidian Vault
 **Created**: 2025-11-18
 **Status**: Phase 3 ✅ COMPLETE → Production Hardening 🔵 ONGOING
-**Last Updated**: 2025-12-06
+**Last Updated**: 2025-12-13
 **Current Version**: 0.6.0
-**Current Branch**: `minor-tweaks`
+**Current Branch**: `main`
 **Estimated Timeline**: 4-6 weeks for Phases 0-2, ongoing for Phases 3-4
 
 ---
@@ -1759,10 +1759,51 @@ UnicodeEncodeError: 'utf-8' codec can't encode characters in position 24583-2458
 
 **Commit**: 03d3468 - "fix: sanitize Unicode surrogates in JSON responses"
 
+#### launchd Service Management (2025-12-13)
+
+**Goal**: Add production-ready macOS service management following the apantli pattern
+
+**Implementation**:
+- Created `launchd/` directory with service management files:
+  - `temoa.plist.template` - Service configuration (port 4001, auto-start, auto-restart)
+  - `install.sh` - Automated installation script
+  - `README.md` - Comprehensive documentation
+- Created helper scripts in project root (matching apantli pattern):
+  - `dev.sh` - Development mode (stops service, runs with --reload using uv)
+  - `view-logs.sh` - Log viewer utility
+- Updated `docs/DEPLOYMENT.md` with macOS deployment section
+
+**Key Features**:
+- Auto-start on login (RunAtLoad: true)
+- Auto-restart on crash (KeepAlive: true)
+- Port 4001 (pairs with apantli on 4000)
+- Accessible on LAN/Tailscale (host: 0.0.0.0)
+- Centralized logging (`~/Library/Logs/temoa.log`)
+- Service naming: `dev.{username}.temoa`
+
+**Files Created**:
+- `launchd/temoa.plist.template`
+- `launchd/install.sh`
+- `launchd/README.md`
+- `dev.sh` (root)
+- `view-logs.sh` (root)
+
+**Installation**: `./launchd/install.sh`
+
+**Pattern Matching**: Closely follows apantli's proven launchd service pattern for consistency across related projects.
+
+**Commits**:
+- 1e663a7 - "feat: add launchd service management for macOS"
+- 9e9bfe6 - "fix: add port conflict handling to dev.sh"
+- 379ae34 - "fix: move dev.sh and view-logs.sh to root, match apantli pattern"
+
+**Note**: Initial implementation had scripts in `launchd/` subdirectory and complex port checking logic. Fixed to match apantli's simpler pattern with scripts in project root and using uv for command execution.
+
 ### Next Production Hardening Items
 
 Based on continued real-world usage, consider:
 - [x] Error handling edge cases (Unicode surrogates fixed)
+- [x] macOS deployment automation (launchd service management)
 - [ ] Performance monitoring/metrics
 - [ ] Additional UX improvements from user feedback
 - [ ] Mobile validation of PWA installation

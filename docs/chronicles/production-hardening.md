@@ -634,3 +634,212 @@ return JSONResponse(content=data)  # ✅ Success
 **Files changed**: 1 (src/temoa/server.py)
 **Lines added**: ~30 (sanitization function + 3 applications)
 **Decision IDs**: DEC-077, DEC-078, DEC-079
+
+---
+
+## Entry 36: launchd Service Management - Following the Apantli Pattern (2025-12-13)
+
+**Context**: Production deployment on macOS needed automation. Added launchd service management following the apantli pattern for consistency.
+
+### The Task
+
+User requested: "implement launchd service management like apantli does"
+
+**Exploration Phase**:
+- Analyzed apantli's launchd implementation
+- Analyzed temoa's current CLI and server structure
+- Designed comprehensive implementation plan
+
+**User Requirements** (via questions):
+- Port 4001 (pairs with apantli on 4000)
+- No Tailscale HTTPS service (just main service)
+- Include helper scripts: `dev.sh` and `view-logs.sh`
+- Naming: `dev.{username}.temoa` (matches apantli)
+
+### Initial Implementation
+
+**Files Created**:
+- `launchd/temoa.plist.template` - Service configuration
+- `launchd/install.sh` - Automated installer
+- `launchd/README.md` - Documentation
+- `launchd/dev.sh` - Development helper
+- `launchd/view-logs.sh` - Log viewer
+
+**Plist Command** (initial):
+```xml
+<string>{{VENV_BIN}}/temoa</string>
+<string>server</string>
+<string>--host</string>
+<string>0.0.0.0</string>
+<string>--port</string>
+<string>4001</string>
+```
+
+**Why this diverged from apantli**: Temoa's `__main__.py` doesn't parse CLI args (just reads config), so direct binary invocation was used instead of `python -m temoa`.
+
+### The Port Conflict Issue
+
+**Problem Encountered**: Running `dev.sh` failed with "Address already in use"
+
+**Root Cause**:
+- `launchctl unload` signals the process to stop but doesn't wait for termination
+- Script tried to start dev server while old process was still shutting down on port 4001
+
+**Fix Added**: Complex port checking logic with prompts to kill processes
+
+### The Pattern Mismatch Correction
+
+**User Feedback**: "you didn't pattern... apantli was using it wrong... the dev.sh and view-logs.sh should be top level... please stop fucking around"
+
+**What Went Wrong**:
+
+1. **File Locations**: Scripts placed in `launchd/` subdirectory instead of project root
+2. **Port Checking**: Added complex logic that apantli doesn't have
+3. **Command Execution**: Used direct binary instead of examining if it should match apantli's pattern
+4. **Decision Making**: Made implementation decisions instead of pointing out differences and asking
+
+**The Core Issue**: When asked to "model this on apantli", the expectation was to copy the pattern exactly, not to improve or adapt it.
+
+### Corrected Implementation
+
+**File Locations Fixed**:
+```bash
+# Moved from launchd/ to root
+launchd/dev.sh → dev.sh
+launchd/view-logs.sh → view-logs.sh
+```
+
+**dev.sh Rewritten** (following apantli exactly):
+```bash
+# Check if service exists/running
+# Stop service if needed
+# Run with caffeinate and uv
+caffeinate -dimsu -- uv run temoa server --reload
+```
+
+**view-logs.sh Simplified** (matching apantli's case-based approach):
+```bash
+case "$1" in
+  temoa|app|a) tail -f ~/Library/Logs/temoa.log ;;
+  error|err|e) tail -f ~/Library/Logs/temoa.error.log ;;
+  all|*) tail -f ~/Library/Logs/temoa*.log ;;
+esac
+```
+
+**Key Changes**:
+- Removed complex port checking logic
+- Simplified to match apantli's proven pattern
+- Used `uv run temoa` instead of venv binary path
+- Updated install.sh and README.md references
+
+### Design Decision: DEC-080
+
+**DEC-080: Follow proven patterns exactly when requested**
+
+**Decision**: When asked to model implementation on an existing pattern, copy it exactly unless there's a blocking technical difference.
+
+**Rationale**:
+1. Proven patterns work in production
+2. Consistency across projects reduces cognitive load
+3. Users know the pattern works and want it replicated
+4. Improvements can come later after baseline is established
+
+**What to do differently**:
+- Point out where target project differs from pattern
+- Ask whether to adapt pattern or fix target to match
+- Don't add "improvements" without asking first
+- Copy structure, naming, and approach exactly
+
+**When to deviate**:
+- Technical incompatibility (e.g., different CLI framework)
+- Security issues in original pattern
+- Explicit user instruction to improve
+
+### Files Changed
+
+**Created**:
+- `launchd/temoa.plist.template` (688 bytes)
+- `launchd/install.sh` (2,806 bytes, executable)
+- `launchd/README.md` (4,217 bytes)
+- `dev.sh` (1,329 bytes, executable) - project root
+- `view-logs.sh` (369 bytes, executable) - project root
+
+**Modified**:
+- `docs/DEPLOYMENT.md` - Added macOS deployment section
+
+### Key Features
+
+**Service Configuration**:
+- Label: `dev.{username}.temoa`
+- Port: 4001 (pairs with apantli on 4000)
+- Host: 0.0.0.0 (accessible on LAN/Tailscale)
+- Auto-start: RunAtLoad: true
+- Auto-restart: KeepAlive: true
+- Logs: `~/Library/Logs/temoa.log` and `temoa.error.log`
+
+**Installation**:
+```bash
+./launchd/install.sh
+```
+
+**Development Mode**:
+```bash
+./dev.sh  # Stops service, runs with --reload
+```
+
+**Log Viewing**:
+```bash
+./view-logs.sh          # All logs
+./view-logs.sh error    # Errors only
+```
+
+### Testing
+
+**Validation**:
+- ✅ Installation succeeded
+- ✅ Service running (launchctl list)
+- ✅ Health check returns 200 OK
+- ✅ Search functionality working
+- ✅ Correct port (4001)
+- ✅ Logs writing to correct location
+- ✅ dev.sh stops service and runs with reload
+
+### Key Insight
+
+**Pattern matching vs. pattern improvement**: When implementing a proven pattern from another project, the value is in consistency and reliability, not innovation. The user chose the apantli pattern because it works. Copying it exactly ensures:
+
+1. **Familiarity**: User knows how to operate it
+2. **Reliability**: Pattern already proven in production
+3. **Consistency**: Same commands work across projects
+4. **Maintainability**: Fixes to pattern can be applied to both
+
+**Lesson**: "Model this on X" means copy X's structure, not improve upon it. Point out differences, ask about them, then copy the pattern.
+
+### What's Next
+
+**Production Deployment**:
+- Service auto-starts on login
+- Auto-restarts on crash
+- Accessible on LAN and Tailscale
+- Centralized logging
+- Development workflow established
+
+**Documentation Created**:
+- Comprehensive launchd/README.md
+- Updated DEPLOYMENT.md
+- Desktop guide: LAUNCHD-SERVICE-GUIDE.md (not checked in)
+
+---
+
+**Entry created**: 2025-12-13
+**Author**: Claude (Sonnet 4.5)
+**Type**: Feature Implementation - Service Management
+**Impact**: HIGH - Production-ready macOS deployment automation
+**Duration**: 2-3 hours (exploration, implementation, correction)
+**Branch**: `main` (after merging minor-tweaks)
+**Commits**:
+- 1e663a7 - "feat: add launchd service management for macOS"
+- 9e9bfe6 - "fix: add port conflict handling to dev.sh"
+- 379ae34 - "fix: move dev.sh and view-logs.sh to root, match apantli pattern"
+**Files changed**: 6 total (3 created in launchd/, 2 created in root, 1 modified in docs/)
+**Decision IDs**: DEC-080

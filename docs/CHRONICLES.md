@@ -61,11 +61,12 @@ The chronicles have been split into chapters for easier navigation:
 - Entry 32: Documentation Style Conformance
 
 ### [Production Hardening](chronicles/production-hardening.md) 🔵 ONGOING
-**Entries 33-35+** | Real-World Usage Fixes
+**Entries 33-36+** | Real-World Usage Fixes
 
 - Entry 33: Production Hardening - Query Expansion Default Change
 - Entry 34: State Management Refactoring - Eliminating "Hodge Podge"
 - Entry 35: Unicode Surrogate Sanitization
+- Entry 36: launchd Service Management - Following the Apantli Pattern
 
 ---
 
@@ -136,6 +137,7 @@ The chronicles have been split into chapters for easier navigation:
 | DEC-077: Sanitize at endpoint level | 35 | Vault data unchanged on disk, only JSON output affected |
 | DEC-078: Use replacement character | 35 | Preserves text length/structure (� instead of drop/skip) |
 | DEC-079: Recursive sanitization | 35 | Catches surrogates in all nested structures |
+| DEC-080: Follow proven patterns exactly | 36 | When modeling on existing pattern, copy exactly unless blocking issue |
 
 ---
 
@@ -160,5 +162,5 @@ The chronicles have been split into chapters for easier navigation:
 ---
 
 **Created**: 2025-11-18
-**Last Updated**: 2025-12-08
-**Total Entries**: 35
+**Last Updated**: 2025-12-13
+**Total Entries**: 36
