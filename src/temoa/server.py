@@ -33,6 +33,26 @@ except ImportError as e:
     GleaningsExtractor = None
 
 
+def sanitize_unicode(obj):
+    """
+    Recursively sanitize Unicode surrogates in strings.
+
+    Replaces invalid surrogate pairs with replacement character.
+    This prevents UnicodeEncodeError when serializing to JSON.
+    """
+    if isinstance(obj, str):
+        # Replace surrogates with Unicode replacement character
+        return obj.encode('utf-8', errors='replace').decode('utf-8')
+    elif isinstance(obj, dict):
+        return {k: sanitize_unicode(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [sanitize_unicode(item) for item in obj]
+    elif isinstance(obj, tuple):
+        return tuple(sanitize_unicode(item) for item in obj)
+    else:
+        return obj
+
+
 # Lifespan context manager for startup/shutdown
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -524,8 +544,8 @@ async def search(
         description="Use cross-encoder re-ranking for better precision (~200ms)"
     ),
     expand_query: bool = Query(
-        default=True,
-        description="Expand short queries (<3 words) for better results"
+        default=False,
+        description="Expand short queries (<3 words) with TF-IDF terms"
     ),
     time_boost: bool = Query(
         default=True,
@@ -707,6 +727,9 @@ async def search(
             "path": str(vault_path)
         }
 
+        # Sanitize Unicode surrogates before JSON encoding
+        data = sanitize_unicode(data)
+
         return JSONResponse(content=data)
 
     except SynthesisError as e:
@@ -783,6 +806,9 @@ async def archaeology(
             "path": str(vault_path)
         }
 
+        # Sanitize Unicode surrogates before JSON encoding
+        data = sanitize_unicode(data)
+
         return JSONResponse(content=data)
 
     except SynthesisError as e:
@@ -831,6 +857,9 @@ async def stats(
             "name": vault_name,
             "path": str(vault_path)
         }
+
+        # Sanitize Unicode surrogates before JSON encoding
+        data = sanitize_unicode(data)
 
         return JSONResponse(content=data)
 

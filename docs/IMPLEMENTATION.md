@@ -6,9 +6,10 @@
 
 **Project**: Temoa - Local Semantic Search Server for Obsidian Vault
 **Created**: 2025-11-18
-**Status**: Phase 3 ✅ COMPLETE
-**Last Updated**: 2025-12-03
+**Status**: Phase 3 ✅ COMPLETE → Production Hardening 🔵 ONGOING
+**Last Updated**: 2025-12-06
 **Current Version**: 0.6.0
+**Current Branch**: `minor-tweaks`
 **Estimated Timeline**: 4-6 weeks for Phases 0-2, ongoing for Phases 3-4
 
 ---
@@ -1698,6 +1699,77 @@ After viewing actual iPhone screenshot, identified UI space issue and reorganize
 
 ---
 
+## Production Hardening (Post-Phase 3) 🔵
+
+**Status**: ONGOING (started 2025-12-06)
+**Goal**: Polish and optimize based on real-world usage feedback
+**Branch**: `minor-tweaks`
+
+### Completed Work
+
+#### Query Expansion Default Change (2025-12-06)
+
+**Issue Identified**: Real-world usage showed query expansion (enabled by default) was unhelpful for person names. Short queries (<3 words) are often names, not topics that benefit from TF-IDF expansion.
+
+**Changes Made**:
+- Changed `expand_query` default from `True` to `False` in:
+  - CLI (`--expand/--no-expand` flag)
+  - Server API (`/search` endpoint)
+  - Web UI (expansion checkbox)
+- Updated API documentation in README.md
+- Added TODO in `src/temoa/query_expansion.py` for future smart suggestions
+- Added Phase 4+ task "Smart Query Suggestions" to Phase 4 plan
+
+**Rationale**:
+- Person names ("Philip Borenstein") are common short queries → expansion adds noise
+- Hybrid search works better for exact name matching (BM25 component)
+- Keep expansion as opt-in feature for topical queries
+
+**Future Enhancement**: Smart query-aware suggestions (see Phase 4.3 below)
+
+**Commits**:
+- 79aa611 - "fix: disable query expansion by default based on production usage"
+- b97310c - "fix: remove checked attribute from expand-query checkbox (actual fix)"
+
+**Note**: Two-part fix was needed. Part 1 changed defaults in code, but checkbox still appeared checked due to HTML `checked` attribute (not persisted in localStorage).
+
+#### Unicode Surrogate Sanitization (2025-12-08)
+
+**Issue Identified**: Production search queries hitting malformed Unicode in vault content caused `UnicodeEncodeError: surrogates not allowed` when serializing JSON responses.
+
+**Error Example**:
+```
+UnicodeEncodeError: 'utf-8' codec can't encode characters in position 24583-24584: surrogates not allowed
+```
+
+**Root Cause**: Some vault files contain invalid Unicode surrogate pairs that can't be encoded to UTF-8 for JSON responses.
+
+**Solution Implemented**:
+- Added `sanitize_unicode()` helper function that recursively walks response data
+- Replaces invalid surrogates with Unicode replacement character (�)
+- Applied to all endpoints returning vault content:
+  - `/search` endpoint
+  - `/archaeology` endpoint
+  - `/stats` endpoint
+
+**Files Modified**:
+- `src/temoa/server.py` - Added sanitization function and applied to 3 endpoints
+
+**Impact**: Graceful handling of malformed Unicode in vault content, prevents 500 errors during search.
+
+**Commit**: 03d3468 - "fix: sanitize Unicode surrogates in JSON responses"
+
+### Next Production Hardening Items
+
+Based on continued real-world usage, consider:
+- [x] Error handling edge cases (Unicode surrogates fixed)
+- [ ] Performance monitoring/metrics
+- [ ] Additional UX improvements from user feedback
+- [ ] Mobile validation of PWA installation
+- [ ] More comprehensive testing
+
+---
+
 ## Phase 4: Vault-First LLM ⚪
 
 **Status**: Future
@@ -1708,6 +1780,7 @@ After viewing actual iPhone screenshot, identified UI space issue and reorganize
 
 - [ ] 4.1: Chat Endpoint with Context
 - [ ] 4.2: Citation System
+- [ ] 4.3: Smart Query Suggestions (Phase 4+)
 
 ### Deliverables
 
@@ -1715,12 +1788,37 @@ After viewing actual iPhone screenshot, identified UI space issue and reorganize
 - [ ] Apantli integration
 - [ ] Citation system
 - [ ] Vault-first chat UI
+- [ ] Smart query-aware search mode suggestions
 
 ### Success Criteria
 
 - [ ] Vault-first becomes default research mode
 - [ ] LLM responses build on existing knowledge
 - [ ] Citations work reliably
+
+### Future Enhancement: Smart Query Suggestions
+
+**Context**: Real-world usage (Phase 3 production hardening) revealed that query expansion is often unhelpful for person names. Short queries < 3 words are frequently names, not topics needing expansion.
+
+**Examples**:
+- `"Philip Borenstein"` → Query expansion OFF, Hybrid search ON (BM25 helps with exact name matching)
+- `"AI"` → Query expansion ON (becomes "AI machine learning neural networks")
+- `"React hooks"` → Semantic search (concept-based understanding)
+
+**Proposed Feature** (Phase 4+):
+- Analyze query content before search
+- Suggest optimal search modes based on query patterns
+- Detection heuristics:
+  - **Person name**: Capitalized words, 2-3 tokens, not in technical vocabulary
+  - **Technical term**: Known framework/library names, acronyms
+  - **Topic**: General vocabulary, benefit from expansion
+- UI: Show suggestion chips (e.g., "This looks like a name. Try hybrid search?")
+- Smart defaults: Auto-apply suggested modes with user override
+
+**Implementation Notes**:
+- Use NLP patterns or simple heuristics (capitalization, length, vocabulary lists)
+- Store user preferences (learn from overrides)
+- Keep it lightweight (<50ms analysis time)
 
 ### Detailed Plan
 

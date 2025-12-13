@@ -109,7 +109,7 @@ def server(host, port, reload, log_level):
 @click.option('--exclude-type', '-x', 'exclude_types', default='daily', help='Exclude these types (comma-separated, default: "daily")')
 @click.option('--hybrid', is_flag=True, default=None, help='Use hybrid search (BM25 + semantic)')
 @click.option('--rerank/--no-rerank', default=True, help='Use cross-encoder re-ranking for better precision (default: enabled)')
-@click.option('--expand/--no-expand', 'expand_query', default=True, help='Expand short queries (<3 words) for better results (default: enabled)')
+@click.option('--expand/--no-expand', 'expand_query', default=False, help='Expand short queries (<3 words) with TF-IDF terms (default: disabled)')
 @click.option('--time-boost/--no-time-boost', 'time_boost', default=True, help='Boost recent documents with time-decay scoring (default: enabled)')
 @click.option('--bm25-only', is_flag=True, help='Use BM25 keyword search only (for debugging)')
 @click.option('--model', '-m', default=None, help='Embedding model to use')
