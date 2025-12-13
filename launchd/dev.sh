@@ -20,9 +20,36 @@ echo ""
 if launchctl list | grep -q "$SERVICE_LABEL"; then
     echo -e "${YELLOW}Stopping launchd service...${NC}"
     launchctl unload "$PLIST_FILE"
+
+    # Wait for port to be free (max 5 seconds)
+    for i in {1..10}; do
+        if ! lsof -i :4001 >/dev/null 2>&1; then
+            break
+        fi
+        sleep 0.5
+    done
+
     echo "Service stopped"
 else
     echo "Launchd service not running"
+fi
+
+# Final check: if port is still in use, show error
+if lsof -i :4001 >/dev/null 2>&1; then
+    echo -e "${YELLOW}Warning: Port 4001 still in use${NC}"
+    echo "Process using port 4001:"
+    lsof -i :4001
+    echo ""
+    read -p "Kill the process and continue? (y/N): " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        PID=$(lsof -ti :4001)
+        kill -9 $PID
+        sleep 1
+    else
+        echo "Exiting..."
+        exit 1
+    fi
 fi
 
 echo ""
