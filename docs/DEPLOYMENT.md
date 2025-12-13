@@ -217,6 +217,51 @@ Use `--reload` flag for auto-reload during development:
 temoa server --reload
 ```
 
+### System Service (macOS)
+
+For production deployment on macOS with auto-start and auto-restart:
+
+```bash
+# Install launchd service
+./launchd/install.sh
+
+# Access at http://localhost:4001
+```
+
+**Features**:
+
+- **Auto-start**: Service starts on login
+- **Auto-restart**: Automatic recovery from crashes
+- **Log management**: Centralized logs in `~/Library/Logs/`
+- **Development mode**: Helper scripts for dev workflow
+
+**Service management**:
+
+```bash
+# Status
+launchctl list | grep temoa
+
+# Stop/start
+launchctl stop dev.$(whoami).temoa
+launchctl start dev.$(whoami).temoa
+
+# Uninstall
+launchctl unload ~/Library/LaunchAgents/dev.$(whoami).temoa.plist
+rm ~/Library/LaunchAgents/dev.$(whoami).temoa.plist
+```
+
+**Development workflow**:
+
+```bash
+# Run with auto-reload
+./launchd/dev.sh
+
+# View logs
+./launchd/view-logs.sh
+```
+
+See [launchd/README.md](../launchd/README.md) for complete documentation.
+
 ### System Service (Linux)
 
 For always-on Linux servers:
