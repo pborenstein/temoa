@@ -69,6 +69,7 @@ def server(host, port, reload, log_level):
 
     Use Tailscale to access from mobile devices.
     """
+    import socket
     from .config import Config
 
     config = Config()
@@ -76,6 +77,40 @@ def server(host, port, reload, log_level):
     # Override config with CLI options if provided
     server_host = host or config.server_host
     server_port = port or config.server_port
+
+    # Get network interface addresses (same approach as Apantli)
+    addresses = []
+    try:
+        import netifaces
+        
+        # Add localhost
+        addresses.append("localhost")
+        
+        # Get all network interfaces and their addresses
+        for interface in netifaces.interfaces():
+            addrs = netifaces.ifaddresses(interface)
+            # Get IPv4 addresses (AF_INET = 2)
+            if netifaces.AF_INET in addrs:
+                for addr_info in addrs[netifaces.AF_INET]:
+                    ip = addr_info.get('addr')
+                    # Skip localhost IPs
+                    if ip and ip != '127.0.0.1':
+                        addresses.append(ip)
+    except Exception:
+        # Fallback to getaddrinfo if netifaces fails
+        try:
+            addrs = socket.getaddrinfo(socket.gethostname(), None)
+            for addr in addrs:
+                if addr[0] == socket.AF_INET:
+                    ip = addr[4][0]
+                    if ip != "127.0.0.1":
+                        addresses.append(ip)
+        except Exception:
+            pass
+    
+    # Ensure we always have at least localhost
+    if not addresses:
+        addresses = ["localhost"]
 
     # Configure logging format with timestamps
     log_config = uvicorn.config.LOGGING_CONFIG
@@ -86,9 +121,10 @@ def server(host, port, reload, log_level):
     log_config["formatters"]["access"]["fmt"] = '%(asctime)s %(levelprefix)s %(client_addr)s - "%(request_line)s" %(status_code)s'
     log_config["formatters"]["access"]["datefmt"] = '%Y-%m-%d %H:%M:%S'
 
-    click.echo(f"Starting Temoa server on {server_host}:{server_port}")
-    click.echo(f"Web UI: http://{server_host}:{server_port}/")
-    click.echo(f"API docs: http://{server_host}:{server_port}/docs")
+    # Display startup message with all addresses
+    click.echo("🚀 Temoa server starting...")
+    addr_str = " or ".join([f"http://{addr}:{server_port}/" for addr in addresses])
+    click.echo(f"   Server at {addr_str}")
     click.echo("")
 
     uvicorn.run(
