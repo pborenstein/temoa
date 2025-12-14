@@ -7,7 +7,7 @@
 **Project**: Temoa - Local Semantic Search Server for Obsidian Vault
 **Created**: 2025-11-18
 **Status**: Phase 3 ✅ COMPLETE → Production Hardening 🔵 ONGOING
-**Last Updated**: 2025-12-13
+**Last Updated**: 2025-12-14
 **Current Version**: 0.6.0
 **Current Branch**: `main`
 **Estimated Timeline**: 4-6 weeks for Phases 0-2, ongoing for Phases 3-4
@@ -1832,7 +1832,64 @@ UnicodeEncodeError: 'utf-8' codec can't encode characters in position 24583-2458
 **Extensibility**: Easy to add normalizers for YouTube, Reddit, etc. in future.
 
 **Commits**:
-- [commit hash] - "feat: add URL normalization system for gleanings"
+- a8a152a - "feat: add URL normalization system for gleanings"
+
+#### Frontmatter-Aware Search (2025-12-14)
+
+**Goal**: Leverage curated frontmatter metadata (tags, description) to improve search relevance
+
+**Problem**: Tags and descriptions are user-curated metadata but weren't influencing search results. Documents with perfect tag matches were often buried in results.
+
+**Investigation**: Two-phase approach
+- Phase 1: Semantic embedding concatenation → <5% improvement (ineffective)
+- Phase 2: BM25 tag boosting → 100% success for tag queries
+
+**Implementation**:
+
+**BM25 Tag Boosting** (`src/temoa/bm25_index.py`):
+- Include tags in indexed text (repeated 2x for term frequency)
+- Apply 5x score multiplier when query tokens match document tags
+- Track matched tags in search results
+
+**Hybrid Search RRF Boost** (`src/temoa/synthesis.py`):
+- Aggressive boost (1.5-2.0x max_rrf) for tag-matched results
+- Fixes issue where RRF averaging buried exact tag matches
+- Mark tag-boosted results to prevent downstream re-scoring
+
+**Critical Bugs Fixed**:
+- Time-aware scoring now detects hybrid mode and boosts `rrf_score` instead of `similarity_score`
+- Cross-encoder reranking skipped when tag boosts present (exact matches don't need re-evaluation)
+- Type filtering now infers `type: none` for files without `type:` field, `type: gleaning` for `gleaning_id`
+
+**Description Field Integration**:
+- Added to BM25 index (repeated 2x, similar weight to tags)
+- Prepended to semantic embeddings for positional weight
+- Ready to leverage when descriptions are present in frontmatter
+
+**Results**:
+- Tag queries have 100% success rate for documents with matching tags
+- "zettelkasten books" → Book tagged [zettelkasten, book] ranks #1 (was buried before)
+- No performance degradation (~400-1000ms search times maintained)
+
+**Files Modified**:
+- `src/temoa/bm25_index.py` - Tag and description in index, tag boosting
+- `src/temoa/synthesis.py` - Aggressive RRF boost for tag matches
+- `src/temoa/time_scoring.py` - Hybrid mode detection, RRF score boosting
+- `src/temoa/cli.py` - Skip reranking when tag boosts present
+- `src/temoa/server.py` - Type inference system
+- `synthesis/src/embeddings/vault_reader.py` - Description prepending
+
+**Test Data Created**:
+- `test-vault/test_queries.json` - 8 validation queries
+- `test-vault/run_baseline.sh`, `run_hybrid_test.sh` - Test scripts
+- `test-vault/BM25_TAG_BOOSTING_RESULTS.md` - Phase 2 results
+- `test-vault/FRONTMATTER_EXPERIMENT_RESULTS.md` - Phase 1 baseline
+
+**Commits**:
+- d39462f - "Add tag-aware search boosting for hybrid search"
+- f0a88ee - "Include description field in search indexing"
+
+**PR**: #40
 
 ### Next Production Hardening Items
 
