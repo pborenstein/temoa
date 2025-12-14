@@ -44,11 +44,21 @@ class Config:
         Raises:
             ConfigError: If no config file found
         """
+        import os
+
         # If explicit path provided, use it
         if config_path:
             if config_path.exists():
                 return config_path
             raise ConfigError(f"Specified config file not found: {config_path}")
+
+        # Check environment variable
+        env_path = os.getenv("TEMOA_CONFIG_PATH")
+        if env_path:
+            env_config = Path(env_path)
+            if env_config.exists():
+                return env_config
+            raise ConfigError(f"TEMOA_CONFIG_PATH file not found: {env_config}")
 
         # Search standard locations (global config only - not vault-local)
         search_paths = [
@@ -133,10 +143,45 @@ class Config:
         # Only validate vault_path and synthesis_path exist
         # (index_path will be created if needed)
         if name in ["vault_path", "synthesis_path"] and not expanded.exists():
-            raise ConfigError(
-                f"{name} does not exist: {expanded}\n"
-                f"Please update {self.config_path} with correct path"
-            )
+            # Build helpful error message
+            error_msg = [
+                f"Configuration error: {name} path does not exist",
+                f"",
+                f"  Configured: {path}",
+                f"  Expands to: {expanded}",
+                f"",
+                f"This path was not found on your system.",
+                f"",
+                f"Possible causes:",
+                f"  • The project was moved to a different location",
+                f"  • The path in your config is outdated",
+                f"  • A typo in the path",
+                f"",
+                f"To fix this:",
+                f"  1. Find the correct path to your {name.replace('_', ' ')}",
+                f"  2. Edit {self.config_path}",
+                f"  3. Update the '{name}' field with the correct path",
+            ]
+
+            # Check for similar paths that might exist
+            parent = expanded.parent
+            if parent.exists():
+                # Look for directories with similar names
+                similar = []
+                target_name = expanded.name.lower()
+                for item in parent.iterdir():
+                    if item.is_dir() and target_name in item.name.lower():
+                        similar.append(str(item))
+
+                if similar:
+                    error_msg.extend([
+                        f"",
+                        f"Found similar paths in {parent}:",
+                    ])
+                    for s in similar[:5]:  # Limit to 5 suggestions
+                        error_msg.append(f"  • {s}")
+
+            raise ConfigError("\n".join(error_msg))
 
         return expanded
 
