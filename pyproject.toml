@@ -21,6 +21,7 @@ dependencies = [
     # Frontmatter parsing for type filtering
     "python-frontmatter>=1.0.0",
     "netifaces>=0.11.0",
+    "nahuatl-frontmatter",
 ]
 
 [project.scripts]
@@ -28,6 +29,9 @@ temoa = "temoa.cli:main"
 
 [tool.uv]
 package = true
+
+[tool.uv.sources]
+nahuatl-frontmatter = { path = "../nahuatl-frontmatter" }
 
 [project.optional-dependencies]
 dev = [

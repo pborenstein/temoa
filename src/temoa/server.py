@@ -298,10 +298,9 @@ def filter_by_type(
                 continue
 
             try:
-                import frontmatter
-                with open(file_path, "r", encoding="utf-8") as f:
-                    post = frontmatter.load(f)
-                    types = parse_type_field(post.metadata)
+                from nahuatl_frontmatter import parse_file
+                metadata, _ = parse_file(file_path)
+                types = parse_type_field(metadata or {})
             except Exception as e:
                 logger.debug(f"Error reading frontmatter for {file_path}: {e}")
                 types = []

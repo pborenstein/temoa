@@ -2,11 +2,11 @@
 Vault content reader for the Synthesis Project.
 """
 import re
-import yaml
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 import logging
 from tqdm import tqdm
+from nahuatl_frontmatter import parse_content
 
 logger = logging.getLogger(__name__)
 
@@ -115,32 +115,22 @@ class VaultReader:
     
     def parse_frontmatter(self, content: str, file_path: Optional[Path] = None) -> Tuple[Optional[Dict], str]:
         """Parse YAML frontmatter from markdown content.
-        
+
+        Now delegates to nahuatl-frontmatter shared library.
+
         Args:
             content: Markdown content with potential frontmatter
             file_path: Optional file path for better error reporting
-            
+
         Returns:
             Tuple of (frontmatter_dict, content_without_frontmatter)
         """
-        if not content.startswith('---'):
-            return None, content
-        
-        try:
-            end_idx = content.find('\n---\n', 3)
-            if end_idx == -1:
-                return None, content
-            
-            frontmatter_yaml = content[3:end_idx]
-            remaining_content = content[end_idx + 5:]
-            
-            frontmatter = yaml.safe_load(frontmatter_yaml)
-            return frontmatter, remaining_content
-            
-        except yaml.YAMLError as e:
-            file_info = f" in {file_path}" if file_path else ""
-            logger.warning(f"Failed to parse frontmatter{file_info}: {e}")
-            return None, content
+        metadata, body = parse_content(content)
+
+        if metadata is None and file_path:
+            logger.debug(f"No frontmatter or parse error in {file_path}")
+
+        return metadata, body
     
     def extract_inline_tags(self, content: str) -> List[str]:
         """Extract inline #tags from markdown content."""

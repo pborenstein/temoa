@@ -217,6 +217,8 @@ def parse_type_field(frontmatter: dict) -> list[str]:
     """
     Extract type(s) from frontmatter, normalize to list.
 
+    Now delegates to nahuatl-frontmatter shared library.
+
     Handles multiple YAML formats:
     - type: gleaning               → ["gleaning"]
     - type: [gleaning, note]       → ["gleaning", "note"]
@@ -232,18 +234,8 @@ def parse_type_field(frontmatter: dict) -> list[str]:
     Returns:
         List of type strings (empty if no type)
     """
-    type_value = frontmatter.get("type")
-
-    if type_value is None:
-        return []
-
-    if isinstance(type_value, str):
-        return [type_value.strip()]
-
-    if isinstance(type_value, list):
-        return [str(t).strip() for t in type_value if t]
-
-    return []
+    from nahuatl_frontmatter import normalize_type
+    return normalize_type(frontmatter)
 
 
 def scan_gleaning_files(
