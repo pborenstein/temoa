@@ -305,11 +305,17 @@ def filter_by_type(
                 logger.debug(f"Error reading frontmatter for {file_path}: {e}")
                 types = []
 
+        # Infer type if not explicitly set:
+        # - If gleaning_id exists → type: gleaning
+        # - Otherwise → type: none
+        if not types:
+            if frontmatter_data and frontmatter_data.get("gleaning_id"):
+                types = ["gleaning"]
+            else:
+                types = ["none"]
+
         # Apply inclusive filter
         if include_types:
-            if not types:
-                # No type field - skip when using include filter
-                continue
             if not any(t in include_types for t in types):
                 # No matching types - skip
                 continue

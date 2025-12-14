@@ -277,8 +277,13 @@ def search(query, limit, min_score, include_types, exclude_types, hybrid, rerank
                 )
                 filtered_results = scorer.apply_boost(filtered_results, vault_path)
 
+            # Check if any results have tag-based boosts (exact matches)
+            has_tag_boosts = any(r.get('tag_boosted') for r in filtered_results)
+
             # Apply cross-encoder re-ranking if enabled
-            if rerank and filtered_results and not bm25_only:
+            # Skip reranking when tag boosts are present - those are exact matches
+            # that should dominate over semantic similarity
+            if rerank and filtered_results and not bm25_only and not has_tag_boosts:
                 from .reranker import CrossEncoderReranker
                 reranker = CrossEncoderReranker()
                 # Re-rank with more candidates than final limit
@@ -290,7 +295,7 @@ def search(query, limit, min_score, include_types, exclude_types, hybrid, rerank
                     rerank_top_n=rerank_count
                 )
             else:
-                # Apply final limit if not re-ranking
+                # Apply final limit if not re-ranking (or skipping due to tag boosts)
                 filtered_results = filtered_results[:limit]
 
             # Update result data

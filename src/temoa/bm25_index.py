@@ -81,15 +81,35 @@ class BM25Index:
         # Tokenize all documents
         corpus = []
         for doc in documents:
-            # Combine title and content for better matching
+            # Combine title, tags, description, and content for better matching
             # Convert to string explicitly to handle any type (date, list, None, etc.)
             title_raw = doc.get('title')
             content_raw = doc.get('content')
+            tags_raw = doc.get('tags', [])
+
+            # Get description from frontmatter if present
+            frontmatter = doc.get('frontmatter', {})
+            description_raw = frontmatter.get('description') if frontmatter else None
 
             title = str(title_raw) if title_raw is not None else ''
             content = str(content_raw) if content_raw is not None else ''
+            description = str(description_raw) if description_raw is not None else ''
 
-            text = title + ' ' + content
+            # Include tags in indexed text so they can be matched by BM25
+            # Repeat tags to give them extra weight in BM25 scoring
+            tags_text = ''
+            if tags_raw and isinstance(tags_raw, list):
+                # Convert tags to strings and join with spaces
+                # Repeat each tag twice to increase BM25 term frequency
+                tag_strings = [str(tag) for tag in tags_raw]
+                tags_text = ' '.join(tag_strings * 2)  # Repeat for emphasis
+
+            # Build indexed text: title + tags + description + content
+            # Description is a curated summary and should be weighted heavily
+            # Repeat description 2x to give it similar weight to tags
+            description_text = (description + ' ' + description) if description else ''
+
+            text = title + ' ' + tags_text + ' ' + description_text + ' ' + content
             tokens = self.tokenize(text)
             corpus.append(tokens)
 
@@ -101,14 +121,15 @@ class BM25Index:
 
         logger.info(f"✓ BM25 index built: {len(documents)} documents")
 
-    def search(self, query: str, limit: int = 10, min_score: float = 0.0) -> List[Dict[str, Any]]:
+    def search(self, query: str, limit: int = 10, min_score: float = 0.0, tag_boost: float = 5.0) -> List[Dict[str, Any]]:
         """
-        Search using BM25 ranking.
+        Search using BM25 ranking with tag-aware boosting.
 
         Args:
             query: Search query
             limit: Maximum number of results
             min_score: Minimum BM25 score threshold
+            tag_boost: Multiplier for scores when query terms match tags (default: 5.0)
 
         Returns:
             List of results with BM25 scores
@@ -128,19 +149,52 @@ class BM25Index:
         # Get BM25 scores for all documents
         scores = self.bm25.get_scores(query_tokens)
 
-        # Create results with scores
+        # Create results with scores and apply tag boosting
         results = []
         for idx, score in enumerate(scores):
             if score > min_score:
                 result = self.documents[idx].copy()
-                result['bm25_score'] = float(score)
+                base_score = float(score)
+
+                # Apply tag boost if query matches tags
+                final_score = base_score
+                tags_matched = []
+
+                if tag_boost > 1.0:
+                    # Get tags from document metadata
+                    tags = result.get('tags', [])
+
+                    # Normalize tags to lowercase for matching
+                    if tags and isinstance(tags, list):
+                        tags_lower = [str(tag).lower() for tag in tags]
+
+                        # Check if any query token matches a tag
+                        for query_token in query_tokens:
+                            for tag in tags_lower:
+                                if query_token in tag or tag in query_token:
+                                    tags_matched.append(tag)
+                                    break
+
+                        # Apply boost if tags matched
+                        if tags_matched:
+                            final_score = base_score * tag_boost
+                            logger.debug(f"Tag boost applied to {result.get('title', 'unknown')}: "
+                                       f"matched tags {tags_matched}, "
+                                       f"score {base_score:.3f} → {final_score:.3f}")
+
+                result['bm25_score'] = final_score
+                result['bm25_base_score'] = base_score  # Preserve original for debugging
+                if tags_matched:
+                    result['tags_matched'] = tags_matched
+
                 results.append(result)
 
         # Sort by score (descending) and limit
         results.sort(key=lambda x: x['bm25_score'], reverse=True)
         results = results[:limit]
 
-        logger.debug(f"BM25 search: query='{query}', results={len(results)}")
+        logger.debug(f"BM25 search: query='{query}', results={len(results)}, "
+                    f"boosted={sum(1 for r in results if 'tags_matched' in r)}")
 
         return results
 

@@ -140,7 +140,7 @@ class VaultReader:
     
     def clean_content(self, content: str) -> str:
         """Clean markdown content for embedding.
-        
+
         Removes wiki links, cleans formatting, preserves readable text.
         """
         content = re.sub(r'\[\[([^\]]+)\]\]', r'\1', content)
@@ -152,7 +152,7 @@ class VaultReader:
         content = re.sub(r'\n+', ' ', content)
         content = content.strip()
         return content
-    
+
     def read_file(self, file_path: Path) -> Optional[VaultContent]:
         """Read a single vault file and extract content.
         
@@ -178,13 +178,23 @@ class VaultReader:
             
             # Only use frontmatter tags, skip inline tags
             tags = list(set(tags))
-            
+
             cleaned_content = self.clean_content(content)
-            
+
+            # Prepend description if present in frontmatter
+            # Description is a curated summary and should influence semantic search
+            description = frontmatter.get('description') if frontmatter else None
+            if description:
+                # Put description first, then content
+                # This gives description natural positional weight in embeddings
+                embedding_content = f"{description}. {cleaned_content}"
+            else:
+                embedding_content = cleaned_content
+
             return VaultContent(
                 file_path=file_path,
                 title=title,
-                content=cleaned_content,
+                content=embedding_content,
                 vault_root=self.vault_root,
                 frontmatter=frontmatter,
                 tags=tags

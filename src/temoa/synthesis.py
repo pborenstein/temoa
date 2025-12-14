@@ -491,27 +491,47 @@ class SynthesisClient:
             # Get max BM25 score for relative scoring
             max_bm25 = bm25_results[0].get('bm25_score', 1.0) if bm25_results else 1.0
 
-            # Boost top BM25 results that are missing from semantic results
+            # Boost top BM25 results with tag matches (regardless of semantic presence)
+            # This is crucial: when a doc appears in both lists but ranks poorly in semantic,
+            # RRF averages the ranks and can bury a perfect BM25 tag match.
             for idx, bm25_result in enumerate(bm25_results[:10]):  # Top 10 BM25
                 path = bm25_result.get('relative_path')
                 bm25_score = bm25_result.get('bm25_score', 0)
+                tags_matched = bm25_result.get('tags_matched', [])
 
-                # Only boost if this is a BM25-only result (not in semantic)
-                if path not in semantic_paths:
+                # Only boost if tags were matched (the whole point of this feature)
+                if tags_matched:
                     # Find this result in merged_results and boost it
                     for merged_result in merged_results:
                         if merged_result.get('relative_path') == path:
                             old_rrf = merged_result.get('rrf_score', 0)
 
-                            # Boost proportional to BM25 score, but BELOW max_rrf
-                            # This ensures results in both lists still rank highest
-                            # Scale: 0.5 to 0.95 of max_rrf based on BM25 score
+                            # AGGRESSIVE TAG BOOST
+                            # Tag-matched results get AGGRESSIVE boost (can exceed max_rrf)
+                            # This ensures tag queries surface the right results
                             score_ratio = bm25_score / max_bm25
-                            artificial_rrf = max_rrf * score_ratio * 0.95
-                            merged_result['rrf_score'] = artificial_rrf
 
-                            logger.debug(f"Boosting BM25-only result: {merged_result.get('title')} (BM25: {bm25_score:.3f}, ratio: {score_ratio:.2f}, old RRF: {old_rrf:.4f}, new RRF: {artificial_rrf:.4f})")
+                            # AGGRESSIVE: Tag-matched results range from 1.5x to 2.0x max_rrf
+                            # This allows tag queries to dominate
+                            boost_multiplier = 1.5 + (score_ratio * 0.5)  # Range: 1.5 to 2.0
+
+                            artificial_rrf = max_rrf * boost_multiplier
+                            merged_result['rrf_score'] = artificial_rrf
+                            merged_result['tag_boosted'] = True  # Mark for reranker to preserve
+
+                            logger.debug(f"Boosting tag-matched result: {merged_result.get('title')} (BM25: {bm25_score:.3f}, ratio: {score_ratio:.2f}, old RRF: {old_rrf:.4f}, new RRF: {artificial_rrf:.4f})")
                             break
+                else:
+                    # Apply conservative boost for BM25-only results without tags
+                    if path not in semantic_paths:
+                        for merged_result in merged_results:
+                            if merged_result.get('relative_path') == path:
+                                old_rrf = merged_result.get('rrf_score', 0)
+                                score_ratio = bm25_score / max_bm25
+                                boost_multiplier = score_ratio * 0.95  # Conservative: 0 to 0.95
+                                artificial_rrf = max_rrf * boost_multiplier
+                                merged_result['rrf_score'] = artificial_rrf
+                                break
 
             # Re-sort by RRF score
             merged_results.sort(key=lambda x: x.get('rrf_score', 0), reverse=True)
