@@ -1,0 +1,53 @@
+{
+  "description": "Test queries for frontmatter weighting experiment",
+  "queries": [
+    {
+      "query": "python tools",
+      "expected_match": "Areas/Synthesis.md",
+      "reason": "Should match tags: [tool, python]",
+      "type": "tag_match"
+    },
+    {
+      "query": "semantic search projects",
+      "expected_matches": ["Areas/Synthesis.md", "Projects/Temoa.md"],
+      "reason": "Both have tag: semantic-search",
+      "type": "tag_match"
+    },
+    {
+      "query": "productivity systems",
+      "expected_match": "Areas/Personal Knowledge Management.md",
+      "reason": "Has tag: productivity",
+      "type": "tag_match"
+    },
+    {
+      "query": "zettelkasten books",
+      "expected_match": "Books/How to Take Smart Notes.md",
+      "reason": "Has tags: [book, zettelkasten]",
+      "type": "tag_match"
+    },
+    {
+      "query": "smart notes",
+      "expected_match": "Books/How to Take Smart Notes.md",
+      "reason": "Title match: 'How to Take Smart Notes'",
+      "type": "title_match"
+    },
+    {
+      "query": "obsidian plugins",
+      "expected_match": "Projects/Temoa.md",
+      "reason": "Has tag: obsidian",
+      "type": "tag_match"
+    },
+    {
+      "query": "pkm learning",
+      "expected_match": "Areas/Personal Knowledge Management.md",
+      "reason": "Has tags: [pkm, learning]",
+      "type": "tag_match"
+    },
+    {
+      "query": "writing books",
+      "expected_match": "Books/How to Take Smart Notes.md",
+      "reason": "Has tags: [book, writing]",
+      "type": "tag_match"
+    }
+  ]
+}

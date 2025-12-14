@@ -181,10 +181,20 @@ class VaultReader:
 
             cleaned_content = self.clean_content(content)
 
+            # Prepend description if present in frontmatter
+            # Description is a curated summary and should influence semantic search
+            description = frontmatter.get('description') if frontmatter else None
+            if description:
+                # Put description first, then content
+                # This gives description natural positional weight in embeddings
+                embedding_content = f"{description}. {cleaned_content}"
+            else:
+                embedding_content = cleaned_content
+
             return VaultContent(
                 file_path=file_path,
                 title=title,
-                content=cleaned_content,
+                content=embedding_content,
                 vault_root=self.vault_root,
                 frontmatter=frontmatter,
                 tags=tags

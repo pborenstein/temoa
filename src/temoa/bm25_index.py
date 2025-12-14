@@ -81,14 +81,19 @@ class BM25Index:
         # Tokenize all documents
         corpus = []
         for doc in documents:
-            # Combine title, tags, and content for better matching
+            # Combine title, tags, description, and content for better matching
             # Convert to string explicitly to handle any type (date, list, None, etc.)
             title_raw = doc.get('title')
             content_raw = doc.get('content')
             tags_raw = doc.get('tags', [])
 
+            # Get description from frontmatter if present
+            frontmatter = doc.get('frontmatter', {})
+            description_raw = frontmatter.get('description') if frontmatter else None
+
             title = str(title_raw) if title_raw is not None else ''
             content = str(content_raw) if content_raw is not None else ''
+            description = str(description_raw) if description_raw is not None else ''
 
             # Include tags in indexed text so they can be matched by BM25
             # Repeat tags to give them extra weight in BM25 scoring
@@ -99,7 +104,12 @@ class BM25Index:
                 tag_strings = [str(tag) for tag in tags_raw]
                 tags_text = ' '.join(tag_strings * 2)  # Repeat for emphasis
 
-            text = title + ' ' + tags_text + ' ' + content
+            # Build indexed text: title + tags + description + content
+            # Description is a curated summary and should be weighted heavily
+            # Repeat description 2x to give it similar weight to tags
+            description_text = (description + ' ' + description) if description else ''
+
+            text = title + ' ' + tags_text + ' ' + description_text + ' ' + content
             tokens = self.tokenize(text)
             corpus.append(tokens)
 
