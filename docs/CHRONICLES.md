@@ -138,6 +138,10 @@ The chronicles have been split into chapters for easier navigation:
 | DEC-078: Use replacement character | 35 | Preserves text length/structure (� instead of drop/skip) |
 | DEC-079: Recursive sanitization | 35 | Catches surrogates in all nested structures |
 | DEC-080: Follow proven patterns exactly | 36 | When modeling on existing pattern, copy exactly unless blocking issue |
+| DEC-081: Registry pattern for URL normalization | 37 | Extensible, testable, single responsibility |
+| DEC-082: Comprehensive emoji removal | 37 | Clean text for search, Unicode regex all ranges |
+| DEC-083: Backward compatible pass-through | 37 | Don't break non-GitHub gleanings |
+| DEC-084: Two-phase approach (extract + backfill) | 37 | Don't require re-extraction of all gleanings |
 
 ---
 
@@ -162,5 +166,5 @@ The chronicles have been split into chapters for easier navigation:
 ---
 
 **Created**: 2025-11-18
-**Last Updated**: 2025-12-13
-**Total Entries**: 36
+**Last Updated**: 2025-12-14
+**Total Entries**: 37
