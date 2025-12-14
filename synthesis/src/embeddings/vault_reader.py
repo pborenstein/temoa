@@ -176,8 +176,7 @@ class VaultReader:
                 elif isinstance(frontmatter['tags'], str):
                     tags.append(frontmatter['tags'])
             
-            inline_tags = self.extract_inline_tags(content)
-            tags.extend(inline_tags)
+            # Only use frontmatter tags, skip inline tags
             tags = list(set(tags))
             
             cleaned_content = self.clean_content(content)
