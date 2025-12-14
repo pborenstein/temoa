@@ -2,7 +2,7 @@
 
 > **Navigation guide** for all documentation in this directory.
 
-**Last Updated**: 2025-12-01
+**Last Updated**: 2025-12-14
 
 ---
 
@@ -35,7 +35,8 @@ Living documents tracking implementation progress and decisions.
 | Document | Purpose | Audience |
 |----------|---------|----------|
 | [IMPLEMENTATION.md](IMPLEMENTATION.md) | Master progress tracker across all phases | Everyone |
-| [CHRONICLES.md](CHRONICLES.md) | High-level decision log and design discussions | Developers, Future maintainers |
+| [DECISIONS.md](DECISIONS.md) | Architectural decision registry (DEC-001+) with governance process | Developers, Contributors, LLMs |
+| [CHRONICLES.md](CHRONICLES.md) | Design discussions and historical context (links to decisions) | Developers, Future maintainers |
 | [PHASE-3-READY.md](PHASE-3-READY.md) | Phase 3 overview and remaining work | Developers |
 
 ---
@@ -94,7 +95,9 @@ Session notes with detailed implementation decisions:
 
 **See current progress**: Check [IMPLEMENTATION.md](IMPLEMENTATION.md)
 
-**Understand a design decision**: Search [CHRONICLES.md](CHRONICLES.md) or dig into `chronicles/` for detailed session notes
+**Look up a design decision**: Search [DECISIONS.md](DECISIONS.md) for quick reference, or read [CHRONICLES.md](CHRONICLES.md) for full context
+
+**Understand why we made a choice**: Read the decision in [DECISIONS.md](DECISIONS.md), then follow the Entry link to [CHRONICLES.md](CHRONICLES.md) for discussion
 
 **Extract gleanings from daily notes**: Read [GLEANINGS.md](GLEANINGS.md)
 
