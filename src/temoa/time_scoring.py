@@ -40,11 +40,14 @@ class TimeAwareScorer:
     ) -> List[Dict[str, Any]]:
         """Apply time-decay boost to results based on file modification time.
 
-        Formula: boosted_score = similarity_score * (1 + boost_factor)
+        Formula: boosted_score = score * (1 + boost_factor)
         where: boost_factor = max_boost * (0.5 ** (days_old / half_life_days))
 
+        For hybrid search (RRF scores present), boosts rrf_score.
+        For semantic search, boosts similarity_score.
+
         Args:
-            results: Search results with similarity_score field
+            results: Search results with similarity_score or rrf_score field
             vault_path: Path to vault (to get file modification times)
 
         Returns:
@@ -52,6 +55,11 @@ class TimeAwareScorer:
         """
         if not self.enabled or not results:
             return results
+
+        # Detect if this is hybrid search (has RRF scores)
+        is_hybrid = any('rrf_score' in r for r in results)
+        score_field = 'rrf_score' if is_hybrid else 'similarity_score'
+        logger.debug(f"Time boost mode: {'hybrid (RRF)' if is_hybrid else 'semantic (similarity)'}")
 
         now = datetime.now()
         boosted_count = 0
@@ -72,14 +80,14 @@ class TimeAwareScorer:
                 decay_factor = 0.5 ** (days_old / self.half_life_days)
                 boost = self.max_boost * decay_factor
 
-                # Apply boost to similarity score
-                original_score = result.get('similarity_score', 0)
+                # Apply boost to the appropriate score field
+                original_score = result.get(score_field, 0)
                 boosted_score = original_score * (1 + boost)
 
                 # Store both original and boosted scores for transparency
-                result['original_score'] = original_score
+                result[f'original_{score_field}'] = original_score
                 result['time_boost'] = boost
-                result['similarity_score'] = boosted_score
+                result[score_field] = boosted_score
                 result['days_old'] = days_old
 
                 boosted_count += 1
@@ -91,7 +99,7 @@ class TimeAwareScorer:
         if boosted_count > 0:
             logger.debug(f"Applied time boost to {boosted_count}/{len(results)} results")
 
-        # Re-sort by boosted score
-        results.sort(key=lambda x: x.get('similarity_score', 0), reverse=True)
+        # Re-sort by boosted score (RRF for hybrid, similarity for semantic)
+        results.sort(key=lambda x: x.get(score_field, 0), reverse=True)
 
         return results
