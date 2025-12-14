@@ -60,6 +60,31 @@ https://example.com/article
 ```
 **Note:** ALL consecutive lines starting with `>` are captured.
 
+### URL Normalization
+
+Gleanings are automatically normalized based on their domain to produce cleaner, more searchable titles and descriptions:
+
+**GitHub Repositories:**
+- Title is extracted as `user/repo` (without description suffix)
+- Description is cleaned of redundant repo names and "Contribute to..." suffixes
+- Emojis are removed from descriptions
+
+**Example:**
+```
+Before normalization:
+  title: "user/repo: A great tool for developers"
+  description: "A great tool for developers. - user/repo"
+
+After normalization:
+  title: "user/repo"
+  description: "A great tool for developers."
+```
+
+**Other Domains:**
+- Passed through unchanged (backward compatible)
+
+This normalization applies both during extraction (new gleanings) and can be run retroactively on existing gleanings using the backfill script.
+
 **Real Example:**
 ```markdown
 ## Gleanings
@@ -185,11 +210,17 @@ sudo journalctl -u temoa-extract.service -f
 
 After extracting gleanings, you need to trigger re-indexing so they become searchable.
 
-### Via API (Recommended)
+### Via CLI (Recommended)
+
+```bash
+temoa reindex --vault ~/Obsidian/your-vault
+```
+
+### Via API
 
 If Temoa server is running:
 ```bash
-curl -X POST http://localhost:8080/reindex?force=true
+curl -X POST http://localhost:8080/reindex?force=false
 ```
 
 ### Via Extraction Script
@@ -199,12 +230,30 @@ The `extract_and_reindex.sh` script does both automatically:
 ./scripts/extract_and_reindex.sh
 ```
 
-### Manual Re-indexing
+## Normalizing Existing Gleanings
 
-If running Synthesis directly (not via Temoa server):
+If you have existing gleanings that were extracted before URL normalization was implemented, you can normalize them retroactively:
+
+### Preview Changes (Dry Run)
+
 ```bash
-cd synthesis
-uv run main.py reindex
+uv run python scripts/normalize_existing_gleanings.py --vault-path ~/Obsidian/your-vault --dry-run
+```
+
+This will show you what would be changed without modifying any files.
+
+### Apply Normalization
+
+```bash
+uv run python scripts/normalize_existing_gleanings.py --vault-path ~/Obsidian/your-vault
+```
+
+### Reindex After Normalization
+
+After normalizing, reindex so the search index picks up the changes:
+
+```bash
+temoa reindex --vault ~/Obsidian/your-vault
 ```
 
 ## State Management

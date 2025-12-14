@@ -23,6 +23,7 @@ from html.parser import HTMLParser
 # Add src to path so we can import gleanings module
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 from temoa.gleanings import GleaningStatusManager, GleaningStatus
+from temoa.normalizers import NormalizerRegistry
 
 
 class TitleParser(HTMLParser):
@@ -222,6 +223,9 @@ class GleaningsExtractor:
 
         # Initialize status manager
         self.status_manager = GleaningStatusManager(self.vault_path / ".temoa")
+        
+        # Initialize normalizer registry
+        self.normalizer_registry = NormalizerRegistry()
 
     def _load_state(self) -> tuple[Dict, bool]:
         """Load extraction state. Returns (state, migrated)."""
@@ -419,6 +423,9 @@ class GleaningsExtractor:
                 date = base_date
                 if timestamp:
                     date = f"{base_date} {timestamp}"
+
+                # Normalize title and description based on URL domain
+                title, description = self.normalizer_registry.normalize(url, title, description)
 
                 # Generate ID to check status and reason
                 gleaning_id = hashlib.md5(url.encode()).hexdigest()[:12]

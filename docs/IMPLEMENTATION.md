@@ -1701,9 +1701,9 @@ After viewing actual iPhone screenshot, identified UI space issue and reorganize
 
 ## Production Hardening (Post-Phase 3) 🔵
 
-**Status**: ONGOING (started 2025-12-06)
-**Goal**: Polish and optimize based on real-world usage feedback
-**Branch**: `minor-tweaks`
+**Status**: COMPLETE (2025-12-14)
+**Branch**: `main`
+**Version**: 0.6.0
 
 ### Completed Work
 
@@ -1798,6 +1798,41 @@ UnicodeEncodeError: 'utf-8' codec can't encode characters in position 24583-2458
 - 379ae34 - "fix: move dev.sh and view-logs.sh to root, match apantli pattern"
 
 **Note**: Initial implementation had scripts in `launchd/` subdirectory and complex port checking logic. Fixed to match apantli's simpler pattern with scripts in project root and using uv for command execution.
+
+#### Gleaning Normalization (2025-12-14)
+
+**Goal**: Clean up GitHub gleaning titles and descriptions, remove emojis, create extensible normalizer system
+
+**Problem**: GitHub gleanings had verbose titles like `"user/repo: Description"` and redundant descriptions with emojis.
+
+**Implementation**:
+- Created URL normalizer system with registry pattern (`src/temoa/normalizers.py`)
+- `GitHubNormalizer` - Extracts clean `user/repo` titles, removes redundant suffixes, strips emojis
+- `DefaultNormalizer` - Pass-through for non-GitHub URLs (backward compatible)
+- Integrated with extraction script (new gleanings auto-normalized)
+- Created backfill script for existing gleanings (`scripts/normalize_existing_gleanings.py`)
+- Comprehensive unit tests (21 tests, all passing)
+
+**Results**:
+- 214 GitHub gleanings normalized out of 852 total
+- Titles: `"user/repo: Description"` → `"user/repo"`
+- Descriptions: Cleaned of redundant repo names, "Contribute to..." suffixes, and emojis
+- Non-GitHub URLs unchanged (backward compatible)
+
+**Files Created**:
+- `src/temoa/normalizers.py` (174 lines) - Normalizer system
+- `tests/test_normalizers.py` (181 lines) - Comprehensive tests
+- `scripts/normalize_existing_gleanings.py` (134 lines) - Backfill script
+- `docs/GLEANING-NORMALIZATION-PLAN.md` (568 lines) - Implementation plan
+
+**Files Modified**:
+- `src/temoa/scripts/extract_gleanings.py` - Integrated normalizer
+- `docs/GLEANINGS.md` - Documented normalization behavior
+
+**Extensibility**: Easy to add normalizers for YouTube, Reddit, etc. in future.
+
+**Commits**:
+- [commit hash] - "feat: add URL normalization system for gleanings"
 
 ### Next Production Hardening Items
 
