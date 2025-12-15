@@ -49,9 +49,8 @@ Detailed session notes and completed implementation plans.
 
 | Directory | Contents |
 |-----------|----------|
-| **[chronicles/](chronicles/)** | Detailed session-by-session notes organized by phase |
-| **[phases/](phases/)** | Original waterfall-style phase planning documents |
-| **[archive/](archive/)** | Completed implementation plans and historical research |
+| **[chronicles/](chronicles/)** | Detailed session-by-session implementation notes organized by phase |
+| **[archive/](archive/)** | Historical documents (original planning docs, completed plans, research notes) |
 | **[assets/](assets/)** | Images, diagrams, and other resources |
 
 ### Chronicles Organization
