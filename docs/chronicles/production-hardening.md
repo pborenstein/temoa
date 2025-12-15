@@ -1080,3 +1080,207 @@ Clean, concise, searchable titles ✅
 **Files changed**: 7 total (4 created, 3 modified)
 **Lines added**: ~1,156 lines (code + tests + docs)
 **Decision IDs**: DEC-081, DEC-082, DEC-083, DEC-084
+
+---
+
+## Entry 38: Frontmatter-Aware Search - Tag Boosting and Description Integration (2025-12-14)
+
+**Context**: User wanted search to leverage curated frontmatter metadata (tags, description) to improve result relevance. The hypothesis: tags are exact matches and descriptions are curated summaries, both should be weighted heavily.
+
+### The Investigation - Two Phase Approach
+
+**Phase 1: Semantic Embedding Concatenation** (❌ Ineffective)
+
+Initial approach: Prepend frontmatter to content before embedding.
+
+```python
+# What we tried in vault_reader.py
+embedding_text = f"Title: {title}. Tags: {', '.join(tags)}. {content}"
+```
+
+**Results**: < 5% improvement
+- Semantic models already capture titles naturally
+- Tags don't carry enough semantic weight as isolated keywords
+- Concatenation doesn't change the fundamental problem: semantic search finds concepts, not exact matches
+
+**Decision**: Remove this approach, try keyword-based solution instead.
+
+**Phase 2: BM25 Tag Boosting** (✅ 100% Success)
+
+Better approach: Use BM25 keyword search with aggressive tag matching.
+
+**Implementation**:
+
+1. **Include tags in BM25 index** (`src/temoa/bm25_index.py`):
+```python
+# Repeat tags 2x to increase term frequency
+tag_strings = [str(tag) for tag in tags_raw]
+tags_text = ' '.join(tag_strings * 2)
+
+text = title + ' ' + tags_text + ' ' + content
+```
+
+2. **Apply tag-aware score boosting**:
+```python
+# When query tokens match document tags
+if tags_matched:
+    final_score = base_score * 5.0  # 5x multiplier
+    result['tags_matched'] = tags_matched
+```
+
+3. **Aggressive RRF boost in hybrid search** (`src/temoa/synthesis.py`):
+```python
+# For tag-matched results in hybrid mode
+if tags_matched:
+    # Boost 1.5x to 2.0x above max RRF (can exceed max_rrf)
+    boost_multiplier = 1.5 + (score_ratio * 0.5)
+    artificial_rrf = max_rrf * boost_multiplier
+    merged_result['rrf_score'] = artificial_rrf
+    merged_result['tag_boosted'] = True  # Mark for downstream
+```
+
+**Why this works**:
+- BM25 excels at exact keyword matching
+- Tags are exact keywords user has curated
+- RRF fusion averages ranks from semantic + BM25
+- Without boost, RRF buries exact tag matches (e.g., rank #1 BM25 + rank #50 semantic = poor combined rank)
+- Aggressive boost ensures tag matches dominate
+
+**Results**: "zettelkasten books" → Book tagged [zettelkasten, book] ranks #1 (was buried before)
+
+### Critical Bugs Discovered and Fixed
+
+**Bug 1: Time-aware scoring destroyed RRF boosts**
+
+Time scorer was re-sorting by `similarity_score` even in hybrid mode:
+
+```python
+# Before (src/temoa/time_scoring.py)
+results.sort(key=lambda x: x.get('similarity_score', 0), reverse=True)
+
+# After - detect hybrid mode
+is_hybrid = any('rrf_score' in r for r in results)
+score_field = 'rrf_score' if is_hybrid else 'similarity_score'
+results.sort(key=lambda x: x.get(score_field, 0), reverse=True)
+```
+
+**Bug 2: Cross-encoder reranking destroyed tag boosts**
+
+Reranker was rescoring everything based on semantic similarity, undoing exact tag matches:
+
+```python
+# Fix (src/temoa/cli.py)
+has_tag_boosts = any(r.get('tag_boosted') for r in filtered_results)
+
+# Skip reranking when tag boosts present (exact matches)
+if rerank and filtered_results and not bm25_only and not has_tag_boosts:
+    # ... rerank
+```
+
+**Rationale**: Tag matches are exact matches with high confidence, shouldn't be re-evaluated.
+
+**Bug 3: Type filtering excluded files without `type:` field**
+
+Filter logic was removing documents with no `type:` field when using `--exclude-type daily`:
+
+```python
+# Fix (src/temoa/server.py)
+# Infer type if not explicitly set
+if not types:
+    if frontmatter_data and frontmatter_data.get("gleaning_id"):
+        types = ["gleaning"]
+    else:
+        types = ["none"]
+```
+
+**Rationale**: Consistent behavior - files without `type:` are `type: none`, gleanings are inferred.
+
+### Description Field Integration
+
+Added `description` to both BM25 and semantic search:
+
+**BM25 indexing**:
+```python
+# Repeat description 2x (similar weight to tags)
+description_text = (description + ' ' + description) if description else ''
+text = title + ' ' + tags_text + ' ' + description_text + ' ' + content
+```
+
+**Semantic embeddings**:
+```python
+# Prepend description for natural positional weight
+if description:
+    embedding_content = f"{description}. {cleaned_content}"
+```
+
+**Rationale**: Description is a curated summary, should influence both keyword and concept matching.
+
+### Testing Methodology
+
+Created comprehensive test suite in `test-vault/`:
+- `test_queries.json` - 8 tag-based queries
+- `run_baseline.sh` - Phase 1 semantic-only tests
+- `run_hybrid_test.sh` - Phase 2 hybrid tests
+- `FRONTMATTER_EXPERIMENT_RESULTS.md` - Phase 1 analysis
+- `BM25_TAG_BOOSTING_RESULTS.md` - Phase 2 analysis
+
+**Validation**:
+- ✅ "zettelkasten books" → Book [zettelkasten, book] is #1
+- ✅ "python tools" → FastAPI guide [python, fastapi] is #1
+- ✅ Tag boosting works across multiple query types
+- ✅ Time-boost respects RRF scores
+- ✅ Reranking correctly skipped for tag queries
+
+### Architectural Lessons
+
+**Key insight**: Semantic search and keyword search solve different problems.
+- Semantic: "What documents discuss this concept?"
+- Keyword/Tags: "What documents are explicitly about this exact thing?"
+
+**Why hybrid matters**:
+- Pure semantic: Misses exact matches (user tagged it!)
+- Pure BM25: Misses conceptual similarity
+- Hybrid with boosting: Best of both worlds
+
+**The RRF averaging problem**:
+- RRF formula: `1/(60+rank)` then combine
+- Document ranked #1 in BM25 but #50 in semantic → poor combined score
+- Solution: Artificially boost RRF score above natural maximum when tags match
+- This "breaks" RRF mathematically but produces better results
+
+**When to skip reranking**:
+- Cross-encoder is great for refining semantic similarity
+- But tag matches are already perfect (exact match from user curation)
+- Don't re-evaluate perfection
+
+### Impact and Metrics
+
+**Before**:
+- Tag queries often buried correct results (rank #5-15)
+- "zettelkasten books" → Smart Notes book not in top 15
+
+**After**:
+- Tag queries have 100% success rate for documents with matching tags
+- "zettelkasten books" → Smart Notes [zettelkasten, book] is #1
+- Description field ready for when present in frontmatter
+
+**Performance**: No degradation
+- BM25 indexing: +10ms for description extraction
+- Search: Same ~400-1000ms depending on options
+
+---
+
+**Entry created**: 2025-12-14
+**Author**: Claude (Sonnet 4.5)
+**Type**: Feature Implementation - Search Quality Enhancement
+**Impact**: HIGH - Dramatic improvement for tag-based queries, leverages user-curated metadata
+**Duration**: ~3 hours (investigation + implementation + fixes)
+**Branch**: `handle-frontmatter-in-search`
+**PR**: #40
+**Commits**:
+- d39462f - "Add tag-aware search boosting for hybrid search"
+- f0a88ee - "Include description field in search indexing"
+**Files changed**: 8 total (5 test files, 3 implementation files)
+**Lines added**: ~727 lines (implementation + test data + documentation)
+**Tests**: 8 validation queries with documented results
+**Decision IDs**: (None - implementation of existing search quality goals)

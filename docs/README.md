@@ -2,7 +2,7 @@
 
 > **Navigation guide** for all documentation in this directory.
 
-**Last Updated**: 2025-12-01
+**Last Updated**: 2025-12-14
 
 ---
 
@@ -34,9 +34,10 @@ Living documents tracking implementation progress and decisions.
 
 | Document | Purpose | Audience |
 |----------|---------|----------|
-| [IMPLEMENTATION.md](IMPLEMENTATION.md) | Master progress tracker across all phases | Everyone |
-| [CHRONICLES.md](CHRONICLES.md) | High-level decision log and design discussions | Developers, Future maintainers |
-| [PHASE-3-READY.md](PHASE-3-READY.md) | Phase 3 overview and remaining work | Developers |
+| [DOCUMENTATION-GUIDE.md](DOCUMENTATION-GUIDE.md) | **How documentation works** - structure, session workflows, governance | Contributors, LLMs |
+| [IMPLEMENTATION.md](IMPLEMENTATION.md) | Master progress tracker across all phases (current phase detailed) | Everyone |
+| [DECISIONS.md](DECISIONS.md) | Architectural decision registry (DEC-001+) with governance process | Developers, Contributors, LLMs |
+| [CHRONICLES.md](CHRONICLES.md) | Design discussions and historical context (links to decisions) | Developers, Future maintainers |
 
 ---
 
@@ -48,9 +49,8 @@ Detailed session notes and completed implementation plans.
 
 | Directory | Contents |
 |-----------|----------|
-| **[chronicles/](chronicles/)** | Detailed session-by-session notes organized by phase |
-| **[phases/](phases/)** | Original waterfall-style phase planning documents |
-| **[archive/](archive/)** | Completed implementation plans and historical research |
+| **[chronicles/](chronicles/)** | Detailed session-by-session implementation notes organized by phase |
+| **[archive/](archive/)** | Historical documents (original planning docs, completed plans, research notes) |
 | **[assets/](assets/)** | Images, diagrams, and other resources |
 
 ### Chronicles Organization
@@ -92,13 +92,17 @@ Session notes with detailed implementation decisions:
 
 **Understand system architecture**: Read [ARCHITECTURE.md](ARCHITECTURE.md)
 
-**See current progress**: Check [IMPLEMENTATION.md](IMPLEMENTATION.md)
+**Understand how documentation works**: Read [DOCUMENTATION-GUIDE.md](DOCUMENTATION-GUIDE.md) for structure, session workflows, and governance
 
-**Understand a design decision**: Search [CHRONICLES.md](CHRONICLES.md) or dig into `chronicles/` for detailed session notes
+**See current progress**: Check [IMPLEMENTATION.md](IMPLEMENTATION.md) current phase section
+
+**Look up a design decision**: Search [DECISIONS.md](DECISIONS.md) for quick reference, or read [CHRONICLES.md](CHRONICLES.md) for full context
+
+**Understand why we made a choice**: Read the decision in [DECISIONS.md](DECISIONS.md), then follow the Entry link to [CHRONICLES.md](CHRONICLES.md) for discussion
 
 **Extract gleanings from daily notes**: Read [GLEANINGS.md](GLEANINGS.md)
 
-**See what's next**: Check [PHASE-3-READY.md](PHASE-3-READY.md) or [IMPLEMENTATION.md](IMPLEMENTATION.md)
+**Start a new session**: Read [DOCUMENTATION-GUIDE.md](DOCUMENTATION-GUIDE.md) section "Session Pick-Up Process"
 
 ---
 

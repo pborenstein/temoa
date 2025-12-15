@@ -61,87 +61,34 @@ The chronicles have been split into chapters for easier navigation:
 - Entry 32: Documentation Style Conformance
 
 ### [Production Hardening](chronicles/production-hardening.md) 🔵 ONGOING
-**Entries 33-36+** | Real-World Usage Fixes
+**Entries 33-38** | Real-World Usage Fixes
 
 - Entry 33: Production Hardening - Query Expansion Default Change
 - Entry 34: State Management Refactoring - Eliminating "Hodge Podge"
 - Entry 35: Unicode Surrogate Sanitization
 - Entry 36: launchd Service Management - Following the Apantli Pattern
+- Entry 37: Gleaning Normalization - GitHub URL Cleanup
+- Entry 38: Frontmatter-Aware Search - Tag Boosting and Description Integration
 
 ---
 
-## Quick Reference: Key Decisions
+## Architectural Decisions
 
-| Decision | Entry | Summary |
-|----------|-------|---------|
-| DEC-001: Project name (Temoa) | 6 | Named after Nahuatl "to seek" |
-| DEC-009: Direct imports over subprocess | 4 | 10x faster searches |
-| DEC-013: Modern FastAPI lifespan | 6 | Better resource management |
-| DEC-014: Rename from Ixpantilia | 6 | Simpler, more memorable |
-| DEC-015: Split implementation docs | 6 | Clearer phase tracking |
-| DEC-016: Three-status model | 13 | active/inactive/hidden |
-| DEC-017: Auto-restore inactive gleanings | 13 | Links that come back to life |
-| DEC-021: Postel's Law for Gleanings | 10 | Be liberal in input, conservative in output |
-| DEC-022: Title fetching for naked URLs | 10 | Fetch web titles for completeness |
-| DEC-023: Case-sensitive pattern matching | 10 | Only search Daily/Journal (capital-case) |
-| DEC-024: Themes by Period feature | 14 | Document for future, focus on present |
-| DEC-025: Default exclude daily type | 15 | Reduce noise in search results |
-| DEC-026: Hybrid search for daily notes | 15 | Daily notes work better with BM25+semantic |
-| DEC-027: Compact collapsible results | 17 | Default collapsed, expand on demand |
-| DEC-028: Centralized state management | 17 | Versioned localStorage, race condition prevention |
-| DEC-029: Safe DOM manipulation | 17 | Replace innerHTML with createElement (XSS protection) |
-| DEC-030: Barber pole progress indicator | 18 | Classic macOS-style indeterminate progress |
-| DEC-031: Confirmation dialog for reindex | 18 | Prevent accidental expensive operations |
-| DEC-032: Checkboxes below button | 18 | Action first, options second (natural hierarchy) |
-| DEC-033: Modification time for change detection | 19 | Fast, already tracked (vs content hash) |
-| DEC-034: Rebuild BM25 fully (not incremental) | 19 | BM25 fast (<5s), merging adds complexity |
-| DEC-035: DELETE→UPDATE→APPEND merge order | 19 | Immutable order to avoid index corruption |
-| DEC-036: Multi-vault storage strategy | 20 | Auto-derive as vault/.temoa/ (co-location) |
-| DEC-037: Validation before operations | 20 | Fail early with clear error, require --force |
-| DEC-038: Auto-migration of old indexes | 20 | Seamless upgrade, no user action required |
-| DEC-042: Search is primary, vault is infrequent | 22 | Move vault selector to bottom (search is primary) |
-| DEC-043: Common settings above the fold | 22 | Move hybrid checkbox outside Options (frequent use) |
-| DEC-044: Inline search button for mobile | 22 | Button inside search box (visible with keyboard up) |
-| DEC-045: Actions first on management page | 22 | Reorder sections (actions > stats) |
-| DEC-046: Replace gear icon with text | 22 | "Manage" text aligned right (clearer navigation) |
-| DEC-047: Lifespan over module-level init | 23 | Use FastAPI lifespan for initialization (testability, best practice) |
-| DEC-048: Keep Synthesis sys.path usage | 23 | Isolate to helper method (bundled dependency, simpler than importlib) |
-| DEC-049: App state pattern for dependencies | 23 | Store in app.state, extract in endpoints (simpler than Depends()) |
-| DEC-050: Scripts as package | 23 | Move to src/temoa/scripts/ (proper structure, no sys.path hacks) |
-| DEC-051: Modification time for incremental extraction | 24 | Use st_mtime for change detection (fast, already tracked) |
-| DEC-052: Incremental by default for auto-reindex | 24 | Auto-reindex uses force=False (30x speedup) |
-| DEC-053: Use uvicorn.config.LOGGING_CONFIG for timestamps | 25 | Modify uvicorn's config, don't replace it (proven pattern from apantli) |
-| DEC-054: Enable re-ranking by default | 26 | Re-ranking on by default (significant quality gain for 200ms cost) |
-| DEC-055: Re-rank top 100 candidates | 26 | Balance between recall and speed (100 pairs @ 2ms = 200ms) |
-| DEC-056: Use ms-marco-MiniLM-L-6-v2 model | 26 | Fast (~2ms/pair), accurate (MS MARCO trained), proven in production |
-| DEC-057: TF-IDF over LLM-based expansion | 27 | Fast (~50ms), no external APIs, deterministic, proven technique |
-| DEC-058: Expand only short queries (<3 words) | 27 | Short queries benefit most, saves latency, simple rule |
-| DEC-059: Show expanded query to user | 27 | Transparency builds trust, educational, allows refinement |
-| DEC-060: Exponential decay (not linear) | 27 | Natural, intuitive half-life parameter, smooth gradient |
-| DEC-061: Default half-life of 90 days | 27 | Matches common vault patterns, configurable per-user |
-| DEC-062: Apply boost before re-ranking | 27 | Combines recency with relevance, clean separation |
-| DEC-063: Comprehensive search documentation | 28 | Document all mechanisms, rationale, and performance (SEARCH-MECHANISMS.md) |
-| DEC-064: Archive completed implementation plans | 28 | Clean docs/ after phase completion, preserve in archive/ |
-| DEC-065: Navigation README for docs/ | 28 | Index all documentation (docs/README.md for discovery) |
-| DEC-066: Cache-first for UI, network-first for API | 29 | Service worker uses different strategies per resource type |
-| DEC-067: rsvg-convert over ImageMagick | 29 | Proper Unicode emoji rendering in PNG icons |
-| DEC-068: Standalone display mode for PWA | 29 | Launches without browser chrome (native app feel) |
-| DEC-069: Version 0.4.0 → 0.5.0 | 29 | Minor bump for PWA (significant new capability) |
-| DEC-070: Checkbox organization by frequency | 30 | Hybrid at top, quality toggles in Options (2x2 grid) |
-| DEC-071: Search history max 10 items | 31 | Balance utility and UI clutter (browser pattern) |
-| DEC-072: Show history only when input empty | 31 | Don't interfere with typing/autocomplete |
-| DEC-073: GitHub-style `/` shortcut | 31 | Familiar pattern, selects text for replacement |
-| DEC-074: Query persists after search | 31 | User feedback - query disappearing was annoying |
-| DEC-075: Query expansion opt-in | 33 | Real-world usage: short queries often names, not topics |
-| DEC-076: JavaScript state is single source of truth | 34 | Per-vault filter preferences, eliminate HTML/JS sync bugs |
-| DEC-077: Sanitize at endpoint level | 35 | Vault data unchanged on disk, only JSON output affected |
-| DEC-078: Use replacement character | 35 | Preserves text length/structure (� instead of drop/skip) |
-| DEC-079: Recursive sanitization | 35 | Catches surrogates in all nested structures |
-| DEC-080: Follow proven patterns exactly | 36 | When modeling on existing pattern, copy exactly unless blocking issue |
-| DEC-081: Registry pattern for URL normalization | 37 | Extensible, testable, single responsibility |
-| DEC-082: Comprehensive emoji removal | 37 | Clean text for search, Unicode regex all ranges |
-| DEC-083: Backward compatible pass-through | 37 | Don't break non-GitHub gleanings |
-| DEC-084: Two-phase approach (extract + backfill) | 37 | Don't require re-extraction of all gleanings |
+**All architectural decisions have been moved to [DECISIONS.md](DECISIONS.md)**
+
+That document contains:
+- Complete decision registry (DEC-001 through DEC-084+)
+- Decision governance process for LLMs and contributors
+- Historical notes about numbering gaps
+- Deprecated/superseded decisions
+
+**Quick access to key decisions**:
+- [DEC-009: Direct imports over subprocess](DECISIONS.md#decision-registry) - 10x faster searches
+- [DEC-027: Compact collapsible results](DECISIONS.md#decision-registry) - Mobile-first UX
+- [DEC-036: Multi-vault storage strategy](DECISIONS.md#decision-registry) - vault/.temoa/ co-location
+- [DEC-054: Enable re-ranking by default](DECISIONS.md#decision-registry) - Search quality improvement
+
+See [DECISIONS.md](DECISIONS.md) for the complete list with governance process.
 
 ---
 
@@ -167,4 +114,5 @@ The chronicles have been split into chapters for easier navigation:
 
 **Created**: 2025-11-18
 **Last Updated**: 2025-12-14
-**Total Entries**: 37
+**Total Entries**: 38
+**Decisions**: See [DECISIONS.md](DECISIONS.md) for complete decision registry
