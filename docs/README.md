@@ -34,10 +34,10 @@ Living documents tracking implementation progress and decisions.
 
 | Document | Purpose | Audience |
 |----------|---------|----------|
-| [IMPLEMENTATION.md](IMPLEMENTATION.md) | Master progress tracker across all phases | Everyone |
+| [DOCUMENTATION-GUIDE.md](DOCUMENTATION-GUIDE.md) | **How documentation works** - structure, session workflows, governance | Contributors, LLMs |
+| [IMPLEMENTATION.md](IMPLEMENTATION.md) | Master progress tracker across all phases (current phase detailed) | Everyone |
 | [DECISIONS.md](DECISIONS.md) | Architectural decision registry (DEC-001+) with governance process | Developers, Contributors, LLMs |
 | [CHRONICLES.md](CHRONICLES.md) | Design discussions and historical context (links to decisions) | Developers, Future maintainers |
-| [PHASE-3-READY.md](PHASE-3-READY.md) | Phase 3 overview and remaining work | Developers |
 
 ---
 
@@ -92,7 +92,9 @@ Session notes with detailed implementation decisions:
 
 **Understand system architecture**: Read [ARCHITECTURE.md](ARCHITECTURE.md)
 
-**See current progress**: Check [IMPLEMENTATION.md](IMPLEMENTATION.md)
+**Understand how documentation works**: Read [DOCUMENTATION-GUIDE.md](DOCUMENTATION-GUIDE.md) for structure, session workflows, and governance
+
+**See current progress**: Check [IMPLEMENTATION.md](IMPLEMENTATION.md) current phase section
 
 **Look up a design decision**: Search [DECISIONS.md](DECISIONS.md) for quick reference, or read [CHRONICLES.md](CHRONICLES.md) for full context
 
@@ -100,7 +102,7 @@ Session notes with detailed implementation decisions:
 
 **Extract gleanings from daily notes**: Read [GLEANINGS.md](GLEANINGS.md)
 
-**See what's next**: Check [PHASE-3-READY.md](PHASE-3-READY.md) or [IMPLEMENTATION.md](IMPLEMENTATION.md)
+**Start a new session**: Read [DOCUMENTATION-GUIDE.md](DOCUMENTATION-GUIDE.md) section "Session Pick-Up Process"
 
 ---
 
