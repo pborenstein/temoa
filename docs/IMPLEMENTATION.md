@@ -7,9 +7,9 @@
 **Project**: Temoa - Local Semantic Search Server for Obsidian Vault
 **Created**: 2025-11-18
 **Status**: Phase 3 ✅ COMPLETE → Production Hardening 🔵 ONGOING
-**Last Updated**: 2025-12-14
+**Last Updated**: 2025-12-17
 **Current Version**: 0.6.0
-**Current Branch**: `main`
+**Current Branch**: `pseudo-vaults`
 **Estimated Timeline**: 4-6 weeks for Phases 0-2, ongoing for Phases 3-4
 
 ---
@@ -512,11 +512,36 @@ See [chronicles/phase-3-implementation.md](chronicles/phase-3-implementation.md)
 ---
 ## Production Hardening (Post-Phase 3) 🔵
 
-**Status**: COMPLETE (2025-12-14)
-**Branch**: `main`
+**Status**: ONGOING
+**Branch**: `pseudo-vaults` (was `main`)
 **Version**: 0.6.0
 
 ### Completed Work
+
+#### Vault Format Agnostic Support (2025-12-17)
+
+**Goal**: Support plain text files without frontmatter, validate architectural constraint
+
+**Changes Made**:
+- Updated `synthesis/src/embeddings/vault_reader.py` to include `**/*.txt` pattern
+- Added nahuatl-frontmatter as synthesis dependency
+- Implemented YAML frontmatter sanitization in nahuatl-frontmatter:
+  - Auto-quote colon-containing values
+  - File descriptor-level stderr suppression for PyYAML C library
+  - Parse errors changed to DEBUG level
+- Updated Python requirement to >=3.10
+
+**Testing**: 2 pseudo-vaults with 1002 files each
+- `markdown-files/`: .md with frontmatter ✅
+- `text-files/`: .txt without frontmatter ✅
+- Both index cleanly with 0 error messages
+
+**Impact**: Validates "Vault Format Agnostic" architectural constraint - temoa now works with any text file collection regardless of format or frontmatter validity.
+
+**Commits**:
+- nahuatl-frontmatter `0e2ca01` - YAML sanitization and error suppression
+- nahuatl-frontmatter `90a60c3` - Remove __pycache__ from git
+- temoa `38dd49b` - Vault format agnostic support
 
 #### Query Expansion Default Change (2025-12-06)
 
@@ -707,10 +732,23 @@ UnicodeEncodeError: 'utf-8' codec can't encode characters in position 24583-2458
 Based on continued real-world usage, consider:
 - [x] Error handling edge cases (Unicode surrogates fixed)
 - [x] macOS deployment automation (launchd service management)
+- [x] Vault format agnostic support (plain text files)
+- [x] YAML frontmatter error suppression
 - [ ] Performance monitoring/metrics
 - [ ] Additional UX improvements from user feedback
 - [ ] Mobile validation of PWA installation
 - [ ] More comprehensive testing
+
+### Next Session Start Here
+
+**Current Branch**: `pseudo-vaults`
+**Current Focus**: Production hardening and validation
+
+**To Continue**:
+1. Merge `pseudo-vaults` branch to `main` if testing is complete
+2. Consider additional edge cases for frontmatter parsing
+3. Test with more diverse file types if needed
+4. Resume other production hardening tasks or begin Phase 4 planning
 
 ---
 

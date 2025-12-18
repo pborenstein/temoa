@@ -48,17 +48,17 @@ class VaultReader:
         logger.info(f"VaultReader initialized for: {self.vault_root}")
     
     def discover_files(self, include_patterns: List[str] = None, exclude_patterns: List[str] = None) -> List[Path]:
-        """Discover all markdown files in the vault.
-        
+        """Discover all text files in the vault.
+
         Args:
-            include_patterns: Glob patterns for files to include
+            include_patterns: Glob patterns for files to include (default: markdown and text files)
             exclude_patterns: Glob patterns for files to exclude
-            
+
         Returns:
-            List of markdown file paths
+            List of text file paths
         """
         if include_patterns is None:
-            include_patterns = ["**/*.md"]
+            include_patterns = ["**/*.md", "**/*.txt"]
         
         if exclude_patterns is None:
             exclude_patterns = [

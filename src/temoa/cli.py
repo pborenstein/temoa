@@ -20,6 +20,7 @@ logging.basicConfig(
 logging.getLogger("temoa.synthesis").setLevel(logging.WARNING)
 logging.getLogger("src.embeddings").setLevel(logging.WARNING)
 logging.getLogger("sentence_transformers").setLevel(logging.WARNING)
+logging.getLogger("nahuatl_frontmatter").setLevel(logging.ERROR)  # Suppress frontmatter parse warnings
 
 
 @click.group()
