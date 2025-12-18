@@ -271,14 +271,39 @@ uv run main.py models
 - Isolation: Synthesis changes don't break Temoa
 - Simplicity: Well-defined interface via JSON
 
-### Why Not Chunking?
-**Obsidian Copilot uses 6000-char chunks**, but Temoa doesn't need this because:
-- Gleanings are small (< 500 chars typically)
-- Already atomic units (one link per note)
-- Synthesis handles short documents well
-- Reduces implementation complexity
+### File Size Considerations and Chunking
 
-**Re-evaluate if**: Gleanings grow to include long summaries/notes
+**Current Limitation** (as of Phase 3):
+- Embedding models have **512 token limit** (~2,000-2,500 chars)
+- sentence-transformers **silently truncates** text beyond this limit
+- Only first ~2,500 characters of any file are searchable
+- No warning or error when truncation occurs
+
+**Impact by content type** (daily notes excluded by default):
+| Content Type | Coverage | Status |
+|--------------|----------|--------|
+| **Gleanings** (type=gleaning) | 100% | ✅ Fully searchable (< 500 chars) |
+| **Daily notes** (type=daily) | N/A | Not indexed (excluded via `exclude_types=daily`) |
+| **Other types** (story, article, writering, reference) | Varies | ⚠️ Partially searchable (depends on file size) |
+| **Books** (type=story, 100KB-9MB) | < 1% | ❌ Mostly unsearchable |
+
+**Real example** (1002 vault with Project Gutenberg books):
+```
+File: 3254.md (9.1MB - John Galsworthy's complete works)
+Model limit: 512 tokens (~2,500 chars)
+Indexed: 0.027% of content
+Lost: 99.973% of content
+Result: Search for "Chapter 45" → ❌ NOT FOUND (past char 2,500)
+```
+
+**Chunking Status**:
+- **DEC-085**: Adaptive chunking approved for Phase 4
+- **Strategy**: Chunk files >4,000 chars into 2,000-char chunks with 400-char overlap
+- **Why deferred**: Current vaults (amoxtli, rodeo) work acceptably for their primary use cases (gleanings + medium notes); book library support is additive
+
+**Workaround**: For now, be aware that searches may miss content beyond the first ~2,500 characters in large files. Full chunking support coming in Phase 4.
+
+**See**: docs/chronicles/production-hardening.md Entry 40 for full analysis and trade-offs
 
 ### Frontmatter-Aware Search Strategy
 

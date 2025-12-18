@@ -6,8 +6,8 @@
 >
 > **For LLMs/Contributors**: Follow the governance process below when adding new decisions.
 
-**Last Updated**: 2025-12-14
-**Total Decisions**: 100+ (with historical gaps documented)
+**Last Updated**: 2025-12-18
+**Total Decisions**: 85 (DEC-001 through DEC-085, with historical gaps documented)
 
 ---
 
@@ -87,7 +87,7 @@ This checks for:
 | Decision | Entry | Summary |
 |----------|-------|---------|
 | DEC-001: Project name (Temoa) | 6 | Named after Nahuatl "to seek" |
-| DEC-002: Why No Chunking? | 5 | Gleanings are small (<500 chars), atomic units, no chunking needed |
+| DEC-002: Why No Chunking? (Phase 0-1) | 5 | Gleanings are small (<500 chars), no chunking needed [superseded by DEC-085 for large docs] |
 | DEC-003: Why No Caching Initially? | 5 | Synthesis fast enough without caching, avoid premature optimization |
 | DEC-004: Vault Format Agnosticism | 2 | Scripts use relative paths or `$SCRIPT_DIR`, no hardcoded paths |
 | DEC-005: Vector Database Storage Location | 2 | Use pathlib methods, not string manipulation for paths |
@@ -170,6 +170,7 @@ This checks for:
 | DEC-082: Comprehensive emoji removal | 37 | Clean text for search, Unicode regex all ranges |
 | DEC-083: Backward compatible pass-through | 37 | Don't break non-GitHub gleanings |
 | DEC-084: Two-phase approach (extract + backfill) | 37 | Don't require re-extraction of all gleanings |
+| DEC-085: Chunking required for large documents | 40 | Adaptive chunking for files >4K chars (deferred to Phase 4) |
 
 ---
 

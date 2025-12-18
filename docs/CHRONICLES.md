@@ -61,7 +61,7 @@ The chronicles have been split into chapters for easier navigation:
 - Entry 32: Documentation Style Conformance
 
 ### [Production Hardening](chronicles/production-hardening.md) 🔵 ONGOING
-**Entries 33-39** | Real-World Usage Fixes
+**Entries 33-40** | Real-World Usage Fixes
 
 - Entry 33: Production Hardening - Query Expansion Default Change
 - Entry 34: State Management Refactoring - Eliminating "Hodge Podge"
@@ -70,6 +70,7 @@ The chronicles have been split into chapters for easier navigation:
 - Entry 37: Gleaning Normalization - GitHub URL Cleanup
 - Entry 38: Frontmatter-Aware Search - Tag Boosting and Description Integration
 - Entry 39: Vault Format Agnostic - Plain Text File Support
+- Entry 40: Token Limits and Chunking Requirement Discovery
 
 ---
 
@@ -78,7 +79,7 @@ The chronicles have been split into chapters for easier navigation:
 **All architectural decisions have been moved to [DECISIONS.md](DECISIONS.md)**
 
 That document contains:
-- Complete decision registry (DEC-001 through DEC-084+)
+- Complete decision registry (DEC-001 through DEC-085)
 - Decision governance process for LLMs and contributors
 - Historical notes about numbering gaps
 - Deprecated/superseded decisions

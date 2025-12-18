@@ -3,8 +3,8 @@
 > **Purpose**: This document explains the technical architecture of Temoa, how components interact, and how semantic search with embeddings works.
 
 **Created**: 2025-11-22
-**Last Updated**: 2025-12-03
-**Status**: Phase 3 Complete (Multi-stage Search Pipeline)
+**Last Updated**: 2025-12-18
+**Status**: Phase 3 Complete (Multi-stage Search Pipeline, token limits documented)
 
 ---
 
@@ -254,6 +254,77 @@ Where:
 | `multi-qa-mpnet-base-cos-v1` | 768        | Slower | Best    | Optimized for Q&A            |
 
 **Current Default**: `all-MiniLM-L6-v2` (good balance for mobile use)
+
+### Token Limits and Document Truncation
+
+**Critical Limitation** (discovered December 2025):
+
+All sentence-transformer models have maximum sequence lengths:
+
+| Model | Max Tokens | Max Chars (approx) | Coverage on 9MB File |
+|-------|------------|-------------------|---------------------|
+| `all-mpnet-base-v2` | 512 | ~2,000-2,500 | 0.027% |
+| `all-MiniLM-L6-v2` (default) | 512 | ~2,000-2,500 | 0.027% |
+| `all-MiniLM-L12-v2` | 512 | ~2,000-2,500 | 0.027% |
+| `paraphrase-albert-small-v2` | 100 | ~400 | 0.004% |
+
+**Token estimation**: ~1 token per 3-4 characters (English text)
+
+**What happens to large files**:
+1. Synthesis reads full file content (up to 9MB+)
+2. Prepends frontmatter description (if present)
+3. Cleans markdown formatting
+4. Sends entire text to sentence-transformers
+5. **Model silently truncates** at token limit (512 tokens)
+6. Only first ~2,500 characters are embedded
+7. **No warning or error message**
+
+**Impact on search coverage** (indexed content - daily notes excluded by default):
+
+| File Size | Searchable | Example Content Type |
+|-----------|------------|---------------------|
+| < 2,500 chars | 100% | Gleanings (type=gleaning), short notes |
+| 2,500-5,000 | ~50% | Medium articles, writering |
+| 5,000-10,000 | ~25% | Long articles, reference docs |
+| 100KB+ | < 1% | Essays, short stories (type=story) |
+| 1MB+ | < 0.1% | Books, anthologies (type=story) |
+| 9MB | 0.027% | Complete works (type=story) |
+
+**Note**: Daily notes (type=daily) are excluded via `exclude_types=daily` by default and are not indexed.
+
+**Query behavior**:
+- Matches in first 2,500 chars: ✅ FOUND
+- Matches after char 2,500: ❌ MISSED
+- Embedding biased toward document beginning
+
+**Real example** (1002 vault with Project Gutenberg books):
+```
+File: 3254.md
+Size: 9,153,615 bytes (9.1MB)
+Content: John Galsworthy's complete works
+Model limit: 512 tokens (~2,500 chars)
+Indexed: 0.027% of content
+Lost: 99.973% of content
+
+Search: "Forsyte Saga Chapter 45"
+Result: ❌ NOT FOUND (Chapter 45 is past char 2,500)
+```
+
+**Chunking Support** (Phase 4):
+
+**Status**: Approved via DEC-085, implementation deferred
+
+**Strategy**: Adaptive chunking
+- Files < 4,000 chars: No chunking (current behavior)
+- Files ≥ 4,000 chars: Split into 2,000-char chunks with 400-char overlap
+
+**Expected impact**:
+- Search coverage: 100% (vs current 35% for large files)
+- Index size: +3-4x (acceptable - disk space is cheap)
+- Indexing time: +2.5-3x (acceptable - indexing is infrequent)
+- Search latency: No change (400ms)
+
+**See**: docs/chronicles/production-hardening.md Entry 40 for full analysis and trade-offs.
 
 ---
 
