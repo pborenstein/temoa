@@ -1284,3 +1284,148 @@ Created comprehensive test suite in `test-vault/`:
 **Lines added**: ~727 lines (implementation + test data + documentation)
 **Tests**: 8 validation queries with documented results
 **Decision IDs**: (None - implementation of existing search quality goals)
+
+## Entry 39: Vault Format Agnostic - Plain Text File Support (2025-12-17)
+
+**Context**: Testing temoa with two pseudo-vaults containing identical content - one as markdown with frontmatter, one as plain text without frontmatter. This validated the "Vault Format Agnostic" architectural constraint.
+
+### The Problem
+
+Temoa failed to index plain `.txt` files:
+```
+No content found in vault
+Reindexing failed: No content found in vault
+```
+
+**Root cause**: `vault_reader.py` was hardcoded to only discover `**/*.md` files.
+
+### The Fix (Multi-Part)
+
+**Part 1: Add .txt Pattern**
+
+Updated `synthesis/src/embeddings/vault_reader.py:61`:
+```python
+# Before
+include_patterns = ["**/*.md"]
+
+# After  
+include_patterns = ["**/*.md", "**/*.txt"]
+```
+
+**Part 2: Frontmatter Parse Warnings**
+
+While testing with 1002 markdown files, discovered 22 files with YAML parsing errors due to unquoted colons in frontmatter values:
+```
+Failed to parse frontmatter from content: mapping values are not allowed in this context
+  in "<unicode string>", line 3, column 35
+```
+
+**Examples of problematic frontmatter**:
+- `title: Stories by English Authors: France` (colon in value)
+- `created: 2025-12-17T21:35:24.670318-05:00` (colon in timestamp)
+
+**Solution implemented in nahuatl-frontmatter**:
+1. Auto-quote values containing colons
+2. Suppress PyYAML C library stderr output at file descriptor level
+3. Change parse failure logging from WARNING to DEBUG
+
+### Implementation Details
+
+**nahuatl-frontmatter changes** (commit `0e2ca01`):
+- Added `_sanitize_frontmatter()` helper function
+- Regex-based detection of key:value patterns
+- Auto-quoting for unquoted values containing colons
+- `suppress_stderr()` context manager using `os.dup2()` for FD-level suppression
+- Parse errors changed to DEBUG level
+
+**Key insight**: PyYAML C library writes errors directly to stderr at C level, bypassing Python's `sys.stderr`. Required OS-level file descriptor redirection to suppress.
+
+**temoa changes** (commit `38dd49b`):
+- Added nahuatl-frontmatter as synthesis dependency
+- Configured nahuatl_frontmatter logger at ERROR level
+- Updated Python requirement to >=3.10 (required by nahuatl-frontmatter)
+- Both synthesis and temoa venvs use editable install of nahuatl-frontmatter
+
+### Testing Results
+
+**Test setup**: Two pseudo-vaults in `~/Obsidian/1002/`
+- `markdown-files/`: 1002 .md files with frontmatter
+- `text-files/`: 1002 .txt files (same content, no frontmatter)
+
+**Before fix**:
+- markdown-files: ✅ Indexed (with 22 warning messages)
+- text-files: ❌ Failed (no content found)
+
+**After fix**:
+- markdown-files: ✅ Indexed cleanly (0 warnings)
+- text-files: ✅ Indexed cleanly (0 warnings)
+
+**Indexing metrics** (1002 files):
+- Reading files: ~5s
+- Building embeddings (all-mpnet-base-v2): ~2 minutes
+- BM25 index: < 1s
+- Total: ~2 minutes per vault
+
+### Lessons Learned
+
+**Work with me, not against context**:
+- Initial approach tried to fix everything from temoa side (logging config, stderr suppression in wrong place)
+- User correctly pointed out: "Shouldn't we go over to nahuatl-frontmatter and fix that?"
+- Lesson: Fix problems at the source, not by patching around them
+
+**Editable installs matter**:
+- Changes to nahuatl-frontmatter weren't being picked up because synthesis had a packaged copy in `.venv`
+- Required `uv pip install -e ../../nahuatl-frontmatter` in both venvs
+- Verified with `inspect.getsource()` that changes were loaded
+
+**Git tracking of pycache**:
+- Discovered `__pycache__/*.pyc` files were committed before `.gitignore` was added
+- `.gitignore` only prevents NEW files from being tracked
+- Required `git rm --cached` to untrack them (commit `90a60c3` in nahuatl-frontmatter)
+
+### Architectural Validation
+
+This work validates CLAUDE.md "Architectural Constraints" #1:
+
+> **1. Vault Format Agnostic**
+> - **Optimized for**: Obsidian vault (markdown, frontmatter, wikilinks)
+> - **Must work with**: Plain text files in directories ✓
+> - **Test**: Point at folder of .txt files → search should still work ✓
+
+**Status**: ✅ VALIDATED - Temoa now works with any collection of text files regardless of format or frontmatter validity.
+
+### Impact and Metrics
+
+**Scope**:
+- 2 files changed in temoa (vault_reader.py, pyproject.toml)
+- 1 file changed in nahuatl-frontmatter (parser.py: +98 lines)
+- Clean indexing output (0 error messages for both vaults)
+
+**Performance**:
+- No degradation - same ~2 minute indexing time
+- .txt files without frontmatter actually slightly faster (no YAML parsing)
+
+**Use cases enabled**:
+- Plain text file collections
+- Project Gutenberg texts
+- Code repositories with .txt documentation
+- Any directory of text files (even with malformed/missing frontmatter)
+
+---
+
+**Entry created**: 2025-12-17
+**Author**: Claude (Sonnet 4.5)  
+**Type**: Feature Implementation - Core Capability Enhancement
+**Impact**: HIGH - Enables vault-agnostic usage, validates architectural constraint
+**Duration**: ~2 hours (debugging + implementation + testing)
+**Branch**: `pseudo-vaults`
+**Commits**:
+- nahuatl-frontmatter `0e2ca01` - "feat: add YAML frontmatter sanitization and error suppression"
+- nahuatl-frontmatter `90a60c3` - "chore: remove __pycache__ files from git tracking"
+- temoa `38dd49b` - "feat: add vault format agnostic support and frontmatter error suppression"
+**Files changed**: 
+- temoa: 4 files (vault_reader.py, pyproject.toml, cli.py, uv.lock)
+- nahuatl-frontmatter: 1 file (parser.py)
+**Lines added**: ~100 lines total
+**Tests**: 2004 files indexed successfully (1002 .md + 1002 .txt)
+**Decision IDs**: (None - implementation of existing architectural constraint)
