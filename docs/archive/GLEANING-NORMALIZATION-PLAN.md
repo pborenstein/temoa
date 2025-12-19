@@ -1,8 +1,11 @@
 # Gleaning Normalization Plan
 
 **Created**: 2025-12-14
-**Status**: Planning
+**Status**: Complete ✅ (implemented 2025-12-14, commit a8a152a)
 **Goal**: Normalize GitHub gleaning titles/descriptions and create extensible system for other URL types
+
+**Implementation**: See Entry 37 in docs/CHRONICLES.md (Production Hardening)
+**User Documentation**: See docs/GLEANINGS.md lines 63-86 (normalization) and 233-257 (backfill script)
 
 ---
 
