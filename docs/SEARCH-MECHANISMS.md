@@ -2,8 +2,8 @@
 
 > **Purpose**: Technical documentation of all search algorithms, ranking methods, and quality enhancements in Temoa.
 
-**Last Updated**: 2025-12-03
-**Status**: Phase 3 Complete
+**Last Updated**: 2025-12-19
+**Status**: Production Hardening Complete
 **Version**: 0.6.0
 
 ---
@@ -27,6 +27,7 @@ The search pipeline consists of:
 - [Core Search Methods](#core-search-methods)
   - [Semantic Search (Bi-Encoder)](#1-semantic-search-bi-encoder)
   - [Keyword Search (BM25)](#2-keyword-search-bm25)
+  - [Frontmatter-Aware Search (Tag Boosting)](#25-frontmatter-aware-search-tag-boosting)
   - [Hybrid Search (RRF)](#3-hybrid-search-rrf)
 - [Query Enhancement](#query-enhancement)
   - [Query Expansion](#query-expansion)
@@ -135,6 +136,82 @@ The search pipeline consists of:
 
 ---
 
+### 2.5. Frontmatter-Aware Search (Tag Boosting)
+
+**Files**: `src/temoa/bm25_index.py::BM25Index.build()`, `src/temoa/synthesis.py::hybrid_search()`
+**Added**: 2025-12-14 (commit d39462f)
+
+**What it does**: Leverages curated frontmatter metadata (tags, description) to dramatically boost relevance for documents matching query tags.
+
+**How it works**:
+
+**BM25 Layer** (Tag Indexing):
+1. Tags and description fields are extracted from frontmatter
+2. Tags are repeated 2x in indexed text (increases term frequency)
+3. Description is repeated 2x (similar weight to tags)
+4. Combined indexed text: `title + tags(2x) + description(2x) + content`
+
+**Tag Boosting** (BM25 scoring):
+1. When query matches document tags, apply 5x score multiplier
+2. Track matched tags for transparency
+3. Store both base and boosted scores
+
+**Hybrid RRF Boost** (Aggressive preservation):
+1. RRF fusion averages ranks, which can bury perfect tag matches
+2. Tag-matched results get 1.5-2.0x max_rrf boost to overcome averaging
+3. Mark as `tag_boosted: true` to prevent downstream re-ranking
+
+**Why we chose it**:
+- **Tags are categorical**: Unlike body text, tags are user-curated keywords that deserve special handling
+- **Multi-layered**: BM25 handles keyword matching, aggressive boosting preserves it through RRF fusion
+- **Measured success**: 100% success rate for tag queries (before: buried in results, after: #1)
+- **Description integration**: Prepended to semantic embeddings + indexed in BM25 for dual benefit
+
+**Strengths**:
+- Perfect match for tag-based queries ("zettelkasten books" → documents tagged [zettelkasten, book])
+- Respects user curation (tags are intentional metadata)
+- Works with hybrid search (doesn't break semantic component)
+
+**Weaknesses**:
+- Requires frontmatter with tags field
+- 5x boost is aggressive (may over-promote tag matches)
+- Tag-boosted results skip cross-encoder re-ranking (assumes exact match is correct)
+
+**Performance**: No additional latency (tags indexed during BM25 build)
+
+**Configuration**:
+```json
+{
+  "bm25": {
+    "tag_boost": 5.0  // Multiplier for tag matches
+  }
+}
+```
+
+**Example**:
+```python
+# Query: "zettelkasten books"
+# Document frontmatter:
+#   title: "The Zettelkasten Method"
+#   tags: [zettelkasten, book, note-taking]
+#
+# Without tag boosting:
+# - BM25 score: 2.3
+# - Rank: #7 (buried by longer docs mentioning both terms)
+#
+# With tag boosting:
+# - BM25 base score: 2.3
+# - Tags matched: [zettelkasten, book]
+# - BM25 boosted score: 2.3 * 5.0 = 11.5
+# - Rank: #1 (perfect match!)
+```
+
+**See also**:
+- CHRONICLES.md Entry 38 (Frontmatter-Aware Search)
+- test-vault/BM25_TAG_BOOSTING_RESULTS.md (experimental validation)
+
+---
+
 ### 3. Hybrid Search (RRF)
 
 **File**: `src/temoa/synthesis.py::SynthesisClient.hybrid_search()`
@@ -234,8 +311,9 @@ The search pipeline consists of:
 - **Total**: ~850ms (only for queries < 3 words)
 
 **Configuration**:
-- Enabled by default (`?expand_query=true`)
-- Can be disabled via `?expand_query=false`
+- **Disabled by default** (`?expand_query=false`) as of 2025-12-06
+- Can be enabled via `?expand_query=true`
+- Reason for default change: Short queries are often person names, which don't benefit from expansion
 
 **Example**:
 ```python
@@ -611,10 +689,10 @@ User Query: "AI" (short query)
 Final Results (sorted by relevance)
 ```
 
-**Default Configuration** (all features enabled):
+**Default Configuration** (most features enabled):
 ```
 ?hybrid=true          → Hybrid search (BM25 + semantic)
-?expand_query=true    → Query expansion for short queries
+?expand_query=false   → Query expansion disabled (since 2025-12-06)
 ?rerank=true          → Cross-encoder re-ranking
 ?time_boost=true      → Time-aware scoring
 ?exclude_types=daily  → Hide daily notes
@@ -713,7 +791,7 @@ GET /search?
   &min_score=<float>           # Optional: Min similarity (0.0-1.0, default: 0.3)
   &hybrid=<bool>               # Optional: Use hybrid search (default: true)
   &rerank=<bool>               # Optional: Use re-ranking (default: true)
-  &expand_query=<bool>         # Optional: Expand short queries (default: true)
+  &expand_query=<bool>         # Optional: Expand short queries (default: false, changed 2025-12-06)
   &time_boost=<bool>           # Optional: Boost recent docs (default: true)
   &include_types=<csv>         # Optional: Whitelist types (e.g., "gleaning,article")
   &exclude_types=<csv>         # Optional: Blacklist types (default: "daily")
