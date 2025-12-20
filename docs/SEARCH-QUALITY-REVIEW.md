@@ -2,7 +2,7 @@
 
 **Date**: 2025-12-03
 **Scope**: Cross-encoder re-ranking, query expansion, and time-aware scoring
-**Status**: Review complete, fixes pending
+**Status**: Critical fixes complete ✅ (2025-12-19, commit 26e20c6)
 
 ---
 
@@ -18,7 +18,18 @@ This document captures the code review findings for the Phase 3 search quality f
 
 ---
 
-## Critical Issues (Fix Now)
+## Critical Issues ✅ FIXED
+
+**Status**: All three critical issues fixed in commit 26e20c6 (2025-12-19)
+
+**Summary of fixes**:
+- Issue #1: Pipeline order corrected - time boost now runs after re-ranking
+- Issue #2: Path traversal protection added with resolve() and validation
+- Issue #3: Query expansion error handling improved with try/except and logging
+
+---
+
+## Original Critical Issues (Now Fixed)
 
 ### 1. Data Mutation Bug in Pipeline Order ⚠️
 
