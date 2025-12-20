@@ -630,16 +630,28 @@ async def search(
         if expand_query:
             query_expander = request.app.state.query_expander
             if query_expander.should_expand(q):
-                # Get initial results for expansion
-                logger.info(f"Query '{q}' is short, fetching initial results for expansion")
-                initial_data = synthesis.search(query=q, limit=5)
-                initial_results = initial_data.get("results", [])
+                try:
+                    # Get initial results for expansion
+                    logger.info(f"Query '{q}' is short, fetching initial results for expansion")
+                    initial_data = synthesis.search(query=q, limit=5)
+                    initial_results = initial_data.get("results", [])
 
-                # Expand query
-                q = query_expander.expand(q, initial_results, top_k=5)
-                if q != original_query:
-                    expanded_query = q
-                    logger.info(f"Query expanded: '{original_query}' → '{q}'")
+                    if not initial_results:
+                        logger.info(f"Query '{q}' needs expansion but initial search returned no results")
+
+                    # Expand query
+                    q = query_expander.expand(q, initial_results, top_k=5)
+                    if q != original_query:
+                        expanded_query = q
+                        logger.info(f"Query expanded: '{original_query}' → '{q}'")
+                    else:
+                        logger.debug(f"Query expansion did not modify query: '{original_query}'")
+                except SynthesisError as e:
+                    logger.warning(f"Initial search for expansion failed: {e}, proceeding with original query")
+                    # Continue with original query
+                except Exception as e:
+                    logger.warning(f"Query expansion failed: {e}, proceeding with original query")
+                    # Continue with original query
 
         # Perform search (request more results to account for filtering)
         search_limit = limit * 2 if limit else 50
@@ -689,13 +701,7 @@ async def search(
         if type_removed > 0:
             logger.info(f"Filtered {type_removed} results by type (include={include_type_list}, exclude={exclude_type_list})")
 
-        # Apply time-aware boost (before re-ranking)
-        if time_boost and filtered_results:
-            time_scorer = request.app.state.time_scorer
-            logger.info(f"Applying time-aware boost to {len(filtered_results)} results")
-            filtered_results = time_scorer.apply_boost(filtered_results, vault_path)
-
-        # Apply cross-encoder re-ranking if enabled
+        # Apply cross-encoder re-ranking if enabled (before time boost)
         if rerank and filtered_results:
             reranker = request.app.state.reranker
             # Re-rank with more candidates than final limit for better quality
@@ -707,6 +713,12 @@ async def search(
                 top_k=limit,
                 rerank_top_n=rerank_count
             )
+
+        # Apply time-aware boost (after re-ranking)
+        if time_boost and filtered_results:
+            time_scorer = request.app.state.time_scorer
+            logger.info(f"Applying time-aware boost to {len(filtered_results)} results")
+            filtered_results = time_scorer.apply_boost(filtered_results, vault_path)
 
         # Apply final limit (if not already applied by reranker)
         if not rerank:

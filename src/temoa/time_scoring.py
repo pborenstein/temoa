@@ -67,12 +67,24 @@ class TimeAwareScorer:
         for result in results:
             # Get file modification time
             file_path = vault_path / result['relative_path']
-            if not file_path.exists():
-                logger.debug(f"File not found for time boost: {file_path}")
+
+            # Ensure path is within vault (prevent path traversal)
+            try:
+                file_path_resolved = file_path.resolve()
+                vault_path_resolved = vault_path.resolve()
+                if not str(file_path_resolved).startswith(str(vault_path_resolved)):
+                    logger.warning(f"Path traversal attempt detected: {result['relative_path']}")
+                    continue
+            except Exception as e:
+                logger.warning(f"Path resolution failed for {result['relative_path']}: {e}")
+                continue
+
+            if not file_path_resolved.exists():
+                logger.debug(f"File not found for time boost: {file_path_resolved}")
                 continue
 
             try:
-                modified_time = datetime.fromtimestamp(os.path.getmtime(file_path))
+                modified_time = datetime.fromtimestamp(os.path.getmtime(file_path_resolved))
                 days_old = (now - modified_time).days
 
                 # Calculate boost factor using exponential decay
