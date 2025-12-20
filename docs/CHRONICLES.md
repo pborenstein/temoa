@@ -61,7 +61,7 @@ The chronicles have been split into chapters for easier navigation:
 - Entry 32: Documentation Style Conformance
 
 ### [Production Hardening](chronicles/production-hardening.md) 🔵 ONGOING
-**Entries 33-40** | Real-World Usage Fixes
+**Entries 33-41** | Real-World Usage Fixes
 
 - Entry 33: Production Hardening - Query Expansion Default Change
 - Entry 34: State Management Refactoring - Eliminating "Hodge Podge"
@@ -71,6 +71,7 @@ The chronicles have been split into chapters for easier navigation:
 - Entry 38: Frontmatter-Aware Search - Tag Boosting and Description Integration
 - Entry 39: Vault Format Agnostic - Plain Text File Support
 - Entry 40: Token Limits and Chunking Requirement Discovery
+- Entry 41: Documentation Cleanup and Critical Bug Fixes
 
 ---
 
@@ -115,6 +116,6 @@ See [DECISIONS.md](DECISIONS.md) for the complete list with governance process.
 ---
 
 **Created**: 2025-11-18
-**Last Updated**: 2025-12-17
-**Total Entries**: 39
+**Last Updated**: 2025-12-19
+**Total Entries**: 41
 **Decisions**: See [DECISIONS.md](DECISIONS.md) for complete decision registry

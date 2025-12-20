@@ -1429,3 +1429,178 @@ This work validates CLAUDE.md "Architectural Constraints" #1:
 **Lines added**: ~100 lines total
 **Tests**: 2004 files indexed successfully (1002 .md + 1002 .txt)
 **Decision IDs**: (None - implementation of existing architectural constraint)
+
+---
+
+## Entry 41: Documentation Cleanup and Critical Bug Fixes (2025-12-19)
+
+**Context**: After completing frontmatter-aware search and vault format agnostic support, it was time to clean up accumulated documentation and address outstanding code quality issues.
+
+### The Cleanup
+
+**Documentation audit revealed**:
+- `GLEANING-NORMALIZATION-PLAN.md` - Implementation complete (2025-12-14), plan obsolete
+- `SEARCH-QUALITY-REVIEW.md` - Code review from 2025-12-03 with 3 **CRITICAL** unfixed bugs
+- `SEARCH-MECHANISMS.md` - Missing frontmatter-aware search documentation, outdated query expansion defaults
+
+### Critical Bug Fixes (commit 26e20c6)
+
+**Issue #1: Pipeline Order Bug** ⚠️  
+**Severity**: CRITICAL (incorrect data flow)
+
+**Problem**: Time-aware boost was applied BEFORE cross-encoder re-ranking:
+```python
+# WRONG order (before fix):
+1. Time boost mutates similarity_score
+2. Cross-encoder re-ranks using boosted scores
+
+# Problem: Re-ranker should work on semantic relevance, not artificially boosted scores
+```
+
+**Fix**: Swapped order - re-ranking now happens first:
+```python
+# CORRECT order (after fix):
+1. Cross-encoder re-ranks based on semantic relevance
+2. Time boost applied as final adjustment to ranking
+```
+
+**Files changed**: `src/temoa/server.py` lines 692-709
+
+---
+
+**Issue #2: Path Traversal Vulnerability** 🔒  
+**Severity**: CRITICAL (security)
+
+**Problem**: User-controlled `relative_path` joined to `vault_path` without validation:
+```python
+file_path = vault_path / result['relative_path']  # UNSAFE!
+
+# Attack: relative_path = "../../../etc/passwd"
+# Could leak file metadata (modification times) outside vault
+```
+
+**Fix**: Added path resolution and validation:
+```python
+file_path_resolved = file_path.resolve()
+vault_path_resolved = vault_path.resolve()
+
+if not str(file_path_resolved).startswith(str(vault_path_resolved)):
+    logger.warning(f"Path traversal attempt detected: {result['relative_path']}")
+    continue  # Skip malicious path
+```
+
+**Files changed**: `src/temoa/time_scoring.py` lines 71-84
+
+**Defense in depth**: While results come from Synthesis (trusted), validation at every boundary prevents potential issues if Synthesis has bugs or vault contains maliciously crafted files.
+
+---
+
+**Issue #3: Query Expansion Error Handling** 🤫  
+**Severity**: HIGH (observability)
+
+**Problem**: Silent failure if initial search for expansion fails:
+```python
+# Before fix: No error handling
+initial_data = synthesis.search(query=q, limit=5)  # Might fail!
+initial_results = initial_data.get("results", [])   # Might be empty!
+q = query_expander.expand(q, initial_results, top_k=5)  # Silent skip
+```
+
+**Fix**: Added comprehensive error handling and logging:
+```python
+try:
+    initial_data = synthesis.search(query=q, limit=5)
+    initial_results = initial_data.get("results", [])
+    
+    if not initial_results:
+        logger.info(f"Query '{q}' needs expansion but initial search returned no results")
+    
+    q = query_expander.expand(q, initial_results, top_k=5)
+    if q != original_query:
+        logger.info(f"Query expanded: '{original_query}' → '{q}'")
+    else:
+        logger.debug(f"Query expansion did not modify query: '{original_query}'")
+        
+except SynthesisError as e:
+    logger.warning(f"Initial search for expansion failed: {e}, proceeding with original query")
+except Exception as e:
+    logger.warning(f"Query expansion failed: {e}, proceeding with original query")
+```
+
+**Files changed**: `src/temoa/server.py` lines 627-654
+
+**Impact**: Better observability for debugging expansion behavior, graceful fallback to original query on failure.
+
+---
+
+### Testing
+
+**Integration test verified all fixes**:
+```python
+✓ Path traversal protection working
+  Warning logged: "Path traversal attempt detected: ../../../etc/passwd"
+  
+✓ Pipeline order is correct
+  Comment check: "before time boost" comes before "after re-ranking"
+  
+✓ Query expansion error handling added
+  Found: try/except SynthesisError, logging for no-change and failures
+```
+
+All fixes tested successfully against production vault.
+
+---
+
+### Documentation Updates
+
+**Archived completed plans**:
+1. `GLEANING-NORMALIZATION-PLAN.md` → `docs/archive/`
+   - Status updated: "Planning" → "Complete ✅ (implemented 2025-12-14, commit a8a152a)"
+   - Added references to Entry 37 in CHRONICLES.md and GLEANINGS.md docs
+
+2. `SEARCH-QUALITY-REVIEW.md` → `docs/archive/`
+   - Status updated: "Review complete, fixes pending" → "Critical fixes complete ✅ (2025-12-19, commit 26e20c6)"
+   - Added summary of fixes to top of document
+
+**Updated SEARCH-MECHANISMS.md**:
+- Added comprehensive "Frontmatter-Aware Search (Tag Boosting)" section (lines 138-212)
+- Documented BM25 tag indexing, 5x score multiplier, aggressive RRF boost
+- Noted query expansion default change (disabled as of 2025-12-06)
+- Updated Table of Contents, last modified date, configuration examples
+- Total: +85 lines, -7 lines
+
+---
+
+### Key Decisions
+
+None (bug fixes and documentation only).
+
+---
+
+### Lessons Learned
+
+**Code review debt is real**: The SEARCH-QUALITY-REVIEW.md identified critical bugs in 2025-12-03, but they sat unfixed for 16 days while new features were added. Taking time to address code quality prevents compounding technical debt.
+
+**Documentation follows implementation rhythm**: Plans are great for waterfall upfront thinking, but once implementation is complete, they should be archived. Keeping them in active docs creates confusion about current state.
+
+**Path validation is cheap insurance**: Even when data comes from trusted sources, validating at boundaries costs almost nothing and prevents entire classes of security issues.
+
+---
+
+**Entry created**: 2025-12-19  
+**Author**: Claude (Sonnet 4.5)  
+**Type**: Bug Fix + Documentation Cleanup  
+**Impact**: HIGH - Fixes security vulnerability, improves code correctness, updates documentation  
+**Duration**: ~3 hours (review + fixes + documentation + testing)  
+**Branch**: `main`  
+**Commits**:
+- `26e20c6` - "fix: address critical bugs from search quality review"
+- `5f1d86e` - "docs: mark critical bugs as fixed in search quality review"
+- `ea28473` - "docs: archive search quality review after completing critical fixes"
+- `6cbb224` - "docs: archive completed gleaning normalization plan"
+- `fcaaa97` - "docs: update SEARCH-MECHANISMS.md with frontmatter-aware search and query expansion changes"
+
+**Files changed**: 
+- Code: `src/temoa/server.py` (+24, -20 lines), `src/temoa/time_scoring.py` (+15, -3 lines)
+- Docs: `SEARCH-MECHANISMS.md` (+85, -7 lines), 2 files archived
+**Lines changed**: ~120 total (code + docs)

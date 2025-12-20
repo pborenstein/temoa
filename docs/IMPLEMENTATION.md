@@ -7,9 +7,9 @@
 **Project**: Temoa - Local Semantic Search Server for Obsidian Vault
 **Created**: 2025-11-18
 **Status**: Phase 3 ✅ COMPLETE → Production Hardening 🔵 ONGOING
-**Last Updated**: 2025-12-17
+**Last Updated**: 2025-12-19
 **Current Version**: 0.6.0
-**Current Branch**: `pseudo-vaults`
+**Current Branch**: `main`
 **Estimated Timeline**: 4-6 weeks for Phases 0-2, ongoing for Phases 3-4
 
 ---
@@ -543,6 +543,33 @@ See [chronicles/phase-3-implementation.md](chronicles/phase-3-implementation.md)
 - nahuatl-frontmatter `90a60c3` - Remove __pycache__ from git
 - temoa `38dd49b` - Vault format agnostic support
 
+#### Documentation Cleanup and Critical Bug Fixes (2025-12-19)
+
+**Goal**: Clean up completed planning documents and address 3 critical bugs from code review
+
+**Critical Bugs Fixed** (commit 26e20c6):
+1. **Pipeline order bug**: Time boost now runs AFTER cross-encoder re-ranking (was before, which mutated scores incorrectly)
+2. **Path traversal vulnerability**: Added path validation in time_scoring.py to prevent directory traversal attacks
+3. **Query expansion error handling**: Added try/except, logging for empty results, graceful fallback to original query
+
+**Documentation Updates**:
+- Archived `GLEANING-NORMALIZATION-PLAN.md` (implementation complete 2025-12-14)
+- Archived `SEARCH-QUALITY-REVIEW.md` (critical fixes complete)
+- Updated `SEARCH-MECHANISMS.md` with frontmatter-aware search section and query expansion default change
+
+**Testing**: All fixes verified with integration tests
+
+**Commits**:
+- `26e20c6` - "fix: address critical bugs from search quality review"
+- `5f1d86e` - "docs: mark critical bugs as fixed in search quality review"
+- `ea28473` - "docs: archive search quality review after completing critical fixes"
+- `6cbb224` - "docs: archive completed gleaning normalization plan"
+- `fcaaa97` - "docs: update SEARCH-MECHANISMS.md with frontmatter-aware search and query expansion changes"
+
+**Files Modified**:
+- Code: `src/temoa/server.py`, `src/temoa/time_scoring.py`
+- Docs: `SEARCH-MECHANISMS.md`, 2 files archived
+
 #### Query Expansion Default Change (2025-12-06)
 
 **Issue Identified**: Real-world usage showed query expansion (enabled by default) was unhelpful for person names. Short queries (<3 words) are often names, not topics that benefit from TF-IDF expansion.
@@ -741,14 +768,19 @@ Based on continued real-world usage, consider:
 
 ### Next Session Start Here
 
-**Current Branch**: `pseudo-vaults`
-**Current Focus**: Production hardening and validation
+**Current Branch**: `main`
+**Current Focus**: Production hardening complete - ready for Phase 4 or additional polish
+
+**Recent Work** (2025-12-19):
+- Fixed 3 critical bugs from SEARCH-QUALITY-REVIEW.md (pipeline order, path traversal, error handling)
+- Cleaned up documentation (archived completed plans)
+- Updated SEARCH-MECHANISMS.md with frontmatter-aware search documentation
 
 **To Continue**:
-1. Merge `pseudo-vaults` branch to `main` if testing is complete
-2. Consider additional edge cases for frontmatter parsing
-3. Test with more diverse file types if needed
-4. Resume other production hardening tasks or begin Phase 4 planning
+1. Consider beginning Phase 4 (Vault-First LLM) if core features are stable
+2. Additional UX improvements from user feedback
+3. Mobile validation of PWA installation
+4. Performance monitoring/metrics implementation
 
 ---
 
