@@ -775,9 +775,13 @@ Based on continued real-world usage, consider:
 - Fixed 3 critical bugs from SEARCH-QUALITY-REVIEW.md (pipeline order, path traversal, error handling)
 - Cleaned up documentation (archived completed plans)
 - Updated SEARCH-MECHANISMS.md with frontmatter-aware search documentation
+- Thinned CLAUDE.md from 1,138 → 623 lines (45% reduction, removed duplicates)
+- Created GitHub issue #43 for chunking implementation (DEC-085)
+- Established pattern: Deferred work → GitHub issues
 
 **To Continue**:
 1. Consider beginning Phase 4 (Vault-First LLM) if core features are stable
+   - Chunking support tracked in #43 (deferred until Phase 4)
 2. Additional UX improvements from user feedback
 3. Mobile validation of PWA installation
 4. Performance monitoring/metrics implementation

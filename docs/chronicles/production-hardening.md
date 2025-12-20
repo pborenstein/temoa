@@ -1604,3 +1604,166 @@ None (bug fixes and documentation only).
 - Code: `src/temoa/server.py` (+24, -20 lines), `src/temoa/time_scoring.py` (+15, -3 lines)
 - Docs: `SEARCH-MECHANISMS.md` (+85, -7 lines), 2 files archived
 **Lines changed**: ~120 total (code + docs)
+
+---
+
+## Entry 42: Documentation Strategy and CLAUDE.md Thinning (2025-12-19)
+
+**Context**: After discovering chunking requirement (Entry 40) and fixing critical bugs (Entry 41), the documentation maintenance workflow was examined and improved.
+
+### The Documentation Challenge
+
+**Problem**: How do we maintain project knowledge across sessions without:
+- Growing context windows indefinitely
+- Losing historical decisions
+- Duplicating content across files
+- Making information hard to find
+
+**Real example**: Entry 40's chunking analysis was 724 lines in chronicles/entry-40-chunking.md, summarized in CLAUDE.md, and needed tracking for future implementation.
+
+### GitHub Issues for Future Work
+
+**Decision**: Use GitHub issues to track deferred work instead of keeping it in active documentation.
+
+**Implementation**: Created issue #43 for chunking (DEC-085):
+- Full problem statement with impact tables
+- Implementation task breakdown (5 sections with checkboxes)
+- Trade-offs analysis (benefits vs costs)
+- References to supporting docs (Entry 40, DECISIONS.md, ARCHITECTURE.md)
+
+**Benefits**:
+1. **Trackable**: Can reference as #43 in commits and discussions
+2. **Discoverable**: Shows up in issue searches and project planning
+3. **Checklist**: Task items can be checked off during implementation
+4. **Linked**: Cross-references with other Phase 4 work
+5. **Off the critical path**: Doesn't clutter session-to-session documentation
+
+**Pattern**: Future work → GitHub issues. Current work → Documentation files.
+
+---
+
+### CLAUDE.md Thinning
+
+**Problem**: CLAUDE.md had grown to 1,138 lines with significant duplication:
+- Entry 40 chunking details duplicated from chronicles
+- Frontmatter-aware search explained twice (nearly identical)
+- 387 lines of implementation code duplicating source files
+- Historical decisions from Phase 0-1 (already answered)
+- Architectural insights duplicating ARCHITECTURE.md
+
+**Philosophy**: CLAUDE.md should be session orientation + links, not a code/architecture repository.
+
+**Golden rule**: If it exists elsewhere, link to it. Don't duplicate it.
+
+**Changes made**:
+
+1. **Condensed chunking section** (32→5 lines)
+   - Before: Full explanation with tables and examples
+   - After: Brief summary with links to entry-40-chunking.md and #43
+
+2. **Consolidated frontmatter-aware search** (48→10 lines)
+   - Before: Appeared in two places with nearly identical content
+   - After: Single concise version with links to SEARCH-MECHANISMS.md
+
+3. **Removed historical decisions** (25→0 lines)
+   - "Why Subprocess to Synthesis?" - outdated, we use direct imports now
+   - "Why No Caching Initially?" - we have LRU cache now
+   - "Where Should Temoa Live?" - already decided (separate service)
+
+4. **Condensed Implementation Guidelines** (387→60 lines)
+   - Before: Hundreds of lines of code examples
+   - After: "Implementation Patterns" with summaries + links to actual source
+   - Pattern: "Search Pipeline: Multi-stage approach... See src/temoa/server.py"
+
+5. **Removed Copilot patterns** (45→0 lines)
+   - XML context format for LLMs (Phase 4 planning material)
+   - Grep-first recall pattern (not implemented)
+
+6. **Removed architectural insights duplication** (78→0 lines)
+   - Understanding frontmatter-aware search (duplicate)
+   - Seven-stage pipeline philosophy (belongs in ARCHITECTURE.md)
+   - When to add vs extend (design decisions, not session context)
+
+**Result**: 1,138 → 623 lines (45% reduction, 515 lines saved)
+
+**New structure**:
+- Project overview and principles (keep)
+- Links to detailed docs (not duplication)
+- Quick reference commands (keep)
+- Session checklist (keep)
+
+**Verification**: All removed content verified to exist in:
+- docs/chronicles/entry-40-chunking.md
+- GitHub issue #43
+- Source files (src/temoa/*.py)
+- Architecture docs (ARCHITECTURE.md, SEARCH-MECHANISMS.md)
+- Test results (test-vault/*.md)
+
+---
+
+### Documentation Strategy Discussion
+
+**Session hook context**: User mentioned:
+- "My hardware is getting older and the hash tables are a mess of collisions"
+- Basic approach: Memory grows and shards (phases/, chronicles/)
+- CHRONICLES and IMPLEMENTATION focused on "what's next"
+- Requires periodic grooming and tending
+
+**Existing workflow**:
+- `~/.claude/commands/session-pick-up.md` - Read IMPLEMENTATION (find 🔵), CHRONICLES latest entries, DECISIONS
+- `~/.claude/commands/session-wrap-up.md` - Update IMPLEMENTATION, add chronicle entry, update decision table, commit
+
+**Already working well**:
+- Multi-index approach (DECISIONS by ID, CHRONICLES by time, ARCHITECTURE by component)
+- Progressive disclosure (CLAUDE.md → links → deep docs)
+- Sharding by phase (old stuff doesn't clutter current context)
+- Explicit formats (DEC-XXX, Entry NN) for greppability
+
+**Ideas discussed** (not implemented):
+- SESSION-NOTES.md (append-only chronological log)
+- PROJECT-STATUS.md (living "what's happening now" doc)
+- CLAUDE.md restructuring (layers: Right Now → Deep Dive → Map)
+- Documentation debt tracking (grep for TODOs, find stale files)
+
+**Decision**: Focus on thinning CLAUDE.md first before adding new files. Evaluate other improvements after seeing how this works in practice.
+
+---
+
+### Key Decisions
+
+None (documentation maintenance only). Pattern established: Deferred work → GitHub issues.
+
+---
+
+### Lessons Learned
+
+**Duplication is documentation debt**: When the same information appears in multiple places, it creates maintenance burden and risks inconsistency. Link to authoritative source instead.
+
+**GitHub issues are memory extensions**: For future work that's approved but deferred (like chunking), issues provide tracking without cluttering session context.
+
+**Documentation has a shelf life**: Phase 0-1 decisions (subprocess vs direct import, caching strategy) were valuable during planning but became noise after implementation. Archive or remove outdated context.
+
+**Link, don't duplicate**: CLAUDE.md should be a map with signposts, not a library containing all the books. Point to src/temoa/server.py instead of copying 100 lines of code.
+
+**Session startup cost matters**: 1,138 lines vs 623 lines means faster orientation, more context budget for code, and less cognitive load finding relevant information.
+
+---
+
+**Entry created**: 2025-12-19  
+**Author**: Claude (Sonnet 4.5)  
+**Type**: Documentation Strategy + Maintenance  
+**Impact**: MEDIUM - Improves session efficiency, establishes patterns for future work  
+**Duration**: ~2 hours (discussion + analysis + implementation + commit)  
+**Branch**: `main`  
+**Commits**:
+- `3f41c69` - "docs: thin CLAUDE.md by removing duplicate content"
+
+**Files changed**: 
+- `CLAUDE.md` (+72, -587 lines)
+- Created: GitHub issue #43 (chunking implementation tracker)
+- Created: `CLAUDE.md.backup-2025-12-19` (safety backup)
+
+**Lines changed**: ~515 lines removed (net reduction)
+
+**GitHub issues created**: 
+- #43: "Phase 4: Implement adaptive chunking for large documents (DEC-085)"
