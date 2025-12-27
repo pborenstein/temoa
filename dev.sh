@@ -30,6 +30,15 @@ else
     fi
 fi
 
+# Check for any running temoa server process (not from launchd)
+if pgrep -f "temoa server" > /dev/null; then
+    echo -e "${YELLOW}Found running temoa server process. Stopping it...${NC}"
+    pkill -f "temoa server"
+    sleep 1
+    echo -e "${GREEN}✓${NC} Process stopped"
+    echo
+fi
+
 # Function to restore service on exit
 cleanup() {
     echo
