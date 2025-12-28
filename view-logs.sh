@@ -3,15 +3,15 @@
 
 case "$1" in
   temoa|app|a)
-    echo "=== Temoa Logs (stdout) ==="
+    echo "=== temoa Logs (stdout) ==="
     tail -f ~/Library/Logs/temoa.log
     ;;
   error|err|e)
-    echo "=== Temoa Errors (stderr) ==="
+    echo "=== temoa Errors (stderr) ==="
     tail -f ~/Library/Logs/temoa.error.log
     ;;
   all|*)
-    echo "=== All Temoa Logs ==="
+    echo "=== All temoa Logs ==="
     tail -f ~/Library/Logs/temoa*.log
     ;;
 esac

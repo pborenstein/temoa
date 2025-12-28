@@ -8,7 +8,7 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
-echo -e "${BLUE}🔍 Temoa launchd Service Installer${NC}"
+echo -e "${BLUE}🚀 temoa launchd Service Installer${NC}"
 echo
 
 # Detect environment
@@ -31,16 +31,16 @@ if [ ! -f "$VENV_PYTHON" ]; then
     exit 1
 fi
 
-# Check if temoa module is importable
+# Check if project module is importable
 if ! "$VENV_PYTHON" -c "import temoa" 2>/dev/null; then
     echo -e "${RED}Error: temoa module not found in virtual environment${NC}"
     echo "Please run 'uv sync' to install dependencies."
     exit 1
 fi
 
-# Generate temoa plist
+# Generate service plist
 echo -e "${BLUE}Generating temoa service...${NC}"
-TEMOA_PLIST="$HOME_DIR/Library/LaunchAgents/dev.$USERNAME.temoa.plist"
+SERVICE_PLIST="$HOME_DIR/Library/LaunchAgents/dev.pborenstein.temoa.plist"
 
 # Ensure LaunchAgents directory exists
 mkdir -p "$HOME_DIR/Library/LaunchAgents"
@@ -51,18 +51,18 @@ cat "$PROJECT_DIR/launchd/temoa.plist.template" | \
     sed "s|{{PROJECT_DIR}}|$PROJECT_DIR|g" | \
     sed "s|{{HOME}}|$HOME_DIR|g" | \
     sed "s|{{VENV_BIN}}|$VENV_BIN|g" \
-    > "$TEMOA_PLIST"
+    > "$SERVICE_PLIST"
 
-echo -e "${GREEN}✓${NC} Created $TEMOA_PLIST"
+echo -e "${GREEN}✓${NC} Created $SERVICE_PLIST"
 
 # Unload existing service if running
 echo
 echo -e "${BLUE}Unloading any existing service...${NC}"
-launchctl unload "$TEMOA_PLIST" 2>/dev/null || true
+launchctl unload "$SERVICE_PLIST" 2>/dev/null || true
 
 # Load service
 echo -e "${BLUE}Loading service...${NC}"
-launchctl load "$TEMOA_PLIST"
+launchctl load "$SERVICE_PLIST"
 echo -e "${GREEN}✓${NC} Loaded temoa service"
 
 # Give it a moment to start
@@ -73,16 +73,16 @@ echo
 echo -e "${GREEN}✓ Installation complete!${NC}"
 echo
 echo -e "${BLUE}Service status:${NC}"
-launchctl list | grep "dev.$USERNAME.temoa" || echo "  No service found"
+launchctl list | grep "dev.pborenstein.temoa" || echo "  No service found"
 
 echo
 echo -e "${BLUE}Access temoa at:${NC}"
-echo "  Local:       http://localhost:4001"
+echo "  Local:       http://localhost:8080"
 
 # Try to get LAN IP
-LAN_IP=$(ifconfig | grep "inet " | grep -v 127.0.0.1 | head -1 | awk '{print $2}')
+LAN_IP=$(ifconfig | grep "inet " | grep -v 127.0.1 | head -1 | awk '{print $2}')
 if [ -n "$LAN_IP" ]; then
-    echo "  LAN:         http://$LAN_IP:4001"
+    echo "  LAN:         http://$LAN_IP:8080"
 fi
 
 echo
@@ -90,7 +90,7 @@ echo -e "${BLUE}View logs:${NC}"
 echo "  $PROJECT_DIR/view-logs.sh"
 echo
 echo -e "${BLUE}Manage service:${NC}"
-echo "  Stop:    launchctl unload ~/Library/LaunchAgents/dev.$USERNAME.temoa.plist"
-echo "  Start:   launchctl load ~/Library/LaunchAgents/dev.$USERNAME.temoa.plist"
-echo "  Restart: launchctl unload ~/Library/LaunchAgents/dev.$USERNAME.temoa.plist && launchctl load ~/Library/LaunchAgents/dev.$USERNAME.temoa.plist"
+echo "  Stop:    launchctl unload ~/Library/LaunchAgents/dev.pborenstein.temoa.plist"
+echo "  Start:   launchctl load ~/Library/LaunchAgents/dev.pborenstein.temoa.plist"
+echo "  Restart: launchctl unload ~/Library/LaunchAgents/dev.pborenstein.temoa.plist && launchctl load ~/Library/LaunchAgents/dev.pborenstein.temoa.plist"
 echo

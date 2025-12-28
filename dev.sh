@@ -7,21 +7,20 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
-USERNAME="$(whoami)"
-TEMOA_PLIST="$HOME/Library/LaunchAgents/dev.$USERNAME.temoa.plist"
+SERVICE_PLIST="$HOME/Library/LaunchAgents/dev.pborenstein.temoa.plist"
 
-echo -e "${BLUE}🔧 Temoa Development Mode${NC}"
+echo -e "${BLUE}🔧 temoa Development Mode${NC}"
 echo
 
 # Check if launchd service exists
-if [ ! -f "$TEMOA_PLIST" ]; then
+if [ ! -f "$SERVICE_PLIST" ]; then
     echo -e "${YELLOW}No launchd service found. Running directly...${NC}"
     echo
 else
     # Check if service is running
-    if launchctl list | grep -q "dev.$USERNAME.temoa"; then
+    if launchctl list | grep -q "dev.pborenstein.temoa"; then
         echo -e "${YELLOW}Stopping launchd service...${NC}"
-        launchctl unload "$TEMOA_PLIST" 2>/dev/null || true
+        launchctl unload "$SERVICE_PLIST" 2>/dev/null || true
         echo -e "${GREEN}✓${NC} Service stopped"
         echo
         STOPPED_SERVICE=true
@@ -30,7 +29,7 @@ else
     fi
 fi
 
-# Check for any running temoa server process (not from launchd)
+# Check for any running temoa server process
 if pgrep -f "temoa server" > /dev/null; then
     echo -e "${YELLOW}Found running temoa server process. Stopping it...${NC}"
     pkill -f "temoa server"
@@ -49,11 +48,11 @@ cleanup() {
         echo
         if [[ $REPLY =~ ^[Yy]$ ]]; then
             echo -e "${BLUE}Restarting launchd service...${NC}"
-            launchctl load "$TEMOA_PLIST"
+            launchctl load "$SERVICE_PLIST"
             echo -e "${GREEN}✓${NC} Service restored"
         else
             echo -e "${YELLOW}Service not restored. To start it manually:${NC}"
-            echo "  launchctl load $TEMOA_PLIST"
+            echo "  launchctl load $SERVICE_PLIST"
         fi
     fi
 }

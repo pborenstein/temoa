@@ -1765,5 +1765,88 @@ None (documentation maintenance only). Pattern established: Deferred work → Gi
 
 **Lines changed**: ~515 lines removed (net reduction)
 
-**GitHub issues created**: 
+**GitHub issues created**:
 - #43: "Phase 4: Implement adaptive chunking for large documents (DEC-085)"
+
+---
+
+## Entry 43: launchd Service Configuration Updates (2025-12-28)
+
+**Context**: After implementing the launchd service setup in Entry 36, the user ran the macos-launchd-service skill to regenerate the service infrastructure with updated parameters.
+
+### The Task
+
+**Goal**: Update launchd service configuration with new parameters:
+- Domain: `dev.pborenstein` (was: dynamic `dev.$USERNAME`)
+- Port: `8080` (was: `4001`)
+- Keep all other functionality the same
+
+**Why the change**: Standardize the service configuration to use explicit values rather than runtime-detected username.
+
+### Implementation
+
+**Files updated**:
+
+1. **launchd/install.sh**
+   - Changed service plist path from `dev.$USERNAME.temoa.plist` to `dev.pborenstein.temoa.plist`
+   - Updated all service management commands to use fixed domain
+   - Updated port in access information from 4001 to 8080
+
+2. **launchd/uninstall.sh**
+   - Updated service plist path to `dev.pborenstein.temoa.plist`
+   - Updated service grep pattern from `dev.$USERNAME.temoa` to `dev.pborenstein.temoa`
+
+3. **launchd/temoa.plist.template**
+   - Changed Label from `dev.{{USERNAME}}.temoa` to `dev.pborenstein.temoa`
+   - Updated port in ProgramArguments from 4001 to 8080
+   - CLI command: `temoa server --host 0.0.0.0 --port 8080 --log-level info`
+
+4. **dev.sh**
+   - Updated service plist path to `dev.pborenstein.temoa.plist`
+   - Updated service grep pattern to `dev.pborenstein.temoa`
+
+5. **view-logs.sh**
+   - No functional changes (already using generic `temoa` in log paths)
+
+### Key Points
+
+**Consistency across environments**: Using `dev.pborenstein` instead of dynamic `dev.$USERNAME` ensures the service label is consistent regardless of which macOS account runs the installer.
+
+**Port standardization**: Changed from 4001 to 8080 to align with user's preference.
+
+**No breaking changes**: Existing installations will need to uninstall old service and reinstall with new scripts, but all functionality preserved.
+
+### Verification
+
+All scripts remain executable and ready to use:
+- `chmod +x` applied to all .sh files
+- No leftover template variables ({{VARIABLES}}) in runtime files
+- Template variables correctly preserved in .plist.template for install.sh to substitute
+
+---
+
+### Lessons Learned
+
+**Skill-based generation is idempotent**: The macos-launchd-service skill can be re-run to update configurations without breaking existing patterns.
+
+**Parameter clarity matters**: Explicitly asking user for all parameters (domain, port, commands) ensures the generated files match expectations.
+
+**Template vs runtime substitution**: Some variables ({{VENV_BIN}}, {{PROJECT_DIR}}) remain as templates for install.sh to fill at runtime, while others (domain, port) are hard-coded based on user preferences.
+
+---
+
+**Entry created**: 2025-12-28
+**Author**: Claude (Sonnet 4.5)
+**Type**: Configuration Update
+**Impact**: LOW - Service config update, no new functionality
+**Duration**: ~15 minutes (skill execution + file generation)
+**Branch**: `main`
+
+**Files changed**:
+- `launchd/install.sh` (updated domain and port)
+- `launchd/uninstall.sh` (updated domain)
+- `launchd/temoa.plist.template` (updated domain and port)
+- `dev.sh` (updated domain)
+- `view-logs.sh` (no changes needed)
+
+**Commits**: Pending (part of session wrap-up)
