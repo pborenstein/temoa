@@ -697,6 +697,61 @@ UnicodeEncodeError: 'utf-8' codec can't encode characters in position 24583-2458
 **Commits**:
 - a8a152a - "feat: add URL normalization system for gleanings"
 
+#### GitHub Gleaning Enrichment (2025-12-29)
+
+**Goal**: Transform GitHub gleanings from basic HTML scraping to rich, API-powered entries with comprehensive repository metadata
+
+**Problem**: GitHub gleanings lacked useful context - just scraped HTML titles and minimal descriptions. No visibility into repo language, popularity, topics, or archived status.
+
+**Implementation**:
+- Created `GitHubClient` class - API wrapper with rate limiting, error handling, README parsing
+- Extended `maintain_gleanings.py` with `enrich_github_gleaning()` method
+- Updated `GitHubNormalizer` to preserve `"user/repo: Description"` format (instead of stripping it)
+- Added CLI flags: `--enrich-github` and `--github-token`
+- Detects already-enriched gleanings (skips if `github_stars` field exists)
+
+**Metadata Enriched** (7 fields):
+- `title`: `"user/repo: Official description"` format
+- `description`: Official repository description
+- `github_language`: Primary programming language
+- `github_stars`: Star count (integer)
+- `github_topics`: Repository topics (YAML list)
+- `github_archived`: Archived status (boolean)
+- `github_last_push`: Last push date (ISO 8601)
+- `github_readme_excerpt`: First paragraph from README (max 500 chars)
+
+**Testing**:
+- Tested on 3 sample gleanings (dry-run + real)
+- All metadata fields populated correctly
+- Topics formatted as JSON array (YAML compatible)
+- Already-enriched detection working (skips re-enrichment)
+- Rate limiting verified (2.5s between requests)
+
+**Files Created**:
+- `src/temoa/github_client.py` (350 lines) - GitHub API client
+
+**Files Modified**:
+- `src/temoa/scripts/maintain_gleanings.py` (+150 lines) - Added enrichment method and CLI flags
+- `src/temoa/normalizers.py` (20 lines modified) - Preserve `"user/repo: Description"` format
+
+**Usage**:
+```bash
+export GITHUB_TOKEN="ghp_..."
+uv run python src/temoa/scripts/maintain_gleanings.py \
+  --vault-path ~/Obsidian/amoxtli \
+  --enrich-github \
+  --no-check-links \
+  --no-add-descriptions
+```
+
+**Status**: ✅ Implementation complete, tested, ready for production backfill (266 GitHub gleanings)
+
+**Next Steps** (deferred):
+- Run backfill on all 266 existing GitHub gleanings (~9-10 minutes)
+- Update documentation (GLEANINGS.md, chronicle entry)
+
+---
+
 #### Frontmatter-Aware Search (2025-12-14)
 
 **Goal**: Leverage curated frontmatter metadata (tags, description) to improve search relevance

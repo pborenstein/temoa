@@ -171,6 +171,12 @@ This checks for:
 | DEC-083: Backward compatible pass-through | 37 | Don't break non-GitHub gleanings |
 | DEC-084: Two-phase approach (extract + backfill) | 37 | Don't require re-extraction of all gleanings |
 | DEC-085: Chunking required for large documents | 40 | Adaptive chunking for files >4K chars (deferred to Phase 4) |
+| DEC-086: Enrich via maintenance, not extraction | 44 | Keep extraction fast, enrichment optional |
+| DEC-087: Require GITHUB_TOKEN | 44 | 5000 req/hour authenticated vs 60 unauthenticated |
+| DEC-088: Preserve "user/repo: Description" format | 44 | More informative than bare user/repo |
+| DEC-089: Topics as JSON array/YAML list | 44 | Structured data for filtering |
+| DEC-090: Only enrich missing data | 44 | Idempotent, skip if github_stars exists |
+| DEC-091: README excerpt max 500 chars | 44 | ~2-3 sentences, fits search preview |
 
 ---
 

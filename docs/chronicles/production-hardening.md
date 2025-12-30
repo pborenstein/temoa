@@ -1850,3 +1850,90 @@ All scripts remain executable and ready to use:
 - `view-logs.sh` (no changes needed)
 
 **Commits**: Pending (part of session wrap-up)
+
+
+---
+
+## Entry 44: GitHub Gleaning Enrichment System (2025-12-29)
+
+**Context**: GitHub gleanings (266 out of 900+ total) were minimally useful - just scraped HTML titles with no visibility into repo language, popularity, topics, or archived status. User requested making them "useful and informative" by fetching real repository metadata.
+
+### The Problem
+
+**Current state of GitHub gleanings**:
+```yaml
+title: "ashish0kumar/cwalk"
+description: "colorful random-walk pipes terminal screensaver."
+```
+
+**What's missing**:
+- Programming language (for filtering)
+- Star count (popularity indicator)
+- Repository topics (enhanced searchability)
+- Archived status (identify dead projects)
+- Last push date (recency)
+- README context (richer description)
+
+**Scale**: 266 GitHub gleanings that could be much more informative
+
+### The Solution: GitHub API Enrichment
+
+**Architecture decision**: Extend `maintain_gleanings.py` maintenance tool (not extraction pipeline)
+
+**Why maintenance, not extraction**:
+- Keeps extraction fast (critical path)
+- Leverages existing infrastructure (requests library, frontmatter updates)
+- Follows separation of concerns pattern
+- Optional enrichment (user-controlled via flag)
+
+### Enrichment Results (Testing)
+
+**Test vault**: 3 GitHub gleanings
+
+**Example enriched gleaning**:
+```yaml
+title: "ashish0kumar/cwalk: colorful random-walk pipes terminal screensaver"
+github_language: C
+github_stars: 33
+github_topics: []
+github_archived: false
+github_last_push: 2025-12-20T14:37:43Z
+github_readme_excerpt: "colorful random-walk pipes in your terminal..."
+```
+
+**Validation**:
+- ✅ Title format: `"user/repo: Description"`
+- ✅ All 7 metadata fields populated
+- ✅ Topics as JSON array (YAML compatible)
+- ✅ Already-enriched detection working
+- ✅ Rate limiting verified (2.5s tested)
+
+### Key Decisions
+
+**DEC-086**: Enrich via maintenance, not extraction (keep extraction fast)
+**DEC-087**: Require GITHUB_TOKEN (5000 req/hour vs 60 unauthenticated)
+**DEC-088**: Preserve `"user/repo: Description"` format (more informative)
+**DEC-089**: Topics as JSON array/YAML list (structured data)
+**DEC-090**: Only enrich missing data (idempotent, API-friendly)
+**DEC-091**: README excerpt max 500 chars (~2-3 sentences)
+
+### Files Created/Modified
+
+**New**: `src/temoa/github_client.py` (350 lines)
+**Modified**: `src/temoa/scripts/maintain_gleanings.py` (+150 lines), `src/temoa/normalizers.py` (20 lines)
+
+### Status
+
+**Tested**: ✅ 3 sample gleanings
+**Ready for backfill**: ✅ 266 GitHub gleanings (~18 minutes)
+**Deferred**: Production backfill, documentation updates
+
+---
+
+**Entry created**: 2025-12-29
+**Author**: Claude (Sonnet 4.5)
+**Type**: Feature - API Integration
+**Impact**: HIGH - Transforms 266 GitHub gleanings
+**Duration**: ~4 hours
+**Branch**: `main`
+**Decision IDs**: DEC-086 through DEC-091

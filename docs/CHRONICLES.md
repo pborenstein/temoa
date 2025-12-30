@@ -61,7 +61,7 @@ The chronicles have been split into chapters for easier navigation:
 - Entry 32: Documentation Style Conformance
 
 ### [Production Hardening](chronicles/production-hardening.md) 🔵 ONGOING
-**Entries 33-43** | Real-World Usage Fixes
+**Entries 33-44** | Real-World Usage Fixes
 
 - Entry 33: Production Hardening - Query Expansion Default Change
 - Entry 34: State Management Refactoring - Eliminating "Hodge Podge"
@@ -74,6 +74,7 @@ The chronicles have been split into chapters for easier navigation:
 - Entry 41: Documentation Cleanup and Critical Bug Fixes
 - Entry 42: Documentation Strategy and CLAUDE.md Thinning
 - Entry 43: launchd Service Configuration Updates
+- Entry 44: GitHub Gleaning Enrichment System
 
 ---
 
@@ -118,6 +119,6 @@ See [DECISIONS.md](DECISIONS.md) for the complete list with governance process.
 ---
 
 **Created**: 2025-11-18
-**Last Updated**: 2025-12-28
-**Total Entries**: 43
-**Decisions**: See [DECISIONS.md](DECISIONS.md) for complete decision registry
+**Last Updated**: 2025-12-29
+**Total Entries**: 44
+**Decisions**: See [DECISIONS.md](DECISIONS.md) for complete decision registry (DEC-001 through DEC-091)

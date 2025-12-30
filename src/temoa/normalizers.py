@@ -44,22 +44,32 @@ class GitHubNormalizer(URLNormalizer):
 
     def normalize_title(self, url: str, fetched_title: Optional[str]) -> str:
         """
-        Extract user/repo from title.
+        Preserve 'user/repo: Description' format, just clean it.
 
         Examples:
-            "user/repo: Description" -> "user/repo"
-            "user/repo - Description" -> "user/repo"
-            "user/repo" -> "user/repo"
-            None -> Extract from URL path
+            "GitHub - user/repo: Description" -> "user/repo: Description"
+            "user/repo: Description - user/repo" -> "user/repo: Description"
+            "user/repo: Description" -> "user/repo: Description"
+            None -> Extract "user/repo" from URL path
         """
         if fetched_title:
-            # Split on ": " or " - " and take first part
-            for sep in [": ", " - "]:
-                if sep in fetched_title:
-                    return fetched_title.split(sep)[0].strip()
-            return fetched_title.strip()
+            title = fetched_title.strip()
 
-        # Fallback: extract from URL
+            # Remove redundant "GitHub - " prefix
+            if title.startswith("GitHub - "):
+                title = title[9:]  # len("GitHub - ") = 9
+
+            # Remove trailing " - user/repo" if present (redundant suffix)
+            if " - " in title:
+                parts = title.split(" - ")
+                # Check if last part looks like user/repo (has a slash)
+                if "/" in parts[-1] and len(parts) > 1:
+                    # Only remove if it's at the end and looks like a repo path
+                    title = " - ".join(parts[:-1])
+
+            return title.strip()
+
+        # Fallback: extract user/repo from URL
         path = urlparse(url).path.strip("/")
         parts = path.split("/")
         if len(parts) >= 2:

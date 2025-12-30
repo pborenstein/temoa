@@ -27,6 +27,7 @@ from bs4 import BeautifulSoup
 # Add src to path so we can import gleanings module
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 from temoa.gleanings import GleaningStatusManager
+from temoa.github_client import GitHubClient
 
 
 class GleaningMaintainer:
@@ -36,13 +37,17 @@ class GleaningMaintainer:
         self,
         vault_path: Path,
         timeout: int = 10,
-        user_agent: str = "Mozilla/5.0 (compatible; Temoa/1.0; +https://github.com/pborenstein/temoa)"
+        user_agent: str = "Mozilla/5.0 (compatible; Temoa/1.0; +https://github.com/pborenstein/temoa)",
+        github_token: Optional[str] = None
     ):
         self.vault_path = Path(vault_path).expanduser()
         self.gleanings_dir = self.vault_path / "L" / "Gleanings"
         self.status_manager = GleaningStatusManager(self.vault_path / ".temoa")
         self.timeout = timeout
         self.user_agent = user_agent
+
+        # Initialize GitHub client if token provided
+        self.github_client = GitHubClient(token=github_token) if github_token else None
 
         # Statistics
         self.stats = {
@@ -56,7 +61,10 @@ class GleaningMaintainer:
             "marked_inactive": 0,
             "reasons_added": 0,
             "restored_active": 0,
-            "skipped_hidden": 0
+            "skipped_hidden": 0,
+            "github_enriched": 0,
+            "github_skipped": 0,
+            "github_errors": 0
         }
 
     def check_url(self, url: str) -> Tuple[bool, Optional[str], Optional[int]]:
@@ -141,6 +149,113 @@ class GleaningMaintainer:
             print(f"    Error fetching meta description: {e}")
             return None
 
+    def enrich_github_gleaning(
+        self,
+        file_path: Path,
+        url: str,
+        frontmatter_dict: Dict,
+        dry_run: bool = False
+    ) -> Dict[str, str]:
+        """
+        Enrich a GitHub gleaning with repository metadata.
+
+        Args:
+            file_path: Path to gleaning file
+            url: GitHub repository URL
+            frontmatter_dict: Current frontmatter
+            dry_run: If True, don't actually write changes
+
+        Returns:
+            Dict of frontmatter updates to apply
+        """
+        updates = {}
+
+        # Check if already enriched (has github_stars field)
+        if "github_stars" in frontmatter_dict:
+            print(f"    ⊘ Already enriched (skipping)")
+            self.stats["github_skipped"] += 1
+            return updates
+
+        # Check if it's a GitHub URL
+        if "github.com" not in url.lower():
+            return updates
+
+        try:
+            print(f"    → Enriching with GitHub API...")
+
+            # Fetch enrichment data
+            enrichment = self.github_client.enrich_gleaning(url)
+
+            if not enrichment:
+                print(f"    ✗ Could not fetch GitHub metadata")
+                self.stats["github_errors"] += 1
+                return updates
+
+            # Format title as "user/repo: Description"
+            owner = enrichment.get("owner")
+            repo = enrichment.get("repo")
+            description = enrichment.get("description", "")
+
+            if owner and repo:
+                new_title = f"{owner}/{repo}"
+                if description:
+                    new_title = f"{new_title}: {description}"
+                updates["title"] = new_title
+
+            # Update description if we have one
+            if description:
+                updates["description"] = description
+
+            # Add GitHub metadata fields
+            if enrichment.get("language"):
+                updates["github_language"] = enrichment["language"]
+
+            updates["github_stars"] = str(enrichment.get("stars", 0))
+
+            # Topics as list (will be formatted as YAML list in update_frontmatter)
+            topics = enrichment.get("topics", [])
+            if topics:
+                # Store as JSON string for now, we'll handle YAML list formatting in update_frontmatter
+                updates["github_topics"] = json.dumps(topics)
+
+            updates["github_archived"] = str(enrichment.get("archived", False)).lower()
+
+            if enrichment.get("last_push"):
+                updates["github_last_push"] = enrichment["last_push"]
+
+            if enrichment.get("readme_excerpt"):
+                updates["github_readme_excerpt"] = enrichment["readme_excerpt"]
+
+            # Update markdown heading in body to match new title
+            if not dry_run and "title" in updates:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+
+                # Find and replace the first markdown heading (# Title)
+                lines = content.split('\n')
+                for i, line in enumerate(lines):
+                    if line.strip().startswith('# ') and i > 0:  # Skip frontmatter, look in body
+                        # Check if we're past the frontmatter
+                        if lines[:i].count('---') >= 2:
+                            lines[i] = f"# {new_title}"
+                            content = '\n'.join(lines)
+                            with open(file_path, 'w', encoding='utf-8') as f:
+                                f.write(content)
+                            break
+
+            self.stats["github_enriched"] += 1
+            print(f"    ✓ Enriched: {owner}/{repo}")
+            print(f"      Language: {enrichment.get('language', 'N/A')}, "
+                  f"Stars: {enrichment.get('stars', 0)}, "
+                  f"Topics: {len(topics)}")
+
+            return updates
+
+        except Exception as e:
+            print(f"    ✗ Error enriching GitHub gleaning: {e}")
+            self.stats["github_errors"] += 1
+            return {}
+
     def parse_frontmatter(self, content: str) -> Tuple[Dict, str, str]:
         """
         Parse frontmatter from markdown content.
@@ -212,8 +327,20 @@ class GleaningMaintainer:
         # Rebuild frontmatter
         new_frontmatter_lines = []
         for key, value in frontmatter_dict.items():
+            # Special handling for github_topics (YAML list)
+            if key == "github_topics" and value:
+                # Value is JSON string, convert to YAML list
+                try:
+                    topics_list = json.loads(value) if isinstance(value, str) else value
+                    if topics_list:
+                        topics_yaml = json.dumps(topics_list)  # JSON list format works as YAML list
+                        new_frontmatter_lines.append(f"{key}: {topics_yaml}")
+                    else:
+                        new_frontmatter_lines.append(f"{key}: []")
+                except (json.JSONDecodeError, TypeError):
+                    new_frontmatter_lines.append(f"{key}: {value}")
             # Quote values that need it
-            if key in ("title", "description", "reason") and value:
+            elif key in ("title", "description", "reason", "github_readme_excerpt") and value:
                 quoted_value = json.dumps(value)
                 new_frontmatter_lines.append(f"{key}: {quoted_value}")
             else:
@@ -234,6 +361,7 @@ class GleaningMaintainer:
         check_links: bool = True,
         add_descriptions: bool = True,
         mark_dead_inactive: bool = True,
+        enrich_github: bool = False,
         dry_run: bool = False
     ) -> Dict:
         """
@@ -353,6 +481,16 @@ class GleaningMaintainer:
                             self.stats["reasons_added"] += 1
                             print(f"    → Added reason to existing inactive gleaning")
 
+            # GitHub enrichment
+            if enrich_github and self.github_client:
+                github_updates = self.enrich_github_gleaning(
+                    file_path,
+                    url,
+                    frontmatter_dict,
+                    dry_run=dry_run
+                )
+                updates.update(github_updates)
+
             # Apply updates
             if updates:
                 if self.update_frontmatter(file_path, updates, dry_run=dry_run):
@@ -374,6 +512,7 @@ class GleaningMaintainer:
         check_links: bool = True,
         add_descriptions: bool = True,
         mark_dead_inactive: bool = True,
+        enrich_github: bool = False,
         dry_run: bool = False,
         rate_limit: float = 1.0
     ):
@@ -404,9 +543,10 @@ class GleaningMaintainer:
         print(f"  Check links: {check_links}")
         print(f"  Add descriptions: {add_descriptions}")
         print(f"  Mark dead inactive: {mark_dead_inactive}")
+        print(f"  Enrich GitHub: {enrich_github}")
         print(f"  Dry run: {dry_run}")
         print(f"  Rate limit: {rate_limit}s between requests")
-        if check_links or add_descriptions:
+        if check_links or add_descriptions or enrich_github:
             print(f"  Estimated time: {est_minutes}m {est_seconds}s")
         print()
 
@@ -432,6 +572,7 @@ class GleaningMaintainer:
                 check_links=check_links,
                 add_descriptions=add_descriptions,
                 mark_dead_inactive=mark_dead_inactive,
+                enrich_github=enrich_github,
                 dry_run=dry_run
             )
 
@@ -456,6 +597,10 @@ class GleaningMaintainer:
         print(f"Restored to active: {self.stats['restored_active']}")
         print(f"Reasons added (backfill): {self.stats['reasons_added']}")
         print(f"Skipped (hidden): {self.stats['skipped_hidden']}")
+        if enrich_github:
+            print(f"GitHub enriched: {self.stats['github_enriched']}")
+            print(f"GitHub skipped (already enriched): {self.stats['github_skipped']}")
+            print(f"GitHub errors: {self.stats['github_errors']}")
         print("=" * 60)
 
 
@@ -520,19 +665,39 @@ def main():
         default=1.0,
         help="Seconds to wait between requests (default: 1.0)"
     )
+    parser.add_argument(
+        "--enrich-github",
+        action="store_true",
+        help="Enrich GitHub repos with API metadata (requires --github-token)"
+    )
+    parser.add_argument(
+        "--github-token",
+        help="GitHub API token (or set GITHUB_TOKEN environment variable)"
+    )
 
     args = parser.parse_args()
+
+    # Validate GitHub enrichment requirements
+    if args.enrich_github and not args.github_token:
+        import os
+        github_token = os.environ.get("GITHUB_TOKEN")
+        if not github_token:
+            print("Error: --enrich-github requires --github-token or GITHUB_TOKEN environment variable", file=sys.stderr)
+            return 1
+        args.github_token = github_token
 
     try:
         maintainer = GleaningMaintainer(
             vault_path=args.vault_path,
-            timeout=args.timeout
+            timeout=args.timeout,
+            github_token=args.github_token if args.enrich_github else None
         )
 
         maintainer.maintain_all(
             check_links=args.check_links,
             add_descriptions=args.add_descriptions,
             mark_dead_inactive=args.mark_dead_inactive,
+            enrich_github=args.enrich_github,
             dry_run=args.dry_run,
             rate_limit=args.rate_limit
         )
