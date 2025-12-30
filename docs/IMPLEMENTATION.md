@@ -6,10 +6,10 @@
 
 **Project**: Temoa - Local Semantic Search Server for Obsidian Vault
 **Created**: 2025-11-18
-**Status**: Phase 3 ✅ COMPLETE → Production Hardening 🔵 ONGOING
-**Last Updated**: 2025-12-19
-**Current Version**: 0.6.0
-**Current Branch**: `main`
+**Status**: Phase 3 ✅ COMPLETE → Phase 3.5 🔵 IN PROGRESS
+**Last Updated**: 2025-12-30
+**Current Version**: 0.6.0 → 0.7.0 (in development)
+**Current Branch**: `phase-3.5-search-modes`
 **Estimated Timeline**: 4-6 weeks for Phases 0-2, ongoing for Phases 3-4
 
 ---
@@ -826,25 +826,78 @@ Based on continued real-world usage, consider:
 - [ ] Mobile validation of PWA installation
 - [ ] More comprehensive testing
 
+---
+
+## Phase 3.5: Specialized Search Modes 🔵
+
+**Status**: IN PROGRESS
+**Branch**: `phase-3.5-search-modes`
+**Version**: 0.7.0 (in development)
+**Duration**: 10-14 days (estimated)
+
+**Goal**: Enable optimized search experiences for different content types through user-selectable profiles, adaptive chunking, and metadata-aware ranking.
+
+**See**: [docs/phases/phase-3.5-specialized-search.md](phases/phase-3.5-specialized-search.md) for complete plan
+
+### Sub-phases Overview
+
+- [x] 3.5.1: Core Profile System (3-4 days) ✅ **COMPLETE**
+- [ ] 3.5.2: Adaptive Chunking (4-5 days)
+- [ ] 3.5.3: Metadata Boosting (2 days)
+- [ ] 3.5.4: Profile Recommendation (1-2 days)
+- [ ] 3.5.5: UI Updates (2 days)
+- [ ] 3.5.6: Documentation & Testing (1-2 days)
+
+### Phase 3.5.1: Core Profile System ✅ COMPLETE
+
+**Completed**: 2025-12-30
+**Branch**: `phase-3.5-search-modes`
+**Commit**: `e68f724`
+
+**Deliverables**:
+- ✅ `src/temoa/search_profiles.py` - SearchProfile dataclass + 5 built-in profiles
+- ✅ Server: `/search?profile=<name>` parameter, `/profiles` API endpoint
+- ✅ CLI: `--profile` flag for search, `temoa profiles` command
+- ✅ Configuration: Custom profile loading from config
+- ✅ Tests: 10 unit tests (all passing)
+
+**Built-in Profiles**:
+1. **repos** - GitHub repos/tech (70% BM25, metadata boosting)
+2. **recent** - Recent work (7-day half-life, 90-day cutoff)
+3. **deep** - Long-form content (80% semantic, chunking support)
+4. **keywords** - Exact matching (80% BM25, fast)
+5. **default** - Balanced (current behavior)
+
+**Files Created**:
+- `src/temoa/search_profiles.py` (224 lines)
+- `tests/test_search_profiles.py` (10 tests)
+- `docs/phases/phase-3.5-specialized-search.md` (complete plan)
+
+**Files Modified**:
+- `src/temoa/server.py` - Profile parameter integration
+- `src/temoa/cli.py` - Profile flag and profiles command
+
+---
+
 ### Next Session Start Here
 
-**Current Branch**: `main`
-**Current Focus**: Production hardening complete - ready for Phase 4 or additional polish
+**Current Branch**: `phase-3.5-search-modes`
+**Current Focus**: Phase 3.5.1 complete, ready for Phase 3.5.2 (Adaptive Chunking)
 
-**Recent Work** (2025-12-19):
-- Fixed 3 critical bugs from SEARCH-QUALITY-REVIEW.md (pipeline order, path traversal, error handling)
-- Cleaned up documentation (archived completed plans)
-- Updated SEARCH-MECHANISMS.md with frontmatter-aware search documentation
-- Thinned CLAUDE.md from 1,138 → 623 lines (45% reduction, removed duplicates)
-- Created GitHub issue #43 for chunking implementation (DEC-085)
-- Established pattern: Deferred work → GitHub issues
+**Recent Work** (2025-12-30):
+- Implemented search profile system with 5 built-in profiles
+- Added `/search?profile=<name>` parameter to API
+- Added `temoa profiles` CLI command
+- Profile defaults apply, individual parameters can override
+- 10 unit tests passing
+- Comprehensive phase plan created
 
-**To Continue**:
-1. Consider beginning Phase 4 (Vault-First LLM) if core features are stable
-   - Chunking support tracked in #43 (deferred until Phase 4)
-2. Additional UX improvements from user feedback
-3. Mobile validation of PWA installation
-4. Performance monitoring/metrics implementation
+**Next**: Phase 3.5.2 - Adaptive Chunking
+1. Create `synthesis/src/embeddings/chunking.py` with chunking logic
+2. Update `synthesis/src/embeddings/vault_reader.py` for chunk support
+3. Implement chunk deduplication in `src/temoa/synthesis.py`
+4. Test with 1002 vault (large books) - verify 100% coverage
+5. See [docs/phases/phase-3.5-specialized-search.md](phases/phase-3.5-specialized-search.md) for detailed plan
 
 ---
 

@@ -60,7 +60,7 @@ The chronicles have been split into chapters for easier navigation:
 - Entry 31: Search History and Keyboard Shortcuts - Phase 3 Complete
 - Entry 32: Documentation Style Conformance
 
-### [Production Hardening](chronicles/production-hardening.md) 🔵 ONGOING
+### [Production Hardening](chronicles/production-hardening.md) ✅ COMPLETE
 **Entries 33-44** | Real-World Usage Fixes
 
 - Entry 33: Production Hardening - Query Expansion Default Change
@@ -75,6 +75,11 @@ The chronicles have been split into chapters for easier navigation:
 - Entry 42: Documentation Strategy and CLAUDE.md Thinning
 - Entry 43: launchd Service Configuration Updates
 - Entry 44: GitHub Gleaning Enrichment System
+
+### [Phase 3.5: Specialized Search Modes](chronicles/phase-3.5-specialized-search.md) 🔵 IN PROGRESS
+**Entry 1+** | Search Profiles, Chunking, and Metadata Boosting
+
+- Entry 1: Search Profile System Implementation
 
 ---
 
@@ -119,6 +124,6 @@ See [DECISIONS.md](DECISIONS.md) for the complete list with governance process.
 ---
 
 **Created**: 2025-11-18
-**Last Updated**: 2025-12-29
-**Total Entries**: 44
+**Last Updated**: 2025-12-30
+**Total Entries**: 45 (Entry 1 in Phase 3.5)
 **Decisions**: See [DECISIONS.md](DECISIONS.md) for complete decision registry (DEC-001 through DEC-091)
