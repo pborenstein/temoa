@@ -326,6 +326,74 @@ The description field uses meta description from the `<meta name="description">`
 
 The status field is set to `inactive` for dead links (404, timeout, or connection errors) with reasons recorded in `.temoa/gleaning_status.json`. Live links remain `active`.
 
+### GitHub Enrichment
+
+The maintenance tool can enrich GitHub repository gleanings with comprehensive metadata from the GitHub API.
+
+**What Gets Enriched:**
+
+For GitHub repositories (URLs matching `github.com/user/repo`), the following frontmatter fields are added:
+
+- `github_language`: Primary programming language
+- `github_stars`: Star count (integer)
+- `github_topics`: Repository topics (YAML array)
+- `github_archived`: Whether the repository is archived
+- `github_last_push`: Last push date (ISO 8601 format)
+- `github_readme_excerpt`: First paragraph from README (max 500 chars)
+
+**Usage:**
+
+```bash
+# Set GitHub token (required for API access)
+export GITHUB_TOKEN="ghp_your_token_here"
+
+# Enrich GitHub gleanings (without checking links)
+temoa gleaning maintain --enrich-github --no-check-links --no-add-descriptions
+
+# Or as standalone script
+uv run python src/temoa/scripts/maintain_gleanings.py \
+  --vault-path ~/Obsidian/amoxtli \
+  --enrich-github \
+  --github-token "$GITHUB_TOKEN" \
+  --no-check-links \
+  --no-add-descriptions
+```
+
+**Features:**
+
+- **Rate limited**: 2.5 seconds between API requests to respect GitHub limits
+- **Idempotent**: Skips already-enriched gleanings (checks for `github_stars` field)
+- **Error handling**: Gracefully handles API failures, archived repos, missing READMEs
+- **Progress tracking**: Shows real-time progress with ETA
+
+**Example Output:**
+
+```
+Maintaining 902 gleanings
+Options:
+  Check links: False
+  Add descriptions: False
+  Mark dead inactive: True
+  Enrich GitHub: True
+  Dry run: False
+  Rate limit: 1.0s between requests
+
+[15/902 - 1.7%]
+    → Enriching with GitHub API...
+    ✓ Enriched: soxoj/maigret
+      Language: Python, Stars: 18242, Topics: 20
+    ✓ Updated: title, description, github_language, github_stars,
+               github_topics, github_archived, github_last_push,
+               github_readme_excerpt
+```
+
+**Notes:**
+
+- Gist URLs (`gist.github.com`) are not supported and will be skipped
+- Already-enriched gleanings are automatically skipped (no duplicate work)
+- GitHub API rate limits: 5,000 requests/hour for authenticated requests
+- Enrichment updates the `title` field to preserve "user/repo: Description" format
+
 ### Rate Limiting
 
 The tool adds a 1-second delay between requests by default to be respectful to web servers. Adjust with `--rate-limit 2.0` for slower checking, or use `--timeout 10` to control response wait time.

@@ -744,11 +744,16 @@ uv run python src/temoa/scripts/maintain_gleanings.py \
   --no-add-descriptions
 ```
 
-**Status**: ✅ Implementation complete, tested, ready for production backfill (266 GitHub gleanings)
+**Status**: ✅ Complete - Implementation, backfill, and documentation finished
 
-**Next Steps** (deferred):
-- Run backfill on all 266 existing GitHub gleanings (~9-10 minutes)
-- Update documentation (GLEANINGS.md, chronicle entry)
+**Backfill Results** (2025-12-30):
+- Total gleanings: 902
+- GitHub enriched: 259 repositories
+- Already enriched: 0 (first run)
+- Errors: 18 (gist URLs not supported)
+- Skipped (hidden): 34
+- Duration: ~13 minutes
+- Documentation updated: GLEANINGS.md
 
 ---
 
