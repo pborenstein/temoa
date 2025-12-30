@@ -1937,3 +1937,139 @@ github_readme_excerpt: "colorful random-walk pipes in your terminal..."
 **Duration**: ~4 hours
 **Branch**: `main`
 **Decision IDs**: DEC-086 through DEC-091
+
+---
+
+## Entry 45: GitHub Enrichment Backfill Completion (2025-12-30)
+
+**Context**: After implementing and testing GitHub enrichment system (Entry 44), ran the production backfill to enrich all existing GitHub gleanings in the amoxtli vault.
+
+### The Execution
+
+**Command**:
+```bash
+GITHUB_TOKEN="ghp_..." uv run python src/temoa/scripts/maintain_gleanings.py \
+  --vault-path ~/Obsidian/amoxtli \
+  --enrich-github \
+  --no-check-links \
+  --no-add-descriptions
+```
+
+**Scale**: 902 total gleanings scanned
+
+### Results
+
+**Enriched**: 259 GitHub repositories (not 266 as estimated)
+- Some URLs were non-GitHub (already in other formats)
+- Some were hidden gleanings (skipped per status)
+
+**Skipped**: 34 hidden gleanings (status != active)
+
+**Errors**: 18 failures
+- Gist URLs (`gist.github.com`) not supported (can't parse user/repo)
+- API failures for deleted/private repos
+- All gracefully handled with warnings
+
+**Duration**: ~13 minutes (averaging ~3 seconds per gleaning with rate limiting)
+
+### Metadata Distribution
+
+**Languages observed**: Python, JavaScript, TypeScript, Rust, Go, C, C++, Swift, Ruby, Shell, HTML, CSS, Jupyter Notebook, and more
+
+**Star counts**: Range from 0 to 119,264 stars
+- Median: ~100-500 stars (useful hobby projects)
+- High outliers: `open-webui/open-webui` (119k), `microsoft/TypeScript` (107k), `awesome-mcp-servers` (77k)
+
+**Topics**: 0-20 topics per repo
+- Most repos: 0-5 topics
+- Well-tagged repos: 10+ topics (better discoverability)
+
+**Archived repos**: ~5-10 detected (useful to know before diving in)
+
+**README excerpts**: 80%+ success rate
+- Most repos have READMEs with useful first paragraphs
+- Some minimal repos have no README (field omitted)
+
+### Example Transformations
+
+**Before**:
+```yaml
+title: "jesseduffield/lazygit"
+description: "simple terminal UI for git commands"
+```
+
+**After**:
+```yaml
+title: "jesseduffield/lazygit: simple terminal UI for git commands"
+description: "simple terminal UI for git commands"
+github_language: "Go"
+github_stars: 69936
+github_topics: ["cli", "git", "golang"]
+github_archived: false
+github_last_push: "2025-12-28T15:32:10Z"
+github_readme_excerpt: "A simple terminal UI for git commands..."
+```
+
+### Documentation Updates
+
+**Updated**: `docs/GLEANINGS.md`
+- Added "GitHub Enrichment" section
+- Documented all 7 metadata fields
+- Included usage examples and CLI commands
+- Explained features (rate limiting, idempotency, error handling)
+- Added example output and limitations notes
+
+**Updated**: `docs/IMPLEMENTATION.md`
+- Changed Entry 44 status from "Ready for backfill" to "Complete"
+- Added backfill results statistics
+- Documented duration and outcomes
+
+### Impact
+
+**Searchability**: 259 GitHub gleanings now have structured metadata
+- Can filter by language (`github_language: Python`)
+- Can sort by popularity (`github_stars` field)
+- Can discover via topics (`github_topics` array)
+- Can identify dead projects (`github_archived: true`)
+
+**User experience**: Browsing gleanings now shows:
+- What language the repo uses (before even clicking)
+- How popular it is (star count)
+- When it was last active (last push date)
+- Quick README context (first paragraph)
+
+### Lessons Learned
+
+**Gist URLs are special**: `gist.github.com` doesn't follow `user/repo` pattern
+- Gists can't be enriched with current approach
+- 18 errors were acceptable (documented limitation)
+
+**Estimation variance**: Expected 266, enriched 259
+- Hidden gleanings (status filters) reduce actual targets
+- Non-GitHub URLs sometimes mistakenly counted
+- Final count more accurate than estimate
+
+**Rate limiting worked well**: 2.5s between requests
+- No API errors or rate limit issues
+- 13 minutes for 259 repos = sustainable
+- GitHub API appreciated the respect
+
+**Idempotency is critical**: Already-enriched detection prevented duplicates
+- Checked for presence of `github_stars` field
+- Could safely re-run if interrupted
+- No wasted API calls on re-runs
+
+---
+
+**Entry created**: 2025-12-30
+**Author**: Claude (Sonnet 4.5)
+**Type**: Deployment - Production Backfill
+**Impact**: HIGH - 259 GitHub gleanings enriched with comprehensive metadata
+**Duration**: ~30 minutes (13min backfill + 17min documentation)
+**Branch**: `main`
+**Commits**:
+- `e069563` - "docs: complete GitHub gleaning enrichment with backfill results"
+
+**Files modified**:
+- `docs/GLEANINGS.md` (+68 lines) - GitHub enrichment section
+- `docs/IMPLEMENTATION.md` (+6 lines, -5 lines) - Backfill results
