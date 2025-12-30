@@ -17,6 +17,7 @@ from .client_cache import ClientCache
 from .reranker import CrossEncoderReranker
 from .query_expansion import QueryExpander
 from .time_scoring import TimeAwareScorer
+from .search_profiles import get_profile, list_profiles, load_custom_profiles
 
 # Configure logging
 logging.basicConfig(
@@ -70,6 +71,10 @@ async def lifespan(app: FastAPI):
         # Load configuration
         config = Config()
         logger.info(f"  ✓ Configuration loaded")
+
+        # Load custom search profiles from configuration
+        load_custom_profiles(config._config)
+        logger.info(f"  ✓ Search profiles loaded")
 
         # Initialize client cache for multi-vault support
         cache_size = config._config.get("server", {}).get("client_cache_size", 3)
@@ -508,6 +513,40 @@ async def list_vaults(request: Request):
         )
 
 
+@app.get("/profiles")
+async def list_search_profiles():
+    """
+    List available search profiles with their descriptions.
+
+    Returns JSON with all available profiles (built-in and custom).
+    Each profile includes name, display_name, and description.
+
+    Example:
+        GET /profiles
+
+    Returns:
+        {
+            "profiles": [
+                {
+                    "name": "repos",
+                    "display_name": "Repos & Tech",
+                    "description": "Find GitHub repos, libraries, tools..."
+                },
+                ...
+            ]
+        }
+    """
+    try:
+        profiles = list_profiles()
+        return JSONResponse(content={"profiles": profiles})
+    except Exception as e:
+        logger.error(f"Error listing profiles: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to list profiles: {str(e)}"
+        )
+
+
 @app.get("/search")
 async def search(
     request: Request,
@@ -515,6 +554,10 @@ async def search(
     vault: Optional[str] = Query(
         default=None,
         description="Vault name or path (default: config vault)"
+    ),
+    profile: str = Query(
+        default="default",
+        description="Search profile (repos, recent, deep, keywords, default)"
     ),
     limit: Optional[int] = Query(
         default=None,
@@ -586,6 +629,45 @@ async def search(
     """
     config = request.app.state.config
 
+    # Load search profile
+    try:
+        search_profile = get_profile(profile)
+    except KeyError as e:
+        return JSONResponse(
+            status_code=400,
+            content={
+                "error": "Invalid profile",
+                "message": str(e),
+                "available_profiles": [p["name"] for p in list_profiles()]
+            }
+        )
+
+    # Apply profile defaults (parameters can override)
+    # Type filters: use parameter if provided, otherwise use profile default
+    if include_types is None and search_profile.default_include_types:
+        include_types = ",".join(search_profile.default_include_types)
+    if exclude_types == "daily" and search_profile.default_exclude_types:
+        # Only apply profile default if user didn't explicitly set exclude_types
+        exclude_types = ",".join(search_profile.default_exclude_types)
+
+    # Hybrid search: use parameter if provided, otherwise use profile weight
+    if hybrid is None:
+        # Profile hybrid_weight > 0 means hybrid search enabled
+        hybrid = search_profile.hybrid_weight > 0 and search_profile.hybrid_weight < 1.0
+
+    # Re-ranking: use parameter if provided, otherwise use profile setting
+    if rerank is True and not search_profile.cross_encoder_enabled:
+        rerank = False  # Profile disables cross-encoder
+    # Note: If parameter explicitly sets rerank=False, that takes precedence
+
+    # Query expansion: use profile setting if parameter not explicitly set
+    if not expand_query and search_profile.query_expansion_enabled:
+        expand_query = True
+
+    # Time boost: use profile setting if parameter not explicitly set
+    if time_boost and search_profile.time_decay_config is None:
+        time_boost = False  # Profile disables time decay
+
     # Apply default limit if not specified
     if limit is None:
         limit = config.search_default_limit
@@ -610,7 +692,7 @@ async def search(
         # Determine whether to use hybrid search
         use_hybrid = hybrid if hybrid is not None else config.hybrid_search_enabled
 
-        logger.info(f"Search: vault='{vault_name}', query='{q}', limit={limit}, min_score={min_score}, include_types={include_type_list}, exclude_types={exclude_type_list}, hybrid={use_hybrid}, expand={expand_query}, time_boost={time_boost}, rerank={rerank}, model={model or 'default'}")
+        logger.info(f"Search: vault='{vault_name}', profile='{profile}', query='{q}', limit={limit}, min_score={min_score}, include_types={include_type_list}, exclude_types={exclude_type_list}, hybrid={use_hybrid}, expand={expand_query}, time_boost={time_boost}, rerank={rerank}, model={model or 'default'}")
 
         # Note: model parameter not supported yet in current wrapper
         # Would require reinitializing Synthesis with different model
