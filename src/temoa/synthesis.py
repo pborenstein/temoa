@@ -113,6 +113,100 @@ def extract_relevant_snippet(content: str, query: str, snippet_length: int = 150
     return snippet.strip()
 
 
+def deduplicate_chunks(
+    results: List[Dict[str, Any]],
+    max_chunks_per_file: int = 1,
+    merge_mode: str = "best"
+) -> List[Dict[str, Any]]:
+    """
+    Deduplicate search results when multiple chunks from the same file appear.
+
+    Strategy:
+    - Group results by file path (relative_path)
+    - For each file with multiple chunks:
+      - If merge_mode="best": Keep only the highest-scoring chunk
+      - If merge_mode="all": Keep all chunks but add chunk_count metadata
+    - Preserve original order based on best score
+
+    Args:
+        results: List of search results (may include chunks)
+        max_chunks_per_file: Maximum chunks to keep per file (default: 1)
+        merge_mode: How to handle multiple chunks:
+                   "best" - keep only highest scoring chunk
+                   "all" - keep all chunks with metadata
+
+    Returns:
+        Deduplicated list of results
+    """
+    if not results:
+        return results
+
+    # Group by file path
+    files_to_chunks: Dict[str, List[Dict[str, Any]]] = {}
+
+    for result in results:
+        rel_path = result.get('relative_path', '')
+
+        # For chunked files, the relative_path is the same across chunks
+        # We need to identify the base file (without chunk info)
+        base_path = rel_path
+
+        if base_path not in files_to_chunks:
+            files_to_chunks[base_path] = []
+
+        files_to_chunks[base_path].append(result)
+
+    # Process each file's chunks
+    deduplicated = []
+
+    for base_path, chunks in files_to_chunks.items():
+        if len(chunks) == 1:
+            # Single result for this file, keep as is
+            deduplicated.append(chunks[0])
+            continue
+
+        # Multiple chunks from same file
+        # Sort by score (descending)
+        score_key = None
+        for key in ['similarity_score', 'bm25_score', 'rrf_score']:
+            if key in chunks[0]:
+                score_key = key
+                break
+
+        if score_key:
+            chunks.sort(key=lambda x: x.get(score_key, 0), reverse=True)
+
+        if merge_mode == "best":
+            # Keep only the highest-scoring chunk
+            best_chunk = chunks[0].copy()
+
+            # Add metadata about multiple matches
+            if len(chunks) > 1:
+                best_chunk['matched_chunks'] = len(chunks)
+                best_chunk['is_chunked_file'] = True
+
+                # Add chunk position info if available
+                if 'chunk_index' in best_chunk:
+                    best_chunk['best_chunk_index'] = best_chunk['chunk_index']
+                    best_chunk['total_file_chunks'] = best_chunk.get('chunk_total', len(chunks))
+
+            deduplicated.append(best_chunk)
+
+        elif merge_mode == "all":
+            # Keep up to max_chunks_per_file chunks
+            for chunk in chunks[:max_chunks_per_file]:
+                chunk_copy = chunk.copy()
+                chunk_copy['matched_chunks'] = len(chunks)
+                chunk_copy['is_chunked_file'] = True
+                deduplicated.append(chunk_copy)
+
+    # Re-sort by original score to maintain ranking
+    if deduplicated and score_key:
+        deduplicated.sort(key=lambda x: x.get(score_key, 0), reverse=True)
+
+    return deduplicated
+
+
 class SynthesisError(Exception):
     """Synthesis operation failed"""
     pass

@@ -7,12 +7,13 @@ from typing import Dict, List, Optional, Tuple
 import logging
 from tqdm import tqdm
 from nahuatl_frontmatter import parse_content
+from .chunking import should_chunk, chunk_document
 
 logger = logging.getLogger(__name__)
 
 
 class VaultContent:
-    """Represents content from a single vault file."""
+    """Represents content from a single vault file or chunk."""
 
     def __init__(
         self,
@@ -21,7 +22,12 @@ class VaultContent:
         content: str,
         vault_root: Path,
         frontmatter: Optional[Dict] = None,
-        tags: Optional[List[str]] = None
+        tags: Optional[List[str]] = None,
+        is_chunk: bool = False,
+        chunk_index: Optional[int] = None,
+        chunk_total: Optional[int] = None,
+        chunk_start: Optional[int] = None,
+        chunk_end: Optional[int] = None
     ):
         self.file_path = file_path
         self.relative_path = str(file_path.relative_to(vault_root))
@@ -31,9 +37,17 @@ class VaultContent:
         self.tags = tags or []
         self.created_date = frontmatter.get('created') if frontmatter else None
         self.modified_date = file_path.stat().st_mtime
-    
+
+        # Chunk metadata
+        self.is_chunk = is_chunk
+        self.chunk_index = chunk_index
+        self.chunk_total = chunk_total
+        self.chunk_start = chunk_start
+        self.chunk_end = chunk_end
+
     def __repr__(self):
-        return f"VaultContent('{self.relative_path}', {len(self.content)} chars)"
+        chunk_info = f" [chunk {self.chunk_index + 1}/{self.chunk_total}]" if self.is_chunk else ""
+        return f"VaultContent('{self.relative_path}', {len(self.content)} chars{chunk_info})"
 
 
 class VaultReader:
@@ -199,32 +213,148 @@ class VaultReader:
                 frontmatter=frontmatter,
                 tags=tags
             )
-            
+
         except Exception as e:
             logger.error(f"Failed to read file {file_path}: {e}")
             return None
-    
-    def read_vault(self, limit: Optional[int] = None) -> List[VaultContent]:
+
+    def read_file_chunked(
+        self,
+        file_path: Path,
+        chunk_size: int = 2000,
+        chunk_overlap: int = 400,
+        chunk_threshold: int = 4000
+    ) -> List[VaultContent]:
+        """Read a single vault file and return chunks if needed.
+
+        Args:
+            file_path: Path to the file
+            chunk_size: Target size for each chunk in characters
+            chunk_overlap: Number of overlapping characters between chunks
+            chunk_threshold: Minimum file size before chunking is applied
+
+        Returns:
+            List of VaultContent objects (one per chunk, or single item if no chunking needed)
+        """
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                raw_content = f.read()
+
+            frontmatter, content = self.parse_frontmatter(raw_content, file_path)
+
+            title = file_path.stem
+            if frontmatter and 'title' in frontmatter:
+                title = frontmatter['title']
+
+            tags = []
+            if frontmatter and 'tags' in frontmatter:
+                if isinstance(frontmatter['tags'], list):
+                    tags.extend(frontmatter['tags'])
+                elif isinstance(frontmatter['tags'], str):
+                    tags.append(frontmatter['tags'])
+
+            tags = list(set(tags))
+            cleaned_content = self.clean_content(content)
+
+            # Prepend description if present
+            description = frontmatter.get('description') if frontmatter else None
+            if description:
+                embedding_content = f"{description}. {cleaned_content}"
+            else:
+                embedding_content = cleaned_content
+
+            # Check if chunking is needed
+            if not should_chunk(embedding_content, threshold=chunk_threshold):
+                # Return single VaultContent (not chunked)
+                return [VaultContent(
+                    file_path=file_path,
+                    title=title,
+                    content=embedding_content,
+                    vault_root=self.vault_root,
+                    frontmatter=frontmatter,
+                    tags=tags
+                )]
+
+            # Chunk the content
+            chunks = chunk_document(
+                content=embedding_content,
+                file_path=str(file_path),
+                chunk_size=chunk_size,
+                chunk_overlap=chunk_overlap,
+                metadata=frontmatter
+            )
+
+            # Convert chunks to VaultContent objects
+            vault_contents = []
+            for chunk in chunks:
+                # For multi-chunk files, include chunk info in title
+                chunk_title = f"{title} (part {chunk.chunk_index + 1}/{chunk.chunk_total})"
+
+                vault_contents.append(VaultContent(
+                    file_path=file_path,
+                    title=chunk_title,
+                    content=chunk.content,
+                    vault_root=self.vault_root,
+                    frontmatter=frontmatter,
+                    tags=tags,
+                    is_chunk=True,
+                    chunk_index=chunk.chunk_index,
+                    chunk_total=chunk.chunk_total,
+                    chunk_start=chunk.start_offset,
+                    chunk_end=chunk.end_offset
+                ))
+
+            logger.debug(f"Chunked {file_path.name}: {len(embedding_content)} chars -> {len(chunks)} chunks")
+            return vault_contents
+
+        except Exception as e:
+            logger.error(f"Failed to read/chunk file {file_path}: {e}")
+            return []
+
+    def read_vault(self, limit: Optional[int] = None, enable_chunking: bool = False,
+                   chunk_size: int = 2000, chunk_overlap: int = 400,
+                   chunk_threshold: int = 4000) -> List[VaultContent]:
         """Read all vault content.
-        
+
         Args:
             limit: Optional limit on number of files to process (for testing)
-            
+            enable_chunking: If True, split large files into chunks
+            chunk_size: Target size for each chunk in characters (default: 2000)
+            chunk_overlap: Number of overlapping characters between chunks (default: 400)
+            chunk_threshold: Minimum file size before chunking is applied (default: 4000)
+
         Returns:
-            List of VaultContent objects
+            List of VaultContent objects (may include multiple chunks per file if chunking enabled)
         """
         files = self.discover_files()
-        
+
         if limit:
             files = files[:limit]
-        
+
         content_objects = []
-        for file_path in tqdm(files, desc="Reading vault files"):
-            content = self.read_file(file_path)
-            if content and content.content.strip():
-                content_objects.append(content)
-        
-        logger.info(f"Successfully read {len(content_objects)} files")
+
+        if enable_chunking:
+            for file_path in tqdm(files, desc="Reading vault files (with chunking)"):
+                chunks = self.read_file_chunked(
+                    file_path,
+                    chunk_size=chunk_size,
+                    chunk_overlap=chunk_overlap,
+                    chunk_threshold=chunk_threshold
+                )
+                content_objects.extend(chunks)
+
+            num_files = len(files)
+            num_chunks = len(content_objects)
+            num_chunked = sum(1 for c in content_objects if c.is_chunk)
+            logger.info(f"Successfully read {num_files} files -> {num_chunks} content items ({num_chunked} chunks)")
+        else:
+            for file_path in tqdm(files, desc="Reading vault files"):
+                content = self.read_file(file_path)
+                if content and content.content.strip():
+                    content_objects.append(content)
+
+            logger.info(f"Successfully read {len(content_objects)} files")
+
         return content_objects
     
     def get_strategic_subset(self, target_count: int = 200) -> List[Path]:

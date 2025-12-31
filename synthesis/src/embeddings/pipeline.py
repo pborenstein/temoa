@@ -53,65 +53,102 @@ class EmbeddingPipeline:
         
         logger.info(f"Pipeline initialized: {vault_root} -> {actual_storage_dir} (model: {model_name})")
     
-    def process_vault(self, force_rebuild: bool = False, limit: Optional[int] = None, use_strategic_subset: bool = False) -> bool:
+    def process_vault(self, force_rebuild: bool = False, limit: Optional[int] = None,
+                     use_strategic_subset: bool = False, enable_chunking: bool = False,
+                     chunk_size: int = 2000, chunk_overlap: int = 400,
+                     chunk_threshold: int = 4000) -> bool:
         """Process vault and generate embeddings.
-        
+
         Args:
             force_rebuild: If True, regenerate even if embeddings exist
             limit: Optional limit on number of files (for testing)
             use_strategic_subset: If True, use strategic ~200 file subset
-            
+            enable_chunking: If True, split large files into chunks
+            chunk_size: Target size for each chunk in characters (default: 2000)
+            chunk_overlap: Number of overlapping characters between chunks (default: 400)
+            chunk_threshold: Minimum file size before chunking is applied (default: 4000)
+
         Returns:
             True if processing completed successfully
         """
         if self.store.exists() and not force_rebuild:
             logger.info("Embeddings already exist. Use force_rebuild=True to regenerate.")
             return True
-        
+
         if force_rebuild:
             logger.info("Force rebuild requested - clearing existing embeddings")
             self.store.clear()
-        
+
         logger.info("Starting vault processing...")
-        
+        if enable_chunking:
+            logger.info(f"Chunking enabled: size={chunk_size}, overlap={chunk_overlap}, threshold={chunk_threshold}")
+
         if use_strategic_subset:
             logger.info("Using strategic subset selection")
             strategic_files = self.reader.get_strategic_subset()
             vault_content = []
-            for file_path in strategic_files:
-                content = self.reader.read_file(file_path)
-                if content and content.content.strip():
-                    vault_content.append(content)
+            if enable_chunking:
+                for file_path in strategic_files:
+                    chunks = self.reader.read_file_chunked(
+                        file_path,
+                        chunk_size=chunk_size,
+                        chunk_overlap=chunk_overlap,
+                        chunk_threshold=chunk_threshold
+                    )
+                    vault_content.extend(chunks)
+            else:
+                for file_path in strategic_files:
+                    content = self.reader.read_file(file_path)
+                    if content and content.content.strip():
+                        vault_content.append(content)
         else:
-            vault_content = self.reader.read_vault(limit=limit)
+            vault_content = self.reader.read_vault(
+                limit=limit,
+                enable_chunking=enable_chunking,
+                chunk_size=chunk_size,
+                chunk_overlap=chunk_overlap,
+                chunk_threshold=chunk_threshold
+            )
+
         if not vault_content:
             logger.error("No content found in vault")
             return False
-        
-        logger.info(f"Processing {len(vault_content)} files")
-        
+
+        logger.info(f"Processing {len(vault_content)} content items")
+
         texts = [content.content for content in vault_content]
         embeddings = self.engine.embed_texts(texts, show_progress=True)
-        
+
         metadata = []
         for content in vault_content:
-            metadata.append({
+            meta = {
                 "relative_path": content.relative_path,
                 "title": content.title,
                 "tags": content.tags,
                 "created_date": content.created_date,
                 "modified_date": content.modified_date,
                 "content_length": len(content.content),
-                "frontmatter": content.frontmatter
-            })
-        
+                "frontmatter": content.frontmatter,
+                # Chunk metadata
+                "is_chunk": content.is_chunk,
+                "chunk_index": content.chunk_index,
+                "chunk_total": content.chunk_total,
+                "chunk_start": content.chunk_start,
+                "chunk_end": content.chunk_end
+            }
+            metadata.append(meta)
+
         model_info = {
             "model_name": self.engine.model_name,
-            "embedding_dim": embeddings.shape[1] if len(embeddings.shape) > 1 else 0
+            "embedding_dim": embeddings.shape[1] if len(embeddings.shape) > 1 else 0,
+            "chunking_enabled": enable_chunking,
+            "chunk_size": chunk_size if enable_chunking else None,
+            "chunk_overlap": chunk_overlap if enable_chunking else None,
+            "chunk_threshold": chunk_threshold if enable_chunking else None
         }
-        
+
         self.store.save_embeddings(embeddings, metadata, model_info)
-        
+
         logger.info("Vault processing completed successfully")
         return True
     

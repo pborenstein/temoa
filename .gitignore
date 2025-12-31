@@ -45,6 +45,6 @@ Thumbs.db
 test-vault/.temoa/
 test-vault/L/Gleanings/
 
-# Test scripts
-test_*.py
+# Test scripts (root directory only)
+/test_*.py
 *.jpg
