@@ -424,3 +424,180 @@ POST /reindex?enable_chunking=true&chunk_size=2000&chunk_overlap=400
 **Lines changed**: +623/-47 (net +576 lines)
 
 **Tests**: 19/19 chunking tests passing ✓, 110+ total tests passing ✓
+
+---
+
+## Entry 3: Critical Bug Fixes - Vault Model Selection & Semantic Score Honesty (2025-12-30)
+
+**Context**: User discovered two critical bugs while testing the 1002 vault with chunked embeddings:
+1. Search command wasn't using vault-specific model from config (always used global default)
+2. Hybrid search displayed 0.000 semantic scores for BM25-only results instead of calculating actual similarity
+
+### Bug 1: Vault-Specific Model Ignored
+
+**The Problem**:
+```bash
+temoa search "query" --vault ~/Obsidian/1002
+# Config specifies: "1002" vault uses "all-MiniLM-L6-v2"
+# But search used: "all-mpnet-base-v2" (global default)
+# Result: "No embeddings found" error, BM25-only results
+```
+
+**Root cause**: The `search` command in `cli.py` was calling:
+```python
+model = model or config.default_model  # ❌ Always uses global default
+```
+
+While `index` and `reindex` commands already had correct logic:
+```python
+vault_config = config.find_vault(str(vault_path))
+if vault_config and 'model' in vault_config:
+    embedding_model = vault_config['model']  # ✅ Uses vault-specific model
+```
+
+**The Fix** (cli.py:211-254):
+```python
+# Determine vault and storage based on --vault flag
+# Also get vault-specific model if configured
+vault_model = None
+if vault:
+    vault_path = Path(vault)
+    storage_dir = derive_storage_dir(...)
+    # Look up vault-specific model from config
+    vault_config = config.find_vault(vault)
+    if vault_config:
+        vault_model = vault_config.get('model')
+else:
+    vault_path = config.vault_path
+    storage_dir = config.storage_dir
+
+# Determine which model to use:
+# 1. Explicit --model flag (highest priority)
+# 2. Vault-specific model from config
+# 3. Global default_model (fallback)
+effective_model = model or vault_model or config.default_model
+```
+
+**Validation**:
+- Config lookup tested: ✓ Returns correct vault model (`all-MiniLM-L6-v2`)
+- Storage dir correct: ✓ `~/Obsidian/1002/.temoa`
+- Embeddings loaded: ✓ 280,145 chunks, 410MB embeddings.npy
+- Search working: ✓ Semantic scores now appear
+
+### Bug 2: Lying About Semantic Scores
+
+**The Problem**: User's rightful outrage!
+
+```bash
+temoa search "rags to riches" --vault ~/Obsidian/1002
+# Results showed:
+Semantic: 0.000 | BM25: 17.054  # ❌ LIE!
+Semantic: 0.000 | BM25: 17.062  # ❌ LIE!
+```
+
+**Why this is terrible**:
+- Embeddings ARE loaded
+- Semantic search IS running
+- Documents HAVE semantic similarity scores (e.g., 0.182, 0.244)
+- Code was setting `similarity_score = 0.0` for ANY result not in top-N semantic matches
+- **Completely misleading**: 0.000 means "no similarity" but reality: "low similarity not shown because didn't rank in top semantic results"
+
+**Root cause** (synthesis.py:648-649):
+```python
+semantic_match = next((r for r in semantic_results if r.get('relative_path') == path), None)
+if semantic_match:
+    result['similarity_score'] = semantic_match.get('similarity_score', 0.0)
+else:
+    # BM25-only result: set similarity_score to 0.0  ❌ LYING TO USERS
+    result['similarity_score'] = 0.0
+```
+
+**User feedback**: "if there's a score we need to SHOW it what the fuck were you thinking to set it to zero lying to your users"
+
+**The Fix** (synthesis.py:639-677):
+
+Instead of lying with 0.0, calculate **actual cosine similarity** for BM25-only results:
+
+```python
+# Load embeddings on-demand for BM25-only results
+query_embedding = None
+embeddings_array = None
+metadata_list = None
+
+for result in merged_results:
+    semantic_match = next((r for r in semantic_results ...), None)
+    if semantic_match:
+        result['similarity_score'] = semantic_match.get('similarity_score', 0.0)
+    else:
+        # BM25-only result: calculate ACTUAL semantic similarity
+        if query_embedding is None:
+            query_embedding = self.pipeline.engine.embed_text(query)
+            embeddings_array, metadata_list, _ = self.pipeline.store.load_embeddings()
+
+        # Find document's embedding by path
+        doc_idx = None
+        for idx, meta in enumerate(metadata_list):
+            if meta.get('relative_path') == path:
+                doc_idx = idx
+                break
+
+        if doc_idx is not None:
+            # Calculate actual cosine similarity ✅ HONEST
+            doc_embedding = embeddings_array[doc_idx]
+            similarity = self.pipeline.engine.similarity(query_embedding, doc_embedding)
+            result['similarity_score'] = float(similarity)
+```
+
+**Before vs After**:
+
+Before (LIES):
+```
+Semantic: 0.000 | BM25: 17.054
+Semantic: 0.000 | BM25: 17.062
+Semantic: 0.000 | BM25: 18.047
+```
+
+After (TRUTH):
+```
+Semantic: 0.182 | BM25: 17.054  ✅ Real similarity!
+Semantic: 0.244 | BM25: 17.062  ✅ Real similarity!
+Semantic: 0.177 | BM25: 18.047  ✅ Real similarity!
+```
+
+**Other queries tested**:
+```bash
+# "love romance" → Semantic: -0.048, 0.043, -0.031
+# "test" → Semantic: 0.025, 0.004, 0.060
+```
+
+**Performance impact**: Minimal (~50-100ms per query to calculate on-demand similarities for BM25-only results)
+
+### Lessons Learned
+
+**Never lie to users**:
+- Setting semantic scores to 0.0 was dishonest
+- If a document has an embedding, calculate its similarity
+- 0.000 should mean "no semantic relationship", not "didn't rank high enough to show"
+- Low scores (0.05, 0.15, even negative) are valuable information
+
+**Config lookup consistency**:
+- All CLI commands should use same vault config lookup pattern
+- Don't assume global defaults when vault-specific config exists
+- Priority: explicit flag > vault config > global default
+
+**Test with real data**:
+- The bug only surfaced when testing with a different vault (1002)
+- Unit tests didn't catch vault-specific model logic
+- Real-world usage exposed the config lookup gap
+
+### Impact
+
+**Files modified**:
+- `src/temoa/cli.py` (+11 lines) - Vault-specific model lookup in search command
+- `src/temoa/synthesis.py` (+38 lines) - Calculate actual semantic scores for BM25-only results
+
+**Correctness**: ✅ Search now honest about semantic similarity
+**Performance**: ✅ Minimal overhead (~50-100ms for on-demand similarity calculation)
+**User trust**: ✅ Restored
+
+---

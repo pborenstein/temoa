@@ -926,14 +926,15 @@ Based on continued real-world usage, consider:
 ### Next Session Start Here
 
 **Current Branch**: `phase-3.5-search-modes`
-**Current Focus**: Phase 3.5.1 & 3.5.2 complete, ready for Phase 3.5.3 (Metadata Boosting)
+**Current Focus**: Phase 3.5.1 & 3.5.2 complete + critical bug fixes, ready for Phase 3.5.3 (Metadata Boosting)
 
 **Recent Work** (2025-12-30):
-- Completed adaptive chunking system
-- Added per-vault model configuration support
-- Integrated chunking into full indexing pipeline
-- All 19 chunking tests passing
-- Fixed gitignore, added progress messages
+- ✅ Completed adaptive chunking system (Phase 3.5.2)
+- ✅ Added per-vault model configuration support
+- ✅ Integrated chunking into full indexing pipeline
+- ✅ **CRITICAL FIX**: Search command now respects vault-specific model from config
+- ✅ **CRITICAL FIX**: Hybrid search calculates actual semantic scores instead of lying with 0.000
+- All tests passing
 
 **Next**: Phase 3.5.3 - Metadata Boosting
 1. Implement GitHub stars/topics/language boosting

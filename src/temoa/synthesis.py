@@ -637,6 +637,11 @@ class SynthesisClient:
             merged_results.sort(key=lambda x: x.get('rrf_score', 0), reverse=True)
 
             # Enrich merged results with individual scores for debugging
+            # First, calculate query embedding once for BM25-only results
+            query_embedding = None
+            embeddings_array = None
+            metadata_list = None
+
             for result in merged_results:
                 path = result.get('relative_path')
 
@@ -645,8 +650,31 @@ class SynthesisClient:
                 if semantic_match:
                     result['similarity_score'] = semantic_match.get('similarity_score', 0.0)
                 else:
-                    # BM25-only result: set similarity_score to 0.0
-                    result['similarity_score'] = 0.0
+                    # BM25-only result: calculate ACTUAL semantic similarity
+                    # Load embeddings on-demand if needed
+                    if query_embedding is None:
+                        query_embedding = self.pipeline.engine.embed_text(query)
+                        embeddings_array, metadata_list, _ = self.pipeline.store.load_embeddings()
+
+                    # Find this document's embedding by path
+                    if embeddings_array is not None and metadata_list is not None:
+                        doc_idx = None
+                        for idx, meta in enumerate(metadata_list):
+                            if meta.get('relative_path') == path:
+                                doc_idx = idx
+                                break
+
+                        if doc_idx is not None:
+                            # Calculate actual cosine similarity
+                            doc_embedding = embeddings_array[doc_idx]
+                            similarity = self.pipeline.engine.similarity(query_embedding, doc_embedding)
+                            result['similarity_score'] = float(similarity)
+                        else:
+                            # Document not in embeddings (shouldn't happen)
+                            result['similarity_score'] = 0.0
+                    else:
+                        # No embeddings loaded (shouldn't happen in hybrid mode)
+                        result['similarity_score'] = 0.0
 
                 # Find this result in BM25 results
                 bm25_match = next((r for r in bm25_results if r.get('relative_path') == path), None)

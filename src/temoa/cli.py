@@ -209,11 +209,17 @@ def search(query, profile, limit, min_score, include_types, exclude_types, hybri
         time_boost = False
 
     # Determine vault and storage based on --vault flag
+    # Also get vault-specific model if configured
+    vault_model = None
     if vault:
         vault_path = Path(vault)
         storage_dir = derive_storage_dir(
             vault_path, config.vault_path, config.storage_dir
         )
+        # Look up vault-specific model from config
+        vault_config = config.find_vault(vault)
+        if vault_config:
+            vault_model = vault_config.get('model')
     else:
         vault_path = config.vault_path
         storage_dir = config.storage_dir
@@ -234,10 +240,16 @@ def search(query, profile, limit, min_score, include_types, exclude_types, hybri
         exclude_type_list = [t.strip() for t in exclude_types.split(",") if t.strip()]
 
     try:
+        # Determine which model to use:
+        # 1. Explicit --model flag (highest priority)
+        # 2. Vault-specific model from config
+        # 3. Global default_model (fallback)
+        effective_model = model or vault_model or config.default_model
+
         client = SynthesisClient(
             synthesis_path=config.synthesis_path,
             vault_path=vault_path,
-            model=model or config.default_model,
+            model=effective_model,
             storage_dir=storage_dir
         )
 
