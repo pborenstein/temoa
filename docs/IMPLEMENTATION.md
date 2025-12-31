@@ -842,7 +842,7 @@ Based on continued real-world usage, consider:
 ### Sub-phases Overview
 
 - [x] 3.5.1: Core Profile System (3-4 days) ✅ **COMPLETE**
-- [ ] 3.5.2: Adaptive Chunking (4-5 days)
+- [x] 3.5.2: Adaptive Chunking (4-5 days) ✅ **COMPLETE**
 - [ ] 3.5.3: Metadata Boosting (2 days)
 - [ ] 3.5.4: Profile Recommendation (1-2 days)
 - [ ] 3.5.5: UI Updates (2 days)
@@ -877,27 +877,69 @@ Based on continued real-world usage, consider:
 - `src/temoa/server.py` - Profile parameter integration
 - `src/temoa/cli.py` - Profile flag and profiles command
 
+### Phase 3.5.2: Adaptive Chunking ✅ COMPLETE
+
+**Completed**: 2025-12-30
+**Branch**: `phase-3.5-search-modes`
+**Commits**: `37ce8f9`, `ebbc70b`, `c1da088`, `3c3da84`, `8c1dc1c`
+
+**Deliverables**:
+- ✅ `synthesis/src/embeddings/chunking.py` - Core chunking logic (207 lines)
+- ✅ Updated `synthesis/src/embeddings/vault_reader.py` - Chunk support
+- ✅ Updated `synthesis/src/embeddings/pipeline.py` - Chunking parameters
+- ✅ Updated `src/temoa/synthesis.py` - Deduplication + chunk metadata
+- ✅ CLI: `--enable-chunking`, `--model` flags for index/reindex
+- ✅ Server: `/reindex` chunking query parameters
+- ✅ Tests: 19 unit tests for chunking (all passing)
+
+**Chunking Parameters**:
+- `chunk_size`: 2000 chars (well within 512 token limit)
+- `chunk_overlap`: 400 chars (preserves context at boundaries)
+- `chunk_threshold`: 4000 chars (minimum size before chunking)
+
+**Key Features**:
+- Sliding window chunking with overlap
+- Smart final chunk merging (avoids tiny trailing chunks)
+- Per-vault model selection via config or `--model` flag
+- Chunk deduplication (keeps best-scoring chunk per file)
+- Progress messages during model loading delays
+
+**Files Created**:
+- `synthesis/src/embeddings/chunking.py` (207 lines)
+- `tests/test_chunking.py` (19 tests)
+
+**Files Modified**:
+- `synthesis/src/embeddings/vault_reader.py` - read_file_chunked(), chunk metadata
+- `synthesis/src/embeddings/pipeline.py` - chunking parameters
+- `src/temoa/synthesis.py` - deduplicate_chunks(), search integration
+- `src/temoa/server.py` - /reindex chunking params
+- `src/temoa/cli.py` - --enable-chunking, --model flags, vault-specific model selection
+- `.gitignore` - Fixed to allow tests/ directory
+
+**Impact**:
+- Files >4000 chars now fully searchable (previously truncated at ~2500 chars)
+- Example: 9MB book → 4.4x content items (2006 files → 8755 searchable chunks)
+- Backward compatible (chunking disabled by default)
+
 ---
 
 ### Next Session Start Here
 
 **Current Branch**: `phase-3.5-search-modes`
-**Current Focus**: Phase 3.5.1 complete, ready for Phase 3.5.2 (Adaptive Chunking)
+**Current Focus**: Phase 3.5.1 & 3.5.2 complete, ready for Phase 3.5.3 (Metadata Boosting)
 
 **Recent Work** (2025-12-30):
-- Implemented search profile system with 5 built-in profiles
-- Added `/search?profile=<name>` parameter to API
-- Added `temoa profiles` CLI command
-- Profile defaults apply, individual parameters can override
-- 10 unit tests passing
-- Comprehensive phase plan created
+- Completed adaptive chunking system
+- Added per-vault model configuration support
+- Integrated chunking into full indexing pipeline
+- All 19 chunking tests passing
+- Fixed gitignore, added progress messages
 
-**Next**: Phase 3.5.2 - Adaptive Chunking
-1. Create `synthesis/src/embeddings/chunking.py` with chunking logic
-2. Update `synthesis/src/embeddings/vault_reader.py` for chunk support
-3. Implement chunk deduplication in `src/temoa/synthesis.py`
-4. Test with 1002 vault (large books) - verify 100% coverage
-5. See [docs/phases/phase-3.5-specialized-search.md](phases/phase-3.5-specialized-search.md) for detailed plan
+**Next**: Phase 3.5.3 - Metadata Boosting
+1. Implement GitHub stars/topics/language boosting
+2. Add log-scale metadata scoring
+3. Integrate with search profiles (repos profile uses metadata)
+4. See [docs/phases/phase-3.5-specialized-search.md](phases/phase-3.5-specialized-search.md) for detailed plan
 
 ---
 
