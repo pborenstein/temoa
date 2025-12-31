@@ -756,8 +756,16 @@ def index(vault, force, model, enable_chunking, chunk_size, chunk_overlap, chunk
     # Validate storage is safe before proceeding
     validate_storage_safe(storage_dir, vault_path, "index", force)
 
-    # Determine which model to use
-    embedding_model = model if model else config.default_model
+    # Determine which model to use (priority: CLI flag > vault config > default)
+    if model:
+        embedding_model = model
+    else:
+        # Try to get vault-specific model from config
+        vault_config = config.find_vault(str(vault_path))
+        if vault_config and 'model' in vault_config:
+            embedding_model = vault_config['model']
+        else:
+            embedding_model = config.default_model
 
     click.echo(f"Building index for: {vault_path}")
     click.echo(f"Storage directory: {storage_dir}")
@@ -848,8 +856,16 @@ def reindex(vault, force, model, enable_chunking, chunk_size, chunk_overlap, chu
     # Validate storage is safe before proceeding
     validate_storage_safe(storage_dir, vault_path, "reindex", force)
 
-    # Determine which model to use
-    embedding_model = model if model else config.default_model
+    # Determine which model to use (priority: CLI flag > vault config > default)
+    if model:
+        embedding_model = model
+    else:
+        # Try to get vault-specific model from config
+        vault_config = config.find_vault(str(vault_path))
+        if vault_config and 'model' in vault_config:
+            embedding_model = vault_config['model']
+        else:
+            embedding_model = config.default_model
 
     click.echo(f"Re-indexing vault: {vault_path}")
     click.echo(f"Storage directory: {storage_dir}")
