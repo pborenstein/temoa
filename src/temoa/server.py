@@ -1026,6 +1026,22 @@ async def reindex(
     force: bool = Query(
         default=True,
         description="Force rebuild even if embeddings exist"
+    ),
+    enable_chunking: bool = Query(
+        default=False,
+        description="Enable adaptive chunking for large files"
+    ),
+    chunk_size: int = Query(
+        default=2000,
+        description="Target size for each chunk in characters"
+    ),
+    chunk_overlap: int = Query(
+        default=400,
+        description="Number of overlapping characters between chunks"
+    ),
+    chunk_threshold: int = Query(
+        default=4000,
+        description="Minimum file size before chunking is applied"
     )
 ):
     """
@@ -1054,9 +1070,15 @@ async def reindex(
         # Get client for specified vault
         synthesis, vault_path, vault_name = get_client_for_vault(request, vault)
 
-        logger.info(f"Reindex requested for vault '{vault_name}' (force={force})")
+        logger.info(f"Reindex requested for vault '{vault_name}' (force={force}, chunking={enable_chunking})")
 
-        result = synthesis.reindex(force=force)
+        result = synthesis.reindex(
+            force=force,
+            enable_chunking=enable_chunking,
+            chunk_size=chunk_size,
+            chunk_overlap=chunk_overlap,
+            chunk_threshold=chunk_threshold
+        )
 
         # Invalidate cache after reindex to ensure fresh data on next access
         client_cache.invalidate(vault_path, config.default_model)

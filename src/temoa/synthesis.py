@@ -156,6 +156,14 @@ def deduplicate_chunks(
 
         files_to_chunks[base_path].append(result)
 
+    # Determine which score key to use for sorting
+    score_key = None
+    if results:
+        for key in ['rrf_score', 'similarity_score', 'bm25_score']:
+            if key in results[0]:
+                score_key = key
+                break
+
     # Process each file's chunks
     deduplicated = []
 
@@ -166,13 +174,7 @@ def deduplicate_chunks(
             continue
 
         # Multiple chunks from same file
-        # Sort by score (descending)
-        score_key = None
-        for key in ['similarity_score', 'bm25_score', 'rrf_score']:
-            if key in chunks[0]:
-                score_key = key
-                break
-
+        # Sort by score (descending) using the score_key we found
         if score_key:
             chunks.sort(key=lambda x: x.get(score_key, 0), reverse=True)
 
@@ -422,11 +424,15 @@ class SynthesisClient:
 
             logger.debug(f"Found {len(enhanced_results)} results")
 
+            # Deduplicate chunks from the same file (keep best-scoring chunk)
+            deduplicated_results = deduplicate_chunks(enhanced_results, max_chunks_per_file=1, merge_mode="best")
+            logger.debug(f"After deduplication: {len(deduplicated_results)} results")
+
             # Serialize datetime values to ISO strings for JSON compatibility
             response = {
                 "query": query,
-                "results": enhanced_results,
-                "total": len(enhanced_results),
+                "results": deduplicated_results,
+                "total": len(deduplicated_results),
                 "model": self.model_name
             }
             return serialize_datetime_values(response)
@@ -650,15 +656,19 @@ class SynthesisClient:
                     # Semantic-only result: set bm25_score to 0.0
                     result['bm25_score'] = 0.0
 
-            # Limit final results
-            merged_results = merged_results[:limit]
+            logger.debug(f"Hybrid search merged {len(merged_results)} results (before dedup)")
 
-            logger.debug(f"Hybrid search merged {len(merged_results)} results")
+            # Deduplicate chunks from the same file (keep best-scoring chunk)
+            deduplicated_results = deduplicate_chunks(merged_results, max_chunks_per_file=1, merge_mode="best")
+            logger.debug(f"After deduplication: {len(deduplicated_results)} results")
+
+            # Limit final results
+            deduplicated_results = deduplicated_results[:limit]
 
             response = {
                 "query": query,
-                "results": merged_results,
-                "total": len(merged_results),
+                "results": deduplicated_results,
+                "total": len(deduplicated_results),
                 "model": self.model_name,
                 "search_mode": "hybrid"
             }
@@ -962,7 +972,14 @@ class SynthesisClient:
         }
         self.pipeline.store.save_embeddings(merged_embeddings, metadata_list, model_info)
 
-    def reindex(self, force: bool = True) -> Dict[str, Any]:
+    def reindex(
+        self,
+        force: bool = True,
+        enable_chunking: bool = False,
+        chunk_size: int = 2000,
+        chunk_overlap: int = 400,
+        chunk_threshold: int = 4000
+    ) -> Dict[str, Any]:
         """
         Trigger re-indexing of the vault.
 
@@ -978,6 +995,10 @@ class SynthesisClient:
 
         Args:
             force: Force full rebuild (default: True)
+            enable_chunking: Enable adaptive chunking for large files (default: False)
+            chunk_size: Target size for each chunk in characters (default: 2000)
+            chunk_overlap: Number of overlapping characters between chunks (default: 400)
+            chunk_threshold: Minimum file size before chunking is applied (default: 4000)
 
         Returns:
             Dict with reindexing results:
@@ -987,7 +1008,9 @@ class SynthesisClient:
                 "files_new": int (incremental only),
                 "files_modified": int (incremental only),
                 "files_deleted": int (incremental only),
-                "model": str
+                "model": str,
+                "chunking_enabled": bool,
+                "total_chunks": int (if chunking enabled)
             }
 
         Raises:
@@ -1020,10 +1043,17 @@ class SynthesisClient:
             # Full rebuild path
             if force:
                 logger.info("Performing full rebuild...")
+                if enable_chunking:
+                    logger.info(f"Chunking enabled: size={chunk_size}, overlap={chunk_overlap}, threshold={chunk_threshold}")
 
                 # Read vault content
                 logger.info("Reading vault files...")
-                vault_content = self.pipeline.reader.read_vault()
+                vault_content = self.pipeline.reader.read_vault(
+                    enable_chunking=enable_chunking,
+                    chunk_size=chunk_size,
+                    chunk_overlap=chunk_overlap,
+                    chunk_threshold=chunk_threshold
+                )
 
                 if not vault_content:
                     logger.error("No content found in vault")
@@ -1060,43 +1090,77 @@ class SynthesisClient:
 
                 metadata = []
                 for content in vault_content:
-                    metadata.append({
+                    meta = {
                         "relative_path": content.relative_path,
                         "title": content.title,
                         "tags": content.tags,
                         "created_date": content.created_date,
                         "modified_date": content.modified_date,
                         "content_length": len(content.content),
-                        "frontmatter": content.frontmatter
-                    })
+                        "frontmatter": content.frontmatter,
+                        # Chunk metadata
+                        "is_chunk": content.is_chunk,
+                        "chunk_index": content.chunk_index,
+                        "chunk_total": content.chunk_total,
+                        "chunk_start": content.chunk_start,
+                        "chunk_end": content.chunk_end
+                    }
+                    metadata.append(meta)
 
                 model_info = {
                     "model_name": self.pipeline.engine.model_name,
                     "embedding_dim": embeddings.shape[1] if len(embeddings.shape) > 1 else 0,
                     "vault_path": str(self.vault_path.resolve()),
                     "vault_name": self.vault_path.name,
-                    "indexed_at": datetime.now().isoformat()
+                    "indexed_at": datetime.now().isoformat(),
+                    "chunking_enabled": enable_chunking,
+                    "chunk_size": chunk_size if enable_chunking else None,
+                    "chunk_overlap": chunk_overlap if enable_chunking else None,
+                    "chunk_threshold": chunk_threshold if enable_chunking else None
                 }
 
                 self.pipeline.store.save_embeddings(embeddings, metadata, model_info)
 
                 files_indexed = len(vault_content)
-                logger.info(f"✓ Semantic indexing complete: {files_indexed} files indexed")
-                logger.info(f"✓ Full reindexing complete: {files_indexed} files")
+                num_chunks = sum(1 for c in vault_content if c.is_chunk)
+                num_files = len(set(c.relative_path for c in vault_content))
 
-                return {
+                if enable_chunking and num_chunks > 0:
+                    logger.info(f"✓ Semantic indexing complete: {num_files} files → {files_indexed} content items ({num_chunks} chunks)")
+                else:
+                    logger.info(f"✓ Semantic indexing complete: {files_indexed} files indexed")
+
+                logger.info(f"✓ Full reindexing complete")
+
+                result = {
                     "status": "success",
                     "files_indexed": files_indexed,
                     "model": self.model_name,
-                    "message": f"Successfully reindexed {files_indexed} files"
+                    "chunking_enabled": enable_chunking
                 }
+
+                if enable_chunking and num_chunks > 0:
+                    result["total_files"] = num_files
+                    result["total_chunks"] = num_chunks
+                    result["message"] = f"Successfully reindexed {num_files} files ({num_chunks} chunks, {files_indexed - num_chunks} whole files)"
+                else:
+                    result["message"] = f"Successfully reindexed {files_indexed} files"
+
+                return result
 
             # Incremental rebuild path
             else:
                 logger.info(f"Performing incremental reindex: {len(changes['new'])} new, {len(changes['modified'])} modified, {len(changes['deleted'])} deleted")
+                if enable_chunking:
+                    logger.info(f"Chunking enabled: size={chunk_size}, overlap={chunk_overlap}, threshold={chunk_threshold}")
 
                 # Rebuild BM25 index (always full rebuild - it's fast)
-                vault_content = self.pipeline.reader.read_vault()
+                vault_content = self.pipeline.reader.read_vault(
+                    enable_chunking=enable_chunking,
+                    chunk_size=chunk_size,
+                    chunk_overlap=chunk_overlap,
+                    chunk_threshold=chunk_threshold
+                )
 
                 if self.bm25_index is not None:
                     logger.info("Rebuilding BM25 keyword index...")
@@ -1127,15 +1191,22 @@ class SynthesisClient:
 
                     metadata = []
                     for content in changed_files:
-                        metadata.append({
+                        meta = {
                             "relative_path": content.relative_path,
                             "title": content.title,
                             "tags": content.tags,
                             "created_date": content.created_date,
                             "modified_date": content.modified_date,
                             "content_length": len(content.content),
-                            "frontmatter": content.frontmatter
-                        })
+                            "frontmatter": content.frontmatter,
+                            # Chunk metadata
+                            "is_chunk": content.is_chunk,
+                            "chunk_index": content.chunk_index,
+                            "chunk_total": content.chunk_total,
+                            "chunk_start": content.chunk_start,
+                            "chunk_end": content.chunk_end
+                        }
+                        metadata.append(meta)
 
                     # Merge with existing embeddings
                     self._merge_embeddings(embeddings, metadata, changes)

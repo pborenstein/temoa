@@ -716,13 +716,24 @@ def migrate(vault, json_file, dry_run):
               help='Vault path (default: from config)')
 @click.option('--force', is_flag=True,
               help='Force overwrite if storage mismatch (DANGER)')
-def index(vault, force):
+@click.option('--enable-chunking', is_flag=True,
+              help='Enable adaptive chunking for large files')
+@click.option('--chunk-size', default=2000, type=int,
+              help='Target size for each chunk in characters (default: 2000)')
+@click.option('--chunk-overlap', default=400, type=int,
+              help='Number of overlapping characters between chunks (default: 400)')
+@click.option('--chunk-threshold', default=4000, type=int,
+              help='Minimum file size before chunking is applied (default: 4000)')
+def index(vault, force, enable_chunking, chunk_size, chunk_overlap, chunk_threshold):
     """Build the embedding index from scratch.
 
     This processes all files in the vault and creates embeddings.
     Run this once when you first set up Temoa, or after major vault changes.
 
     For incremental updates, use 'temoa reindex' instead.
+
+    Chunking: Use --enable-chunking to split large files into searchable chunks.
+    This is essential for large documents (>4000 chars) to ensure full coverage.
     """
     from .config import Config
     from .synthesis import SynthesisClient
@@ -756,12 +767,25 @@ def index(vault, force):
             storage_dir=storage_dir
         )
 
+        if enable_chunking:
+            click.echo(f"Chunking: size={chunk_size}, overlap={chunk_overlap}, threshold={chunk_threshold}")
+            click.echo()
+
         with click.progressbar(length=100, label='Indexing') as bar:
-            result = client.reindex(force=True)
+            result = client.reindex(
+                force=True,
+                enable_chunking=enable_chunking,
+                chunk_size=chunk_size,
+                chunk_overlap=chunk_overlap,
+                chunk_threshold=chunk_threshold
+            )
             bar.update(100)
 
         click.echo(f"\n{click.style('✓', fg='green')} Index built successfully")
         click.echo(f"Files indexed: {result.get('files_indexed', 'Unknown')}")
+        if enable_chunking and result.get('total_chunks'):
+            click.echo(f"Total files: {result.get('total_files', 'Unknown')}")
+            click.echo(f"Total chunks: {result.get('total_chunks', 'Unknown')}")
         click.echo(f"Model: {result.get('model', 'Unknown')}")
 
     except Exception as e:
@@ -774,7 +798,15 @@ def index(vault, force):
               help='Vault path (default: from config)')
 @click.option('--force', is_flag=True,
               help='Force overwrite if storage mismatch (DANGER)')
-def reindex(vault, force):
+@click.option('--enable-chunking', is_flag=True,
+              help='Enable adaptive chunking for large files')
+@click.option('--chunk-size', default=2000, type=int,
+              help='Target size for each chunk in characters (default: 2000)')
+@click.option('--chunk-overlap', default=400, type=int,
+              help='Number of overlapping characters between chunks (default: 400)')
+@click.option('--chunk-threshold', default=4000, type=int,
+              help='Minimum file size before chunking is applied (default: 4000)')
+def reindex(vault, force, enable_chunking, chunk_size, chunk_overlap, chunk_threshold):
     """Re-index the vault incrementally (only new/modified files).
 
     Detects changes since last index and only processes:
@@ -786,6 +818,8 @@ def reindex(vault, force):
     Falls back to full rebuild if no previous index exists.
 
     For first-time setup or full rebuild, use 'temoa index' instead.
+
+    Chunking: Use --enable-chunking to split large files into searchable chunks.
     """
     from .config import Config
     from .synthesis import SynthesisClient
@@ -809,6 +843,8 @@ def reindex(vault, force):
     click.echo(f"Re-indexing vault: {vault_path}")
     click.echo(f"Storage directory: {storage_dir}")
     click.echo("Running incremental reindex (only changed files)...")
+    if enable_chunking:
+        click.echo(f"Chunking: size={chunk_size}, overlap={chunk_overlap}, threshold={chunk_threshold}")
 
     try:
         client = SynthesisClient(
@@ -821,7 +857,13 @@ def reindex(vault, force):
         with click.progressbar(length=100, label='Re-indexing') as bar:
             # Note: This is a simple progress indicator
             # Real progress would require Synthesis to support callbacks
-            result = client.reindex(force=False)
+            result = client.reindex(
+                force=False,
+                enable_chunking=enable_chunking,
+                chunk_size=chunk_size,
+                chunk_overlap=chunk_overlap,
+                chunk_threshold=chunk_threshold
+            )
             bar.update(100)
 
         click.echo(f"\n{click.style('✓', fg='green')} Re-indexing complete")
