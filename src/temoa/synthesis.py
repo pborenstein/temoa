@@ -1064,6 +1064,7 @@ class SynthesisClient:
                 # Build BM25 index (fast - takes seconds)
                 if self.bm25_index is not None:
                     logger.info("Building BM25 keyword index...")
+                    print(f"Building BM25 keyword index...")
                     try:
                         documents = []
                         for content_obj in vault_content:
@@ -1078,11 +1079,13 @@ class SynthesisClient:
 
                         self.bm25_index.build(documents)
                         logger.info(f"✓ BM25 index built: {len(documents)} documents")
+                        print(f"✓ BM25 index built")
                     except Exception as e:
                         logger.warning(f"BM25 indexing failed: {e}")
 
                 # Build semantic embeddings (slow - takes minutes)
                 logger.info("Building semantic embeddings (this may take several minutes)...")
+                print(f"Loading embedding model ({self.model_name}) and preparing {len(vault_content)} items...")
                 self.pipeline.store.clear()
 
                 texts = [content.content for content in vault_content]
@@ -1164,6 +1167,7 @@ class SynthesisClient:
 
                 if self.bm25_index is not None:
                     logger.info("Rebuilding BM25 keyword index...")
+                    print(f"Rebuilding BM25 keyword index...")
                     try:
                         documents = []
                         for content_obj in vault_content:
@@ -1178,6 +1182,7 @@ class SynthesisClient:
 
                         self.bm25_index.build(documents)
                         logger.info(f"✓ BM25 index rebuilt: {len(documents)} documents")
+                        print(f"✓ BM25 index rebuilt")
                     except Exception as e:
                         logger.warning(f"BM25 indexing failed: {e}")
 
@@ -1186,6 +1191,7 @@ class SynthesisClient:
 
                 if changed_files:
                     logger.info(f"Embedding {len(changed_files)} changed files...")
+                    print(f"Loading embedding model ({self.model_name}) and preparing {len(changed_files)} items...")
                     texts = [content.content for content in changed_files]
                     embeddings = self.pipeline.engine.embed_texts(texts, show_progress=True)
 
