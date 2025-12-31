@@ -716,6 +716,8 @@ def migrate(vault, json_file, dry_run):
               help='Vault path (default: from config)')
 @click.option('--force', is_flag=True,
               help='Force overwrite if storage mismatch (DANGER)')
+@click.option('--model', '-m', default=None,
+              help='Embedding model to use (default: from config)')
 @click.option('--enable-chunking', is_flag=True,
               help='Enable adaptive chunking for large files')
 @click.option('--chunk-size', default=2000, type=int,
@@ -724,7 +726,7 @@ def migrate(vault, json_file, dry_run):
               help='Number of overlapping characters between chunks (default: 400)')
 @click.option('--chunk-threshold', default=4000, type=int,
               help='Minimum file size before chunking is applied (default: 4000)')
-def index(vault, force, enable_chunking, chunk_size, chunk_overlap, chunk_threshold):
+def index(vault, force, model, enable_chunking, chunk_size, chunk_overlap, chunk_threshold):
     """Build the embedding index from scratch.
 
     This processes all files in the vault and creates embeddings.
@@ -754,8 +756,12 @@ def index(vault, force, enable_chunking, chunk_size, chunk_overlap, chunk_thresh
     # Validate storage is safe before proceeding
     validate_storage_safe(storage_dir, vault_path, "index", force)
 
+    # Determine which model to use
+    embedding_model = model if model else config.default_model
+
     click.echo(f"Building index for: {vault_path}")
     click.echo(f"Storage directory: {storage_dir}")
+    click.echo(f"Model: {embedding_model}")
     click.echo(click.style("This may take a few minutes for large vaults...", fg='yellow'))
     click.echo()
 
@@ -763,7 +769,7 @@ def index(vault, force, enable_chunking, chunk_size, chunk_overlap, chunk_thresh
         client = SynthesisClient(
             synthesis_path=config.synthesis_path,
             vault_path=vault_path,
-            model=config.default_model,
+            model=embedding_model,
             storage_dir=storage_dir
         )
 
@@ -798,6 +804,8 @@ def index(vault, force, enable_chunking, chunk_size, chunk_overlap, chunk_thresh
               help='Vault path (default: from config)')
 @click.option('--force', is_flag=True,
               help='Force overwrite if storage mismatch (DANGER)')
+@click.option('--model', '-m', default=None,
+              help='Embedding model to use (default: from config)')
 @click.option('--enable-chunking', is_flag=True,
               help='Enable adaptive chunking for large files')
 @click.option('--chunk-size', default=2000, type=int,
@@ -806,7 +814,7 @@ def index(vault, force, enable_chunking, chunk_size, chunk_overlap, chunk_thresh
               help='Number of overlapping characters between chunks (default: 400)')
 @click.option('--chunk-threshold', default=4000, type=int,
               help='Minimum file size before chunking is applied (default: 4000)')
-def reindex(vault, force, enable_chunking, chunk_size, chunk_overlap, chunk_threshold):
+def reindex(vault, force, model, enable_chunking, chunk_size, chunk_overlap, chunk_threshold):
     """Re-index the vault incrementally (only new/modified files).
 
     Detects changes since last index and only processes:
@@ -840,8 +848,12 @@ def reindex(vault, force, enable_chunking, chunk_size, chunk_overlap, chunk_thre
     # Validate storage is safe before proceeding
     validate_storage_safe(storage_dir, vault_path, "reindex", force)
 
+    # Determine which model to use
+    embedding_model = model if model else config.default_model
+
     click.echo(f"Re-indexing vault: {vault_path}")
     click.echo(f"Storage directory: {storage_dir}")
+    click.echo(f"Model: {embedding_model}")
     click.echo("Running incremental reindex (only changed files)...")
     if enable_chunking:
         click.echo(f"Chunking: size={chunk_size}, overlap={chunk_overlap}, threshold={chunk_threshold}")
@@ -850,7 +862,7 @@ def reindex(vault, force, enable_chunking, chunk_size, chunk_overlap, chunk_thre
         client = SynthesisClient(
             synthesis_path=config.synthesis_path,
             vault_path=vault_path,
-            model=config.default_model,
+            model=embedding_model,
             storage_dir=storage_dir
         )
 
