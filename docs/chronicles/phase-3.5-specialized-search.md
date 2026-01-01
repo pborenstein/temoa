@@ -1057,3 +1057,33 @@ Semantic: 0.177 | BM25: 18.047  ✅ Real similarity!
 **API endpoints designed**: 8 new + 1 extended
 
 ---
+
+---
+
+## Entry 6: Documentation Migration - Token-Efficient Tracking System (2026-01-01)
+
+**What**: Migrated project documentation from legacy system to token-efficient tracking format designed for AI session optimization.
+
+**Why**: Reduce session pickup overhead from ~200 lines to ~50 lines (75% reduction). IMPLEMENTATION.md had grown to 1,147 lines with detailed history making it expensive for AI to process on every session.
+
+**How**:
+- Created `CONTEXT.md` (40 lines) - hot session state for instant pickup
+- Compressed IMPLEMENTATION.md from 1,147 → 312 lines (73% reduction)
+- Completed phases reduced to 3-5 bullets + chronicle link
+- Production Hardening organized into 4 Parts (Option B approach)
+- Moved Chronicle Reading Guide to docs/README.md
+- Eliminated `CHRONICLES.md` navigation file (redundant with `ls chronicles/`)
+- DECISIONS.md already heading-based (no changes needed)
+
+**Results**:
+- Session pickup: 200 lines → 40 lines (CONTEXT.md)
+- IMPLEMENTATION.md: 835 lines removed
+- Chronicle details preserved in `chronicles/phase-*.md` files (unchanged)
+- Tested new system with `plinth:session-wrapup` skill
+
+**Files**:
+- Created: `docs/CONTEXT.md`
+- Modified: `docs/IMPLEMENTATION.md`, `docs/README.md`
+- Deleted: `docs/CHRONICLES.md`
+- Commit: `280546f` - "refactor: migrate to token-efficient documentation system"
+

@@ -60,7 +60,27 @@ Session notes with detailed implementation decisions:
 - `phase-0-1-foundation.md` - Phase 0 (Discovery) and Phase 1 (MVP) sessions
 - `phase-2-gleanings.md` - Phase 2 (Gleanings) sessions
 - `phase-2.5-deployment.md` - Phase 2.5 (Mobile validation, UI refinement) sessions
-- `phase-3-enhanced-features.md` - Phase 3 (Enhanced features) sessions
+- `phase-3-implementation.md` - Phase 3 (Enhanced features) sessions
+- `phase-3.5-specialized-search.md` - Phase 3.5 (Search profiles, chunking, QoL) sessions
+- `production-hardening.md` - Production fixes and enhancements
+
+### Chronicle Reading Guide
+
+**If you're new to Temoa**, start with:
+1. Entry 1 (The Central Problem) in phase-0-1-foundation.md - understand the "why"
+2. Entry 6 (Phase 1 Complete) in phase-0-1-foundation.md - see what we built
+3. Entry 11 (Mid-Course Assessment) in phase-2.5-deployment.md - understand current status
+
+**If you're debugging**, look for:
+- Performance issues → Entry 4 (phase-0-1-foundation.md)
+- Architecture questions → Entry 2 (phase-0-1-foundation.md)
+- Path/config problems → Entry 3 (phase-0-1-foundation.md)
+- Gleanings bugs → Entries 9, 10, 12 (phase-2-gleanings.md, phase-2.5-deployment.md)
+
+**If you're continuing development**, check:
+- CONTEXT.md for current session state
+- IMPLEMENTATION.md for current phase status
+- Latest chronicle file for recent work
 
 ---
 
