@@ -601,3 +601,187 @@ Semantic: 0.177 | BM25: 18.047  ✅ Real similarity!
 **User trust**: ✅ Restored
 
 ---
+
+## Entry 4: Documentation Update - SEARCH-MECHANISMS.md Modernization (2025-12-31)
+
+**Context**: After implementing Phase 3.5.1 (Search Profiles) and 3.5.2 (Adaptive Chunking), the core technical documentation `docs/SEARCH-MECHANISMS.md` was outdated. It still described the old file size limitations and was missing two major feature areas.
+
+### The Documentation Gaps
+
+**Discovery process**: User asked to review SEARCH-MECHANISMS.md against current codebase state.
+
+**Critical inaccuracies found**:
+
+1. **Outdated file size info** (lines 76):
+   - Doc said: "Files >2,500 chars are silently truncated"
+   - Reality: Adaptive chunking implemented in Phase 3.5.2
+   - Last updated: 2025-12-19 (before chunking)
+
+2. **Missing Search Profiles** (Phase 3.5.1):
+   - Entire feature not documented
+   - 5 built-in profiles: repos, recent, deep, keywords, default
+   - Profile system, API endpoints, custom configuration - all undocumented
+
+3. **Missing Adaptive Chunking** (Phase 3.5.2):
+   - Implementation complete but not in docs
+   - Chunking algorithm, deduplication, configuration - all undocumented
+   - Critical for understanding how large files work now
+
+4. **Incomplete configuration reference**:
+   - No mention of `?profile=` parameter
+   - No `/profiles` endpoint documented
+
+5. **Missing performance characteristics**:
+   - No chunking impact analysis
+   - No trade-offs documented
+
+### The Documentation Update
+
+**Comprehensive additions** (375+ new lines):
+
+**1. Adaptive Chunking Section** (207 lines):
+- Problem statement: 512 token limit, silent truncation before Phase 3.5.2
+- How it works: 4,000 char threshold, 2,000 char chunks, 400 char overlap
+- Sliding window algorithm with examples
+- Smart final chunk handling
+- Metadata enrichment (chunk_index, chunk_total, offsets)
+- Chunk deduplication strategy with code examples
+- Configuration options (CLI, API, profiles)
+- Impact analysis: 4.4x content coverage (2,006 files → 8,755 chunks)
+- Trade-offs: +15-25% indexing time, no search penalty
+
+**2. Search Profiles Section** (168 lines):
+- Comprehensive profile comparison table
+- 5 built-in profiles with detailed breakdowns:
+  - **repos**: 70% BM25, stars/topics boosting, fast
+  - **recent**: 7-day half-life, 90-day cutoff
+  - **deep**: 80% semantic, chunking, 3 chunks/file
+  - **keywords**: 80% BM25, exact matching
+  - **default**: Balanced (current behavior)
+- Hybrid weight explanation (0.0-1.0 scale)
+- Profile-specific use cases with examples
+- API/CLI usage instructions
+- Custom profile configuration in config.json
+- Profile precedence rules
+
+**3. Configuration Reference Updates**:
+- Added `?profile=<name>` parameter
+- Added `/profiles` endpoint
+- Documented profile override behavior
+- Updated parameter precedence rules
+
+**4. Performance Characteristics Updates**:
+- New "Chunking Impact" subsection
+- Indexing time: +15-25% with chunking enabled
+- Storage: 4-5x more embeddings (real example: 3,000 → 13,000)
+- Memory impact proportional to chunk count
+- Chunk deduplication overhead: <10ms (negligible)
+- Trade-offs table (benefits vs costs)
+- Recommendation: Enable for long-form, disable for short notes
+
+**5. Decision Rationale Updates**:
+- Added Adaptive Chunking rationale
+- Added Search Profiles rationale
+
+**6. Header Updates**:
+- Last Updated: 2025-12-31 (was 2025-12-19)
+- Status: "Phase 3.5 In Progress" (was "Production Hardening Complete")
+- Version: 0.7.0 (was 0.6.0)
+
+**7. Table of Contents**:
+- Added Adaptive Chunking section with 3 subsections
+- Added Search Profiles section with 2 subsections
+
+### CLAUDE.md Updates
+
+**Also updated the development guide** (`CLAUDE.md`) for AI sessions:
+
+**Replaced "File Size Limitations" section** with:
+
+1. **Adaptive Chunking (Phase 3.5.2)** - marked ✅ IMPLEMENTED:
+   - Before/after examples (2.5% → 100% coverage)
+   - Configuration guidance
+   - Impact stats (4.4x content items)
+   - Link to technical docs
+
+2. **Search Profiles (Phase 3.5.1)** - new section:
+   - All 5 profiles listed with key features
+   - API/CLI usage examples
+   - Key feature: auto-configures parameters, no manual tuning
+   - Link to detailed docs
+
+**Why both files**:
+- SEARCH-MECHANISMS.md: Technical reference (for understanding implementation)
+- CLAUDE.md: Development guide (for AI sessions to know what exists)
+
+### Documentation Philosophy
+
+**Progressive disclosure**:
+- Overview → Core concepts → Details → Examples → Configuration
+- Each section builds on previous understanding
+- Code examples show real usage patterns
+
+**Accuracy over brevity**:
+- 375+ lines added, but all necessary
+- Every feature needs: what/why/how/when/examples/config
+- Real examples from codebase (not hypothetical)
+
+**Cross-referencing**:
+- Links to source files (e.g., `src/temoa/synthesis.py::deduplicate_chunks()`)
+- Links to related docs (IMPLEMENTATION.md, phase plans)
+- Links to test data (experimental validation)
+
+### Files Modified
+
+**docs/SEARCH-MECHANISMS.md**:
+- +375 lines (new content)
+- ~50 lines (header/TOC updates)
+- Total: ~1,196 lines (was ~820 lines)
+
+**CLAUDE.md**:
+- Replaced 7-line "File Size Limitations" with 20-line "Adaptive Chunking"
+- Added 20-line "Search Profiles" section
+- Better aligned with current codebase state
+
+### Impact
+
+**Documentation completeness**: ✅ All Phase 3.5 features documented
+**Accuracy**: ✅ No outdated information about truncation
+**Discoverability**: ✅ Table of contents, cross-links, examples
+**Maintenance**: ✅ Clear structure for future updates
+
+**For users**:
+- Can now understand how chunking works
+- Can now learn about search profiles
+- Have accurate performance expectations
+- Know how to configure both features
+
+**For AI sessions**:
+- CLAUDE.md accurately reflects implemented features
+- No confusion about file size handling
+- Clear guidance on when to use profiles
+
+### Lessons Learned
+
+**Documentation drift is real**:
+- 12 days between last update (2025-12-19) and new features (2025-12-30)
+- Major features can ship without doc updates if not disciplined
+- Session wrap-up should include doc review
+
+**User-initiated reviews catch drift**:
+- "Check if docs are up to date" → found 3 major gaps
+- Better than discovering gaps when onboarding new users
+- Regular audits should be in workflow
+
+**Split documentation scales**:
+- CHRONICLES.md still <130 lines (index only)
+- IMPLEMENTATION.md still manageable (~1,144 lines but mostly tables)
+- Phase files contain detailed narratives
+- Technical docs (SEARCH-MECHANISMS.md) grow as needed
+
+**Examples > descriptions**:
+- Code examples make features concrete
+- Before/after comparisons show impact
+- Real vault stats (2,006 → 8,755 chunks) more convincing than "better coverage"
+
+---

@@ -260,13 +260,28 @@ uv run main.py models
 - Good for calling subprocesses asynchronously
 - Familiar to most Python developers
 
-### File Size Limitations
+### Adaptive Chunking (Phase 3.5.2)
 
-**Current Limitation**: Embedding models have 512 token limit (~2,500 chars). Files larger than this are silently truncated - only the first ~2,500 characters are searchable.
+**Background**: Embedding models have 512 token limit (~2,500 chars). Before Phase 3.5.2, files larger than this had only their first ~2,500 characters searchable.
 
-**Chunking Support**: Approved in DEC-085, implementation tracked in [#43](https://github.com/pborenstein/temoa/issues/43)
+**Current Status**: ✅ **IMPLEMENTED** (Phase 3.5.2, 2025-12-30)
+- Files >= 4,000 characters are automatically chunked
+- Chunk size: 2,000 chars with 400-char overlap
+- Sliding window ensures full content coverage
+- Chunk deduplication keeps best-scoring chunk per file
+- No search-time performance penalty
 
-**See**: docs/chronicles/entry-40-chunking.md for full analysis and trade-offs
+**Impact**:
+- **Before**: 9MB book → only first 2,500 chars searchable (~2.5% coverage)
+- **After**: Same book → 50 chunks, all 100,000 chars searchable (100% coverage)
+- **Example vault**: 2,006 files → 8,755 searchable chunks (4.4x content items)
+
+**Configuration**:
+- Enabled by default in `default` profile
+- Can be disabled per profile (e.g., `repos` profile for small gleanings)
+- `--enable-chunking` flag for CLI indexing
+
+**See**: docs/SEARCH-MECHANISMS.md#adaptive-chunking for technical details
 
 ### Frontmatter-Aware Search
 
@@ -277,6 +292,28 @@ Tags are keywords, not concepts. Temoa uses multi-layer approach:
 - Description field: repeated 2x in BM25, prepended to content for semantic embeddings
 
 **See**: docs/SEARCH-MECHANISMS.md and test-vault/BM25_TAG_BOOSTING_RESULTS.md for experimental validation
+
+### Search Profiles (Phase 3.5.1)
+
+**Status**: ✅ **IMPLEMENTED** (Phase 3.5.1, 2025-12-30)
+
+**What it does**: Provides 5 optimized search modes tailored for different content types. Each profile configures search weights, boosting, and features automatically.
+
+**Built-in Profiles**:
+1. **repos** - GitHub repos/tech (70% BM25, metadata boosting, fast)
+2. **recent** - Recent work (7-day half-life, 90-day cutoff)
+3. **deep** - Long-form content (80% semantic, chunking enabled, 3 chunks/file)
+4. **keywords** - Exact matching (80% BM25, fast, no fuzzy matching)
+5. **default** - Balanced (current behavior, 50/50 hybrid)
+
+**Usage**:
+- API: `GET /search?q=obsidian&profile=repos`
+- CLI: `temoa search "obsidian plugin" --profile repos`
+- List profiles: `temoa profiles` or `GET /profiles`
+
+**Key Feature**: Automatically configures hybrid weight, BM25 boost, chunking, cross-encoder, time decay, and type filtering based on use case. No manual parameter tuning needed.
+
+**See**: docs/SEARCH-MECHANISMS.md#search-profiles for detailed profile configurations
 
 ---
 

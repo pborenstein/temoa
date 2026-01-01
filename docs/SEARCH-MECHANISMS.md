@@ -2,9 +2,9 @@
 
 > **Purpose**: Technical documentation of all search algorithms, ranking methods, and quality enhancements in Temoa.
 
-**Last Updated**: 2025-12-19
-**Status**: Production Hardening Complete
-**Version**: 0.6.0
+**Last Updated**: 2025-12-31
+**Status**: Phase 3.5 In Progress (Adaptive Chunking & Search Profiles)
+**Version**: 0.7.0
 
 ---
 
@@ -18,7 +18,9 @@ The search pipeline consists of:
 2. **Query Enhancement** - Pre-processing to improve query quality (expansion)
 3. **Result Filtering** - Post-processing to remove unwanted results (status, type, score)
 4. **Ranking Enhancement** - Re-ranking and boosting for better precision (time-aware, cross-encoder)
-5. **Multi-Vault Support** - Search across multiple vaults with independent indexes
+5. **Adaptive Chunking** - Large document splitting for full content coverage (Phase 3.5.2)
+6. **Search Profiles** - Optimized search modes for different content types (Phase 3.5.1)
+7. **Multi-Vault Support** - Search across multiple vaults with independent indexes
 
 ---
 
@@ -38,6 +40,13 @@ The search pipeline consists of:
 - [Ranking Enhancement](#ranking-enhancement)
   - [Time-Aware Scoring](#1-time-aware-scoring)
   - [Cross-Encoder Re-Ranking](#2-cross-encoder-re-ranking)
+- [Adaptive Chunking](#adaptive-chunking)
+  - [How Chunking Works](#how-chunking-works)
+  - [Chunk Deduplication](#chunk-deduplication)
+  - [Configuration](#chunking-configuration)
+- [Search Profiles](#search-profiles)
+  - [Built-in Profiles](#built-in-profiles)
+  - [Custom Profiles](#custom-profiles)
 - [Multi-Vault Support](#multi-vault-support)
 - [Complete Pipeline Flow](#complete-pipeline-flow)
 - [Performance Characteristics](#performance-characteristics)
@@ -567,6 +576,312 @@ Notice: Cross-encoder correctly ranks "obsidiantools" #1 despite lower bi-encode
 
 ---
 
+## Adaptive Chunking
+
+**Files**: `synthesis/src/embeddings/chunking.py`, `src/temoa/synthesis.py::deduplicate_chunks()`
+**Added**: Phase 3.5.2 (2025-12-30)
+
+**What it does**: Automatically splits large documents into overlapping chunks to ensure full content coverage in semantic search.
+
+**Problem Solved**: Embedding models have a 512 token limit (~2,500 characters). Before chunking, files larger than this had only their first ~2,500 characters searchable - the rest was invisible to search.
+
+### How Chunking Works
+
+**Detection Threshold**: Files >= 4,000 characters are chunked (conservative threshold ensures we only chunk files that truly need it)
+
+**Chunking Strategy**:
+1. **Chunk size**: 2,000 characters (stays well within 512 token limit)
+2. **Chunk overlap**: 400 characters (preserves context at boundaries)
+3. **Sliding window**: Each chunk advances by 1,600 characters (chunk_size - overlap)
+
+**Smart Final Chunk Handling**:
+- Small trailing chunks (<1,000 chars) are merged with previous chunk
+- Prevents tiny fragments that add noise without value
+
+**Example**:
+```python
+# Document: 5,000 characters
+# chunk_size=2000, overlap=400
+
+Chunk 0: chars 0-2000      (2,000 chars)
+Chunk 1: chars 1600-3600   (2,000 chars, overlap: 1600-2000)
+Chunk 2: chars 3200-5000   (1,800 chars, overlap: 3200-3600)
+
+# If Chunk 2 was <1,000 chars, it would be merged into Chunk 1
+```
+
+**Metadata Enrichment**:
+Each chunk includes:
+- `chunk_index`: 0-based position (e.g., 0, 1, 2)
+- `chunk_total`: Total chunks for this file (e.g., 3)
+- `start_offset`: Character position in original file
+- `end_offset`: Character position in original file
+- `file_path`: Original file path
+- `is_chunked_file`: Boolean flag
+
+**Performance**: Chunking happens during indexing, not search. No search-time performance impact.
+
+### Chunk Deduplication
+
+**Problem**: Multiple chunks from same file can clutter results
+
+**Solution** (`src/temoa/synthesis.py::deduplicate_chunks()`):
+- Groups results by file path
+- For files with multiple matching chunks:
+  - **Default mode**: Keep only highest-scoring chunk
+  - **All mode**: Keep all chunks with metadata
+- Adds `matched_chunks` field showing how many chunks matched
+
+**Example**:
+```python
+# Search finds 3 chunks from "Long Article.md"
+# - Chunk 1: similarity 0.75
+# - Chunk 2: similarity 0.82  ← Best match
+# - Chunk 3: similarity 0.68
+
+# Deduplication returns:
+{
+  "relative_path": "Long Article.md",
+  "similarity_score": 0.82,        # Best chunk's score
+  "matched_chunks": 3,              # How many chunks matched
+  "is_chunked_file": true,          # Flag for UI
+  "chunk_index": 1,                 # Which chunk won
+  "chunk_total": 5                  # Total chunks in file
+}
+```
+
+**Why best-chunk strategy**:
+- Cleaner results (one entry per file in most cases)
+- Highest-scoring chunk is most relevant to query
+- `matched_chunks` metadata shows breadth of match
+- Users can click through to see full file context in Obsidian
+
+### Chunking Configuration
+
+**Enabled by**:
+- Search profiles (e.g., `deep` profile enables chunking)
+- Default profile has `chunking_enabled: true`
+- Per-vault configuration
+
+**CLI Flags**:
+```bash
+# Enable chunking during indexing
+temoa index --enable-chunking
+
+# Choose embedding model (affects chunking threshold)
+temoa index --model all-mpnet-base-v2
+```
+
+**API Parameters**:
+```bash
+# Chunking is automatic based on profile
+GET /search?profile=deep  # Uses chunking for long-form content
+```
+
+**Profile Configuration**:
+```python
+SearchProfile(
+    chunking_enabled=True,      # Enable chunking
+    chunk_size=2000,            # Characters per chunk
+    chunk_overlap=400,          # Overlap between chunks
+    show_chunk_context=True,    # Show chunk boundaries in UI
+    max_results_per_file=3      # Keep top 3 chunks (all mode)
+)
+```
+
+**When Chunking is Disabled**:
+- `repos` profile (gleanings are small, <4,000 chars)
+- `keywords` profile (BM25 handles full text anyway)
+- Files <4,000 chars (no need to chunk)
+
+**Impact**:
+- **Before**: 9MB book with 100,000 chars → only first 2,500 chars searchable
+- **After**: Same book → 50 chunks, all 100,000 chars searchable
+- **Example**: 2,006 files → 8,755 searchable chunks (4.4x content coverage)
+
+**Files Modified**:
+- `synthesis/src/embeddings/chunking.py` - Core chunking logic (207 lines)
+- `synthesis/src/embeddings/vault_reader.py` - Integration with file reading
+- `synthesis/src/embeddings/pipeline.py` - Chunking parameters
+- `src/temoa/synthesis.py` - Deduplication and search integration
+
+**See also**:
+- [docs/IMPLEMENTATION.md Phase 3.5.2](IMPLEMENTATION.md#phase-352-adaptive-chunking-complete) - Implementation details
+- [docs/phases/phase-3.5-specialized-search.md](phases/phase-3.5-specialized-search.md) - Full phase plan
+
+---
+
+## Search Profiles
+
+**File**: `src/temoa/search_profiles.py`
+**Added**: Phase 3.5.1 (2025-12-30)
+
+**What it does**: Provides optimized search modes tailored for different content types and use cases. Each profile configures search weights, boosting, and features to optimize for specific scenarios.
+
+**Why we need it**: Different searches need different strategies. Finding a GitHub repo by keywords is different from finding a conceptual match in long-form writing. Profiles make this easy.
+
+### Built-in Profiles
+
+| Profile | Best For | Hybrid Weight | BM25 Boost | Chunking | Cross-Encoder | Key Features |
+|---------|----------|---------------|------------|----------|---------------|--------------|
+| **repos** | GitHub repos, tools, libraries | 30% semantic<br>70% BM25 | 2.0x | Disabled | Disabled (speed) | Stars/topics boosting |
+| **recent** | What you wrote/saved recently | 50/50 balanced | 1.0x | Enabled | Enabled | 7-day half-life, 90-day cutoff |
+| **deep** | Long articles, books, essays | 80% semantic<br>20% BM25 | 1.0x | Enabled | Enabled | Show chunk context, 3 chunks/file |
+| **keywords** | Technical terms, names, phrases | 20% semantic<br>80% BM25 | 1.5x | Enabled | Disabled (speed) | Fast exact matching |
+| **default** | General-purpose search | 50/50 balanced | 1.0x | Enabled | Enabled | Current behavior (balanced) |
+
+**Hybrid Weight Explained**:
+- `0.0` = Pure BM25 (keyword-only)
+- `0.5` = Balanced (50% semantic, 50% BM25)
+- `1.0` = Pure semantic (concept-only)
+
+### Profile Details
+
+**repos - GitHub Repositories & Tech**
+```python
+SearchProfile(
+    hybrid_weight=0.3,              # Favor keywords over concepts
+    bm25_boost=2.0,                 # Strong keyword matching
+    metadata_boost={
+        "github_stars": {
+            "enabled": True,
+            "scale": "log",          # Logarithmic (1k stars ≈ 10k stars)
+            "max_boost": 0.5         # Up to 50% boost
+        },
+        "github_topics": {
+            "match_boost": 3.0       # 3x when topic matches query
+        }
+    },
+    cross_encoder_enabled=False,    # Speed over precision
+    chunking_enabled=False,         # Gleanings are small
+    default_include_types=["gleaning"]
+)
+```
+
+**Use cases**:
+- "python web framework" → Finds Flask/Django repos by keywords
+- "machine learning library" → Boosts popular repos (scikit-learn, PyTorch)
+- "obsidian plugin" → Matches GitHub topics
+
+**recent - Recent Work (Last 90 Days)**
+```python
+SearchProfile(
+    time_decay_config={
+        "half_life_days": 7,        # Aggressive - prefer this week
+        "max_boost": 0.5            # Up to 50% boost for today
+    },
+    max_age_days=90,                # Hard cutoff - ignore older
+    default_include_types=["daily", "note", "writering"]
+)
+```
+
+**Use cases**:
+- "meeting notes" → Finds this week's meetings first
+- "project ideas" → Shows recent brainstorming
+- What did I work on this month?
+
+**deep - Long-Form Content**
+```python
+SearchProfile(
+    hybrid_weight=0.8,              # Strong semantic understanding
+    chunking_enabled=True,
+    chunk_size=2000,
+    show_chunk_context=True,        # Show where in doc
+    max_results_per_file=3,         # Show top 3 chunks
+    default_exclude_types=["daily", "gleaning"]
+)
+```
+
+**Use cases**:
+- Research papers and articles
+- Book notes and summaries
+- Finding specific sections in long documents
+
+**keywords - Exact Matching**
+```python
+SearchProfile(
+    hybrid_weight=0.2,              # Strong BM25 bias
+    bm25_boost=1.5,
+    cross_encoder_enabled=False,    # Speed
+    query_expansion_enabled=False   # No fuzzy matching
+)
+```
+
+**Use cases**:
+- "Philip Borenstein" → Exact name match
+- "obsidian://vault" → Technical strings
+- Code snippets and URLs
+
+### Using Profiles
+
+**Web UI** (when UI is updated):
+```
+[Dropdown: Select Profile]
+  ○ Balanced (default)
+  ○ Repos & Tech
+  ○ Recent Work
+  ○ Deep Reading
+  ○ Keyword Search
+```
+
+**API**:
+```bash
+# Use specific profile
+GET /search?q=obsidian&profile=repos
+
+# List available profiles
+GET /profiles
+```
+
+**CLI**:
+```bash
+# Search with profile
+temoa search "obsidian plugin" --profile repos
+
+# List profiles
+temoa profiles
+```
+
+**Response includes profile used**:
+```json
+{
+  "query": "obsidian",
+  "profile": "repos",
+  "results": [...]
+}
+```
+
+### Custom Profiles
+
+**Configuration** (in `config.json`):
+```json
+{
+  "search_profiles": {
+    "my-research": {
+      "display_name": "Research Papers",
+      "description": "Academic papers with citation focus",
+      "hybrid_weight": 0.9,
+      "bm25_boost": 1.0,
+      "chunking_enabled": true,
+      "chunk_size": 3000,
+      "default_include_types": ["article", "paper"],
+      "cross_encoder_enabled": true
+    }
+  }
+}
+```
+
+**Loading**:
+- Custom profiles loaded at server startup
+- Cannot override built-in profiles (error if name conflicts)
+- Validated on load (missing required fields → error)
+
+**See also**:
+- [src/temoa/search_profiles.py](../src/temoa/search_profiles.py) - Full profile definitions
+- [docs/phases/phase-3.5-specialized-search.md](phases/phase-3.5-specialized-search.md) - Design rationale
+
+---
+
 ## Multi-Vault Support
 
 **File**: `src/temoa/client_cache.py`, `src/temoa/config.py`
@@ -764,6 +1079,28 @@ Total:                ~900ms
 
 **Key insight**: Search time is **constant** regardless of vault size (vector similarity is O(n) but with fast BLAS operations).
 
+### Chunking Impact
+
+**With chunking enabled** (Phase 3.5.2):
+- **Indexing time**: ~15-25% longer (more chunks to embed)
+- **Search time**: No change (~400ms) - search is still constant time
+- **Storage**: 4-5x more embeddings (2,006 files → 8,755 chunks example)
+- **Memory**: Slightly higher (proportional to chunk count)
+- **Example**: 3,000 file vault with many large documents
+  - Without chunking: ~160s indexing, 3,000 embeddings
+  - With chunking: ~185-200s indexing, ~13,000 embeddings (4.4x)
+
+**Chunk deduplication overhead**: <10ms per search (negligible)
+
+**Trade-offs**:
+- ✓ Full content searchable (100% coverage vs. ~25% before)
+- ✓ No search-time penalty
+- ✗ Longer initial indexing
+- ✗ More disk space for embeddings
+- ✗ Slightly more RAM for chunk metadata
+
+**Recommendation**: Enable chunking for vaults with long-form content (books, articles, research papers). Disable for vaults with mostly short notes (daily notes, fleeting thoughts).
+
 ---
 
 ## Decision Rationale Summary
@@ -776,6 +1113,8 @@ Total:                ~900ms
 | **Query Expansion** | No LLM needed, uses vault content | LLM reformulation (Phase 4) |
 | **Cross-Encoder** | 20-30% quality boost, acceptable latency | More candidates (diminishing returns) |
 | **Time Boost** | Near-zero cost, gentle improvement | Manual date filters (less automatic) |
+| **Adaptive Chunking** | Full content coverage, no search penalty | Larger embedding models (more expensive) |
+| **Search Profiles** | Optimized for use cases, simple to use | Manual parameter tuning (too complex) |
 
 ---
 
@@ -787,14 +1126,22 @@ Total:                ~900ms
 GET /search?
   q=<query>                    # Required: Search query
   &vault=<name>                # Optional: Vault to search (default: config vault)
+  &profile=<name>              # Optional: Search profile (default, repos, recent, deep, keywords)
   &limit=<int>                 # Optional: Max results (default: 10, max: 100)
   &min_score=<float>           # Optional: Min similarity (0.0-1.0, default: 0.3)
-  &hybrid=<bool>               # Optional: Use hybrid search (default: true)
-  &rerank=<bool>               # Optional: Use re-ranking (default: true)
+  &hybrid=<bool>               # Optional: Use hybrid search (default: true, overridden by profile)
+  &rerank=<bool>               # Optional: Use re-ranking (default: true, overridden by profile)
   &expand_query=<bool>         # Optional: Expand short queries (default: false, changed 2025-12-06)
-  &time_boost=<bool>           # Optional: Boost recent docs (default: true)
+  &time_boost=<bool>           # Optional: Boost recent docs (default: true, overridden by profile)
   &include_types=<csv>         # Optional: Whitelist types (e.g., "gleaning,article")
   &exclude_types=<csv>         # Optional: Blacklist types (default: "daily")
+```
+
+**Note**: When using `profile` parameter, profile settings take precedence over individual flags (`hybrid`, `rerank`, `time_boost`, etc.). You can still override specific settings by passing explicit parameters.
+
+**Profile API Endpoint**:
+```
+GET /profiles                  # List all available search profiles
 ```
 
 ### Config File Options
