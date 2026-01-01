@@ -77,9 +77,13 @@ The chronicles have been split into chapters for easier navigation:
 - Entry 44: GitHub Gleaning Enrichment System
 
 ### [Phase 3.5: Specialized Search Modes](chronicles/phase-3.5-specialized-search.md) 🔵 IN PROGRESS
-**Entry 1+** | Search Profiles, Chunking, and Metadata Boosting
+**Entries 1-5** | Search Profiles, Chunking, and QoL Improvements
 
 - Entry 1: Search Profile System Implementation
+- Entry 2: Adaptive Chunking Implementation
+- Entry 3: Critical Bug Fixes - Vault Model Selection & Semantic Score Honesty
+- Entry 4: Documentation Update - SEARCH-MECHANISMS.md Modernization
+- Entry 5: QoL Improvements Planning - Bridging CLI/Web UI Gap
 
 ---
 
@@ -124,6 +128,6 @@ See [DECISIONS.md](DECISIONS.md) for the complete list with governance process.
 ---
 
 **Created**: 2025-11-18
-**Last Updated**: 2025-12-30
-**Total Entries**: 45 (Entry 1 in Phase 3.5)
+**Last Updated**: 2026-01-01
+**Total Entries**: 49 (Entry 5 in Phase 3.5)
 **Decisions**: See [DECISIONS.md](DECISIONS.md) for complete decision registry (DEC-001 through DEC-091)

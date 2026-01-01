@@ -926,21 +926,23 @@ Based on continued real-world usage, consider:
 ### Next Session Start Here
 
 **Current Branch**: `phase-3.5-search-modes`
-**Current Focus**: Phase 3.5.1 & 3.5.2 complete + critical bug fixes, ready for Phase 3.5.3 (Metadata Boosting)
+**Current Focus**: PAUSED Phase 3.5 to address QoL improvements (CLI/Web UI feature gap)
 
-**Recent Work** (2025-12-30):
-- ✅ Completed adaptive chunking system (Phase 3.5.2)
-- ✅ Added per-vault model configuration support
-- ✅ Integrated chunking into full indexing pipeline
-- ✅ **CRITICAL FIX**: Search command now respects vault-specific model from config
-- ✅ **CRITICAL FIX**: Hybrid search calculates actual semantic scores instead of lying with 0.000
-- All tests passing
+**Recent Work** (2026-01-01):
+- ✅ Session pickup: reviewed Phase 3.5 status (3.5.1 & 3.5.2 complete)
+- ✅ Identified CLI/Web UI feature gap (profiles, chunking, gleaning management CLI-only)
+- ✅ Created comprehensive QoL improvement plan: `docs/QoL-improvements/PLAN.md`
+- ✅ Made design decisions (async link checking, 3-line descriptions, profile persistence)
+- ✅ Documented in chronicles: Entry 5 (phase-3.5-specialized-search.md)
 
-**Next**: Phase 3.5.3 - Metadata Boosting
-1. Implement GitHub stars/topics/language boosting
-2. Add log-scale metadata scoring
-3. Integrate with search profiles (repos profile uses metadata)
-4. See [docs/phases/phase-3.5-specialized-search.md](phases/phase-3.5-specialized-search.md) for detailed plan
+**Next**: QoL Improvements (3-4 days)
+1. **Phase 1**: Search result redesign (content-first layout, dates visible)
+2. **Phase 2**: Profile integration (dropdown in web UI)
+3. **Phase 3**: Management enhancements (gleaning management, model selection, advanced stats)
+4. **Phase 4-5**: Integration & testing (mobile-first)
+5. See [docs/QoL-improvements/PLAN.md](QoL-improvements/PLAN.md) for detailed plan
+
+**After QoL**: Resume Phase 3.5.3 - Metadata Boosting (with web UI from day 1)
 
 ---
 

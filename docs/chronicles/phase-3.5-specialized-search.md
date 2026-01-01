@@ -785,3 +785,275 @@ Semantic: 0.177 | BM25: 18.047  ✅ Real similarity!
 - Real vault stats (2,006 → 8,755 chunks) more convincing than "better coverage"
 
 ---
+
+## Entry 5: QoL Improvements Planning - Bridging CLI/Web UI Gap (2026-01-01)
+
+**Context**: After completing Phase 3.5.1 (Profiles) and 3.5.2 (Chunking), picked up session to continue with Phase 3.5.3 (Metadata Boosting). However, user identified that the web UI had fallen behind the CLI in features, and search results were not optimally displaying information. Decided to pause Phase 3.5 progression to address quality-of-life issues first.
+
+### The Problem: Feature Parity Gap
+
+**User observation**: "Don't ever let web ui and cli get so far apart"
+
+**CLI features missing from web UI**:
+1. Search profiles (5 optimized modes: repos, recent, deep, keywords, default)
+2. Index generation options (chunking parameters, model selection)
+3. Gleaning management (status updates, link checking, description updates)
+4. Advanced vault statistics (chunk counts, tag distribution, type breakdown)
+
+**UX issues with search results**:
+- Scores prominent but content description buried
+- Missing date information (created/modified)
+- Gleaning metadata (publication dates, sources) hidden or absent
+- "What is in this note?" less visible than "how relevant is it?"
+
+**User priority**: "More important than the score is 'what is in this note'. The fact that it appears in the results means that it has a high score, so that's secondary information really."
+
+### The Plan: Comprehensive QoL Improvements
+
+**Created**: `docs/QoL-improvements/PLAN.md` (570 lines, 5 phases)
+
+**Duration estimate**: 3-4 days
+
+#### Phase 1: Search Result Redesign (1 day)
+
+**Goal**: Content-first layout, scores secondary
+
+**Key changes**:
+- Description prominent: 3 lines visible (~120-150 chars) before truncation
+- Dates visible without expanding:
+  - Created date from frontmatter
+  - Modified date (relative: "3d ago", "2w ago")
+- Compact score row when collapsed (semantic + BM25 + age)
+- Full score breakdown on expand (semantic, BM25, RRF, cross-encoder, time boost)
+- Gleaning-specific fields (source URL, publication date) shown when relevant
+- Tag chips limited to 5, "+N more" on expand
+
+**Redesigned card structure** (collapsed):
+```
+┌─────────────────────────────────────────┐
+│ TITLE                           [expand]│
+│ Description text here that can span up  │
+│ to three lines before truncating with   │
+│ an ellipsis at the end...               │
+│ tag1  tag2  tag3                        │
+│ Created: 2025-12-25 • Modified: 3d ago  │
+│                                         │
+│ 🎯 0.82 semantic • 45.2 BM25 • 7d old  │
+└─────────────────────────────────────────┘
+```
+
+#### Phase 2: Search Profiles Integration (0.5 days)
+
+**Goal**: Expose 5 search profiles in web UI
+
+**Implementation**:
+- Profile dropdown above search box (prominent placement)
+- Options: repos, recent, deep, keywords, default
+- Profile info button (modal explaining each mode)
+- Profile persistence in localStorage (like vault selection)
+- Manual override capability (advanced users can still toggle individual options)
+- URL parameter support: `?profile=repos`
+
+**User preference**: "Profile dropdown above search box (Recommended)"
+
+#### Phase 3: Management Page Enhancements (1.5 days)
+
+**3A: Gleaning Management**
+- Status statistics (active/inactive/hidden counts)
+- Async link checking with progress bar ("120/482 checked")
+- Update descriptions from URLs
+- View/manage by status (list inactive, mark as active/inactive)
+- New API endpoints: `/gleaning/stats`, `/gleaning/check-links`, `/gleaning/list`, `/gleaning/set-status`
+
+**3B: Advanced Index Options**
+- Expand "Reindex Vault" section with collapsible "Advanced Options"
+- Model selector dropdown (all-mpnet-base-v2, all-MiniLM-L6-v2, etc.)
+- Chunking parameters: enable checkbox, size/overlap/threshold inputs
+- Model change triggers reindex confirmation dialog
+- Pass parameters to `/reindex` endpoint
+
+**3C: Advanced Statistics**
+- Chunking stats (files indexed, chunks created, chunks per file, avg file size)
+- Tag distribution (top 10 tags with counts)
+- Content type breakdown (gleaning, article, tool, daily counts)
+- Index health (status, last indexed, stale files)
+- New endpoint: `/stats/advanced`
+
+**User priorities**: Gleaning maintenance, model selection, advanced stats (archaeology skipped - old/untested)
+
+#### Phase 4-5: Integration & Testing (1 day)
+
+**Integration**:
+- Wire all features together
+- URL parameter support across features
+- Consistent state management
+
+**Testing** (mobile-first):
+- Profile selector updates search params
+- Result cards show all required fields
+- Date formatting works (relative time)
+- Gleaning management actions functional
+- Model/chunking options pass to backend
+- All features work on iOS/Android
+
+### Design Decisions Made
+
+**Via Q&A with user**:
+
+1. **Gleaning link checking**: Async with progress bar
+   - Background job, user can navigate away
+   - Progress: "120/482 checked"
+   - Results on completion or page refresh
+   - Implementation: POST returns job_id, GET polls status
+
+2. **Model switching**: Show warning + offer reindex
+   - Confirmation dialog: "Changing embedding model requires vault reindex. This will process all files. Continue?"
+   - If confirmed, save model + trigger reindex
+   - Show progress during reindex
+
+3. **Description truncation**: 3 lines (~120-150 chars)
+   - CSS: `display: -webkit-box; -webkit-line-clamp: 3;`
+   - Good balance for gleanings with curated descriptions
+   - Click to expand for full text
+
+4. **Profile persistence**: Remember last profile in localStorage
+   - Key: `temoa_search_profile`
+   - Restored on page load (like vault selection)
+   - URL param overrides: `?profile=repos`
+
+### API Endpoints to Add
+
+**New endpoints** (8 total):
+- `GET /models` - List available embedding models
+- `GET /gleaning/stats?vault=<name>` - Status counts
+- `POST /gleaning/check-links?vault=<name>` - Async link checking (returns job_id)
+- `GET /gleaning/check-links/<job_id>` - Poll link check status
+- `POST /gleaning/update-descriptions?vault=<name>` - Fetch descriptions from URLs
+- `GET /gleaning/list?vault=<name>&status=<status>` - List by status
+- `POST /gleaning/set-status` - Update gleaning status
+- `GET /stats/advanced?vault=<name>` - Extended statistics
+
+**Extended endpoints**:
+- `POST /reindex` - Add params: `?model=<name>&enable_chunking=true|false&chunk_size=N&chunk_overlap=N&chunk_threshold=N`
+
+**Existing endpoints** (already available):
+- `GET /profiles` - List search profiles (Phase 3.5.1)
+
+### Files to Modify
+
+**Web UI** (~700 line changes total):
+- `src/temoa/ui/search.html` (~300 lines)
+  - Profile selector UI
+  - Result card redesign
+  - Date formatting JS
+  - Expand/collapse logic updates
+
+- `src/temoa/ui/manage.html` (~400 lines)
+  - Gleaning management section
+  - Advanced stats section
+  - Index options (model + chunking)
+  - Progress indicators
+
+**Backend** (~200 line changes):
+- `src/temoa/server.py` (~200 lines)
+  - 8 new API endpoints
+  - Extend /reindex parameters
+  - Profile parameter passthrough (already exists)
+
+**New files** (2):
+- `src/temoa/gleaning_manager.py` - Link checking, description fetching, status helpers
+- `src/temoa/stats_advanced.py` - Chunking stats, tag/type distribution, index health
+
+**Files to leave alone**:
+- All CLI code (already feature-complete, it's the reference)
+- Core search logic (working well)
+- Synthesis integration (no changes needed)
+- Profile definitions (already exist in `search_profiles.py`)
+
+### Impact
+
+**Feature parity**: ✅ CLI and web UI will offer same capabilities
+**UX improvement**: ✅ Search results prioritize content over technical scores
+**Mobile-first**: ✅ All features designed for mobile use (primary target)
+**Backward compatible**: ✅ No breaking changes to existing API
+**Manageable scope**: ✅ 3-4 days, well-scoped phases
+
+**For users**:
+- Can use all features from web UI (no need to SSH for CLI)
+- Search results show "what is this note?" first
+- Dates visible (created/modified) for temporal context
+- Gleanings maintainable from web UI (check links, update statuses)
+- Can select optimal search mode for different tasks (repos vs recent vs deep)
+
+**For development**:
+- Web UI catches up to CLI (reduces maintenance drift)
+- Clear plan for implementation (5 phases, detailed specs)
+- Design decisions made (async link checking, 3-line descriptions, profile persistence)
+- Mobile testing requirements explicit
+
+### Lessons Learned
+
+**CLI/Web UI drift is inevitable**:
+- Phase 3.5.1 and 3.5.2 added powerful features (profiles, chunking)
+- Implementation prioritized CLI for speed (easier to iterate)
+- Web UI integration deferred → "we'll add UI later"
+- 2 weeks later: 5 major features CLI-only
+
+**Planning prevents rework**:
+- User caught drift early (before Phase 3.5.3)
+- Pausing to plan QoL before continuing prevents:
+  - Adding more CLI-only features (Phase 3.5.3 metadata boosting)
+  - Larger gap to bridge later
+  - User frustration with incomplete web UI
+- Better to pause and align than continue diverging
+
+**Progressive disclosure matters**:
+- Original result cards: scores prominent, content secondary
+- User feedback: "what is in this note?" > "how relevant is it?"
+- Redesign: content first (title + description + tags + dates), scores on expand
+- Principle: Show what user cares about, hide technical details until needed
+
+**Mobile-first forces simplicity**:
+- Async link checking (not blocking UI for 2-5 minutes)
+- 3-line description truncation (compact but readable)
+- Collapsible advanced options (don't clutter with rarely-used params)
+- Touch-friendly targets (44px buttons, no hover-only interactions)
+
+**Q&A prevents implementation churn**:
+- Asked 4 design questions before starting
+- User answered with clear preferences
+- Avoided: implementing wrong thing, then redoing it
+- Time saved: ~0.5-1 day of rework
+
+**Documentation-first planning works**:
+- Created 570-line plan before writing code
+- User reviewed mockups (result cards, management sections)
+- Design decisions captured in writing
+- Ready to implement: clear phases, no ambiguity
+
+### Next Steps
+
+**Status**: ✅ Planning complete, ready to implement
+**Branch**: Will create `qol-improvements` branch
+**Start with**: Phase 1 (search result redesign) - highest user impact
+
+**After QoL completion**:
+- Resume Phase 3.5.3 (Metadata Boosting) - but now with web UI from day 1
+- Or consider Phase 4 (Vault-First LLM) if user ready
+- Production hardening continues in parallel
+
+**Commitment**: Keep CLI and web UI in sync going forward
+- Implement features in both simultaneously
+- Test both interfaces before marking phase complete
+- Document both in SEARCH-MECHANISMS.md
+
+---
+
+**Entry created**: 2026-01-01 00:30
+**Duration**: 2 hours (session pickup + planning + Q&A)
+**Work type**: Planning (no code written)
+**Files created**: `docs/QoL-improvements/PLAN.md` (570 lines)
+**Design decisions**: 4 (link checking, model switching, description length, profile persistence)
+**API endpoints designed**: 8 new + 1 extended
+
+---
