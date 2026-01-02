@@ -231,24 +231,23 @@ See: chronicles/production-hardening.md (Entries 33-44)
 ### Next Session Start Here
 
 **Current Branch**: `phase-3.5-search-modes`
-**Current Focus**: QoL improvements (CLI/Web UI feature parity)
+**Current Focus**: Ready for Phase 3.5.3 - Metadata Boosting
 
 **Recent Work** (2026-01-02):
-- ✅ Implemented QoL Phase 3: Management page enhancements
-- ✅ Added gleaning management section (active/inactive/hidden counts)
-- ✅ Added advanced statistics section (coverage, tags, types, index health)
-- ✅ Added model selector and chunking options (collapsible advanced options)
-- ✅ New API endpoints: /gleaning/stats, /models, /stats/advanced
-- ✅ Extended /reindex with model parameter (reserved for future)
+- ✅ Completed all QoL improvements (Phases 1-5)
+- ✅ Mobile testing validated (iOS/Android working well)
+- ✅ Squash merged qol-detour → phase-3.5-search-modes
+- ✅ Branch cleanup (qol-detour deleted)
+- ✅ Web UI now at feature parity with CLI
 
-**Current**: QoL Improvements (3-4 days)
+**QoL Improvements**: ✅ COMPLETE (3-4 days)
 1. ✅ **Phase 1**: Search result redesign (content-first layout, dates visible) - COMPLETE
 2. ✅ **Phase 2**: Profile integration (dropdown in web UI) - COMPLETE
 3. ✅ **Phase 3**: Management enhancements (gleaning management, model selection, advanced stats) - COMPLETE
-4. 🔵 **Phase 4-5**: Integration & testing (mobile-first) - NEXT
-5. See [docs/QoL-improvements/PLAN.md](QoL-improvements/PLAN.md) for detailed plan
+4. ✅ **Phase 4-5**: Integration & testing (mobile-first) - COMPLETE
+5. Squash merged to phase-3.5-search-modes (commit 12d2e64)
 
-**After QoL**: Resume Phase 3.5.3 - Metadata Boosting (with web UI from day 1)
+**Next**: Resume Phase 3.5.3 - Metadata Boosting (with web UI from day 1)
 
 ---
 

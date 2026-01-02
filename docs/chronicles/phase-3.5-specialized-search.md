@@ -1108,3 +1108,23 @@ Semantic: 0.177 | BM25: 18.047  ✅ Real similarity!
 - Modified: `src/temoa/server.py` (+193 lines), `src/temoa/ui/manage.html` (+279 lines)
 - Commits: `8591067` - "feat(ui): QoL Phase 3 - Management page enhancements"
 
+---
+
+## Entry 8: QoL Completion and Merge (2026-01-02)
+
+**What**: Completed QoL improvements (Phases 1-5), validated on mobile, and squash merged to main development branch.
+
+**Why**: QoL work done on detour branch (`qol-detour`). All phases complete and tested, time to merge back to `phase-3.5-search-modes` and clean up.
+
+**How**:
+- **Mobile validation**: Tested all QoL features on iOS/Android - all working well
+- **Squash merge**: `qol-detour` → `phase-3.5-search-modes` with comprehensive commit message
+- **Branch cleanup**: Deleted `qol-detour` (local + attempted remote deletion)
+- **Documentation updates**: Updated CONTEXT.md and IMPLEMENTATION.md to reflect completion
+
+**Decisions**: None (cleanup/merge only)
+
+**Files**:
+- Modified: `docs/CONTEXT.md`, `docs/IMPLEMENTATION.md`, `docs/chronicles/phase-3.5-specialized-search.md`
+- Squash commit: `12d2e64` - "feat: QoL improvements - web UI feature parity and UX enhancements"
+
