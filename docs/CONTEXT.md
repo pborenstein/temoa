@@ -2,24 +2,23 @@
 phase: 3.5
 phase_name: "Specialized Search Modes"
 updated: 2026-01-02
-last_commit: 12d2e64
-last_entry: "Entry 8 (phase-3.5)"
+last_commit: cffd00f
+last_entry: "Entry 9 (phase-3.5)"
 ---
 
 # Current Context
 
 ## Current Focus
 
-QoL improvements complete and merged. Web UI now at feature parity with CLI. Ready to resume Phase 3.5.3 (Metadata Boosting).
+Documentation cleanup planning complete. Identified ARCHITECTURE.md needs updates for Phase 3.5/QoL features. Ready to update docs or resume Phase 3.5.3.
 
 ## Active Tasks
 
-- [x] QoL Phase 1: Search result redesign (content-first layout, dates visible)
-- [x] QoL Phase 2: Profile integration (dropdown in web UI)
-- [x] QoL Phase 3: Management enhancements (gleaning management, model selection, advanced stats)
-- [x] QoL Phase 4-5: Integration & testing (mobile verified working)
-- [x] Squash merge qol-detour → phase-3.5-search-modes
-- [ ] Phase 3.5.3: Metadata Boosting (next)
+- [x] QoL improvements complete and merged
+- [x] Documentation inventory and cleanup plan created
+- [ ] Update ARCHITECTURE.md (9 new endpoints, profiles, chunking)
+- [ ] Archive QoL planning materials to docs/archive/
+- [ ] Resume Phase 3.5.3: Metadata Boosting
 
 ## Blockers
 
@@ -28,13 +27,12 @@ None
 ## Context
 
 - Phase 3.5.1 (Core Profile System) and 3.5.2 (Adaptive Chunking) complete
-- QoL improvements complete: Web UI feature parity with CLI achieved
-- All QoL phases validated on mobile (iOS/Android working well)
-- Squash merged qol-detour into phase-3.5-search-modes (commit 12d2e64)
-- Branch qol-detour deleted (cleanup complete)
-- Web UI improvements: content-first search results, profile selector, management page enhancements
-- Advanced statistics working: chunking detection, tag/type distribution, index health
+- QoL improvements complete: Web UI at feature parity with CLI
+- Documentation cleanup plan created (DOCUMENTATION-CLEANUP-PLAN.md)
+- ARCHITECTURE.md outdated (last updated Dec 18, missing Phase 3.5/QoL features)
+- 9 new API endpoints added since Dec 18 (profiles, vaults, config, gleanings, models, stats)
+- QoL planning materials ready to archive (docs/QoL-improvements/ → docs/archive/)
 
 ## Next Session
 
-Resume Phase 3.5.3 (Metadata Boosting). Implement frontmatter field boosting with web UI support from day 1. See docs/phases/phase-3.5-specialized-search.md for detailed plan.
+Two options: (1) Update ARCHITECTURE.md and archive QoL materials (45-60 min), or (2) Resume Phase 3.5.3 (Metadata Boosting). See DOCUMENTATION-CLEANUP-PLAN.md for doc update details.

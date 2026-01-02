@@ -1128,3 +1128,23 @@ Semantic: 0.177 | BM25: 18.047  ✅ Real similarity!
 - Modified: `docs/CONTEXT.md`, `docs/IMPLEMENTATION.md`, `docs/chronicles/phase-3.5-specialized-search.md`
 - Squash commit: `12d2e64` - "feat: QoL improvements - web UI feature parity and UX enhancements"
 
+---
+
+## Entry 9: Documentation Cleanup Planning (2026-01-02)
+
+**What**: Created comprehensive inventory of documentation state and cleanup plan after Phase 3.5 and QoL completion.
+
+**Why**: ARCHITECTURE.md last updated Dec 18, missing 9 new API endpoints and Phase 3.5/QoL features. Need to identify what's outdated and plan updates.
+
+**How**:
+- **Inventory created**: Analyzed all docs/ files and subdirectories
+- **Identified outdated**: ARCHITECTURE.md missing profiles, chunking, new endpoints
+- **Cleanup plan**: Created DOCUMENTATION-CLEANUP-PLAN.md with priorities and effort estimates
+- **Archive candidates**: QoL-improvements/ directory ready to archive (work complete)
+
+**Decisions**: None (planning only)
+
+**Files**:
+- Created: `docs/DOCUMENTATION-CLEANUP-PLAN.md` (comprehensive cleanup plan)
+- Modified: `docs/CONTEXT.md` (updated for cleanup planning status)
+
