@@ -162,18 +162,41 @@ def get_profile(name: str) -> SearchProfile:
     return SEARCH_PROFILES[name]
 
 
-def list_profiles() -> List[Dict[str, str]]:
+def list_profiles(include_config: bool = False) -> List[Dict[str, Any]]:
     """
     List all available search profiles.
 
+    Args:
+        include_config: If True, include full configuration details
+
     Returns:
         List of dicts with profile metadata (name, display_name, description)
+        If include_config=True, also includes configuration parameters
     """
+    if not include_config:
+        return [
+            {
+                "name": profile.name,
+                "display_name": profile.display_name,
+                "description": profile.description
+            }
+            for profile in SEARCH_PROFILES.values()
+        ]
+
+    # Include full configuration
     return [
         {
             "name": profile.name,
             "display_name": profile.display_name,
-            "description": profile.description
+            "description": profile.description,
+            "hybrid_weight": profile.hybrid_weight,
+            "bm25_boost": profile.bm25_boost,
+            "use_reranker": profile.cross_encoder_enabled,
+            "expand_query": profile.query_expansion_enabled,
+            "time_boost": profile.time_decay_config is not None,
+            "chunking_enabled": profile.chunking_enabled,
+            "default_include_types": profile.default_include_types or [],
+            "default_exclude_types": profile.default_exclude_types or []
         }
         for profile in SEARCH_PROFILES.values()
     ]

@@ -142,6 +142,151 @@
             color: #66a;
         }
 
+        .profile-selector {
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .profile-selector label {
+            color: #888888;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .profile-select {
+            flex: 1;
+            min-width: 200px;
+            padding: 8px 12px;
+            font-size: 14px;
+            border: 1px solid #404040;
+            border-radius: 6px;
+            background: #2a2a2a;
+            color: #e0e0e0;
+            outline: none;
+            transition: border-color 0.2s;
+            cursor: pointer;
+        }
+
+        .profile-select:focus {
+            border-color: #666666;
+        }
+
+        .profile-info-btn {
+            width: 28px;
+            height: 28px;
+            padding: 0;
+            font-size: 14px;
+            border: 1px solid #404040;
+            border-radius: 50%;
+            background: #2a2a2a;
+            color: #888888;
+            cursor: pointer;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        .profile-info-btn:hover {
+            background: #333333;
+            color: #e0e0e0;
+            border-color: #666666;
+        }
+
+        .profile-override-warning {
+            font-size: 11px;
+            color: #cc8800;
+            padding: 4px 8px;
+            background: rgba(204, 136, 0, 0.1);
+            border-radius: 4px;
+            display: none;
+            margin-top: 4px;
+        }
+
+        .profile-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 10000;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .profile-modal-content {
+            max-width: 600px;
+            margin: 40px auto;
+            background: #2a2a2a;
+            border: 1px solid #404040;
+            border-radius: 8px;
+            padding: 24px;
+        }
+
+        .profile-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .profile-modal-header h2 {
+            font-size: 20px;
+            color: #ffffff;
+            margin: 0;
+        }
+
+        .profile-modal-close {
+            width: 32px;
+            height: 32px;
+            padding: 0;
+            font-size: 20px;
+            border: none;
+            background: transparent;
+            color: #888888;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .profile-modal-close:hover {
+            color: #e0e0e0;
+        }
+
+        .profile-description {
+            margin-bottom: 24px;
+        }
+
+        .profile-item {
+            margin-bottom: 20px;
+            padding: 16px;
+            background: #1a1a1a;
+            border: 1px solid #333333;
+            border-radius: 6px;
+        }
+
+        .profile-item h3 {
+            font-size: 16px;
+            color: #ffffff;
+            margin: 0 0 8px 0;
+        }
+
+        .profile-item p {
+            font-size: 14px;
+            color: #c0c0c0;
+            margin: 0 0 12px 0;
+            line-height: 1.5;
+        }
+
+        .profile-item-params {
+            font-size: 12px;
+            color: #888888;
+            font-family: monospace;
+            margin-top: 8px;
+        }
+
         .search-box {
             position: relative;
             margin-bottom: 12px;
@@ -653,57 +798,15 @@
 
         .result-row {
             background: #2a2a2a;
-            padding: 12px 20px;  /* Compact padding when collapsed */
+            padding: 16px 20px;
             border-radius: 8px;
             border: 1px solid #404040;
             transition: all 0.2s;
-            cursor: pointer;  /* Indicate clickable */
-        }
-
-        .result-row.expanded {
-            padding: 20px;  /* Full padding when expanded */
         }
 
         .result-row:hover {
             background: #323232;
             border-color: #505050;
-        }
-
-        .result-header {
-            display: flex;
-            flex-direction: column;  /* Stack title and badges vertically when collapsed */
-            align-items: flex-start;
-            margin-bottom: 0;  /* No margin when collapsed */
-            gap: 8px;
-            position: relative;
-            padding-left: 20px;  /* Space for arrow */
-        }
-
-        .result-row.expanded .result-header {
-            flex-direction: row;  /* Side-by-side when expanded */
-            justify-content: space-between;
-            align-items: flex-start;
-            gap: 16px;
-            margin-bottom: 12px;  /* Restore margin when expanded */
-        }
-
-        /* Collapse/expand arrow */
-        .result-header::before {
-            content: '▶';
-            position: absolute;
-            left: 0;
-            font-size: 10px;
-            color: #888;
-            transition: transform 0.2s;
-        }
-
-        .result-row.expanded .result-header::before {
-            transform: rotate(90deg);
-        }
-
-        /* Details section (hidden by default) */
-        .result-details {
-            /* No display:none needed - conditionally added to DOM */
         }
 
         .result-title-link {
@@ -718,23 +821,6 @@
         .result-title-link:hover {
             color: #d0d0d0;
             text-decoration: underline;
-        }
-
-        .result-badges {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-
-        .result-score-badge {
-            background: #3a3a3a;
-            color: #c0c0c0;
-            padding: 4px 10px;
-            border-radius: 6px;
-            font-size: 13px;
-            font-weight: 600;
-            white-space: nowrap;
         }
 
         .result-meta {
@@ -761,15 +847,17 @@
             color: #b0b0b0;
             font-size: 14px;
             line-height: 1.6;
-            margin-top: 12px;
-            padding: 14px;
-            background: #222222;
-            border-radius: 6px;
-            border: 1px solid #3a3a3a;
+            margin-top: 8px;
+            margin-bottom: 8px;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .result-tags {
-            margin-top: 12px;
+            margin-top: 8px;
             display: flex;
             flex-wrap: wrap;
             gap: 6px;
@@ -781,6 +869,29 @@
             padding: 4px 10px;
             border-radius: 6px;
             font-size: 12px;
+        }
+
+        /* Date info row */
+        .result-dates {
+            font-size: 12px;
+            color: #888888;
+            margin-top: 8px;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .result-dates span {
+            display: inline-block;
+        }
+
+        /* Score row */
+        .result-scores-compact {
+            font-size: 12px;
+            color: #999999;
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid #333333;
         }
 
         .type-badge {
@@ -882,6 +993,22 @@
             </div>
             <p class="subtitle">Semantic search for your vault</p>
         </header>
+
+        <!-- Profile Selector -->
+        <div class="profile-selector">
+            <label for="profile-select">Search Mode:</label>
+            <select id="profile-select" class="profile-select" onchange="onProfileChange()">
+                <option value="default" selected>Default (Balanced)</option>
+                <option value="repos">Repos (GitHub, tech docs)</option>
+                <option value="recent">Recent (Last 90 days)</option>
+                <option value="deep">Deep (Long-form content)</option>
+                <option value="keywords">Keywords (Exact matching)</option>
+            </select>
+            <button class="profile-info-btn" onclick="showProfileInfo()" title="Learn about search profiles">i</button>
+        </div>
+        <div id="profile-override-warning" class="profile-override-warning">
+            Custom settings active (overriding profile)
+        </div>
 
         <div class="search-box">
             <input
@@ -1041,14 +1168,6 @@
         <!-- Results Controls -->
         <div class="results-controls" id="results-controls" style="display: none;">
             <div id="results-header" class="results-header"></div>
-            <div class="results-buttons">
-                <button type="button" class="results-control-btn" onclick="collapseAllResults()" title="Collapse all results (c)">
-                    Collapse All
-                </button>
-                <button type="button" class="results-control-btn" onclick="expandAllResults()" title="Expand all results (e)">
-                    Expand All
-                </button>
-            </div>
         </div>
 
         <div id="results"></div>
@@ -1079,6 +1198,25 @@
             •
             <span style="color: #555555;">v{{VERSION}}</span>
         </footer>
+
+        <!-- Profile Info Modal -->
+        <div id="profile-modal" class="profile-modal" onclick="closeProfileModal(event)">
+            <div class="profile-modal-content" onclick="event.stopPropagation()">
+                <div class="profile-modal-header">
+                    <h2>Search Profiles</h2>
+                    <button class="profile-modal-close" onclick="closeProfileModal()">&times;</button>
+                </div>
+                <div class="profile-description">
+                    <p style="color: #c0c0c0; margin-bottom: 16px;">
+                        Each profile is optimized for different types of content and search needs.
+                        Select a profile to automatically configure search parameters.
+                    </p>
+                </div>
+                <div id="profile-list">
+                    <!-- Profile items will be loaded dynamically -->
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -1102,6 +1240,9 @@
         const jsonViewer = document.getElementById('json-viewer');
         const vaultSelect = document.getElementById('vault-select');
         const vaultInfo = document.getElementById('vault-info');
+        const profileSelect = document.getElementById('profile-select');
+        const profileOverrideWarning = document.getElementById('profile-override-warning');
+        const profileModal = document.getElementById('profile-modal');
 
         // ========================================
         // State Management
@@ -1116,6 +1257,9 @@
             currentVault: null,  // Currently selected vault name
             defaultVault: null,  // Default vault from config
             searchHistory: [],  // Recent searches (max 10)
+            profiles: [],  // Available search profiles from API
+            currentProfile: 'default',  // Currently selected profile
+            profileOverride: false,  // True if user manually changed settings
 
             // Global filter defaults (fallback for all vaults)
             defaultFilters: {
@@ -1421,8 +1565,7 @@
 
 • / (slash) - Focus search box
 • Esc - Clear search box
-• t - Toggle all results (expand/collapse)
-• 🕐︎ button - View search history`;
+• Clock button - View search history`;
 
             alert(message);
         }
@@ -1443,15 +1586,6 @@
                 if (dropdown) dropdown.style.display = 'none';
             }
 
-            // 't' to toggle all results
-            if (e.key === 't' || e.key === 'T') {
-                // If any are expanded, collapse all; otherwise expand all
-                if (state.ui.expandedResults.size > 0) {
-                    collapseAllResults();
-                } else {
-                    expandAllResults();
-                }
-            }
         });
 
         // ========================================
@@ -1670,6 +1804,166 @@
             jsonViewer.classList.remove('active');
         }
 
+        // ========================================
+        // Profile Management
+        // ========================================
+
+        async function loadProfiles() {
+            try {
+                const response = await fetch('/profiles?include_config=true');
+                if (!response.ok) {
+                    console.error('Failed to load profiles:', response.statusText);
+                    return;
+                }
+                const data = await response.json();
+                state.profiles = data.profiles || [];
+
+                // Populate profile modal with descriptions
+                populateProfileModal();
+            } catch (err) {
+                console.error('Error loading profiles:', err);
+            }
+        }
+
+        function populateProfileModal() {
+            const profileList = document.getElementById('profile-list');
+            if (!profileList || !state.profiles || state.profiles.length === 0) return;
+
+            profileList.innerHTML = '';
+
+            state.profiles.forEach(profile => {
+                const item = document.createElement('div');
+                item.className = 'profile-item';
+
+                const title = document.createElement('h3');
+                title.textContent = profile.display_name || (profile.name.charAt(0).toUpperCase() + profile.name.slice(1));
+
+                const description = document.createElement('p');
+                description.textContent = profile.description;
+
+                // Build configuration summary
+                const configParts = [];
+                const semanticPercent = Math.round(profile.hybrid_weight * 100);
+                const bm25Percent = 100 - semanticPercent;
+                configParts.push(`${semanticPercent}% semantic / ${bm25Percent}% BM25`);
+
+                if (profile.bm25_boost !== 1.0) {
+                    configParts.push(`BM25 boost: ${profile.bm25_boost}x`);
+                }
+                if (profile.use_reranker) {
+                    configParts.push('cross-encoder reranking');
+                }
+                if (profile.time_boost) {
+                    configParts.push('time-aware');
+                }
+                if (!profile.chunking_enabled) {
+                    configParts.push('chunking disabled');
+                }
+
+                const params = document.createElement('div');
+                params.className = 'profile-item-params';
+                params.textContent = configParts.join(' • ');
+
+                item.appendChild(title);
+                item.appendChild(description);
+                item.appendChild(params);
+                profileList.appendChild(item);
+            });
+        }
+
+        function onProfileChange() {
+            const selectedProfile = profileSelect.value;
+            state.currentProfile = selectedProfile;
+            state.profileOverride = false;
+
+            // Apply profile settings
+            applyProfile(selectedProfile);
+
+            // Hide override warning
+            profileOverrideWarning.style.display = 'none';
+
+            // Save to localStorage
+            localStorage.setItem('temoa_search_profile', selectedProfile);
+
+            // Update URL parameter
+            const url = new URL(window.location);
+            url.searchParams.set('profile', selectedProfile);
+            window.history.replaceState({}, '', url);
+        }
+
+        function applyProfile(profileName) {
+            const profile = state.profiles.find(p => p.name === profileName);
+            if (!profile) {
+                console.error('Profile not found:', profileName);
+                return;
+            }
+
+            // Apply profile settings to UI controls
+            hybridSearchCheckbox.checked = profile.hybrid_weight > 0;
+            useRerankerCheckbox.checked = profile.use_reranker;
+            expandQueryCheckbox.checked = profile.expand_query;
+            timeBoostCheckbox.checked = profile.time_boost;
+
+            // Update state filters
+            state.filters.hybrid = profile.hybrid_weight > 0;
+            state.filters.rerank = profile.use_reranker;
+            state.filters.expandQuery = profile.expand_query;
+            state.filters.timeBoost = profile.time_boost;
+
+            // Save updated filters for current vault
+            saveFiltersForVault();
+        }
+
+        function detectProfileOverride() {
+            // Called when user manually changes any search option
+            // If a profile is active and user changes settings manually, show warning
+            if (state.currentProfile !== 'default') {
+                state.profileOverride = true;
+                profileOverrideWarning.style.display = 'block';
+            }
+        }
+
+        function showProfileInfo() {
+            profileModal.style.display = 'block';
+        }
+
+        function closeProfileModal(event) {
+            // Close if clicking outside the modal content or on the close button
+            if (!event || event.target === profileModal) {
+                profileModal.style.display = 'none';
+            }
+        }
+
+        function restoreProfile() {
+            // Restore profile from localStorage or URL params
+            const urlParams = new URLSearchParams(window.location.search);
+            const urlProfile = urlParams.get('profile');
+            const savedProfile = localStorage.getItem('temoa_search_profile');
+
+            const profileToLoad = urlProfile || savedProfile || 'default';
+
+            // Set select dropdown
+            profileSelect.value = profileToLoad;
+            state.currentProfile = profileToLoad;
+
+            // Apply profile if profiles are loaded
+            if (state.profiles.length > 0) {
+                applyProfile(profileToLoad);
+            }
+        }
+
+        // ========================================
+        // Manual Setting Change Detection
+        // ========================================
+
+        // Attach override detection to option checkboxes
+        function attachProfileOverrideListeners() {
+            [hybridSearchCheckbox, useRerankerCheckbox, expandQueryCheckbox, timeBoostCheckbox].forEach(checkbox => {
+                checkbox.addEventListener('change', detectProfileOverride);
+            });
+            minScoreInput.addEventListener('change', detectProfileOverride);
+        }
+
         // Helper function to get selected values from multi-select
         function getSelectedValues(selectElement) {
             return Array.from(selectElement.selectedOptions)
@@ -1740,6 +2034,9 @@
         window.addEventListener('load', async () => {
             await fetchVaults();  // Load vault list first
 
+            // Load profiles from API
+            await loadProfiles();
+
             // Load filters for current vault
             loadFiltersForVault(state.currentVault);
 
@@ -1749,8 +2046,14 @@
             // Restore filter state to HTML elements
             restoreFilterState();
 
+            // Restore profile selection
+            restoreProfile();
+
             // Setup filter change listeners
             setupFilterListeners();
+
+            // Setup profile override detection
+            attachProfileOverrideListeners();
 
             queryInput.focus();
         });
@@ -1758,24 +2061,6 @@
         queryInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 search();
-            }
-        });
-
-        // Keyboard shortcuts
-        document.addEventListener('keydown', (e) => {
-            // Don't trigger shortcuts when typing in inputs
-            if (e.target.matches('input, textarea, select')) return;
-
-            // 'c' to collapse all results
-            if (e.key === 'c') {
-                e.preventDefault();
-                collapseAllResults();
-            }
-
-            // 'e' to expand all results
-            if (e.key === 'e') {
-                e.preventDefault();
-                expandAllResults();
             }
         });
 
@@ -1828,6 +2113,11 @@
                 // Add vault parameter
                 if (state.currentVault) {
                     url += `&vault=${encodeURIComponent(state.currentVault)}`;
+                }
+
+                // Add profile parameter
+                if (state.currentProfile && state.currentProfile !== 'default') {
+                    url += `&profile=${encodeURIComponent(state.currentProfile)}`;
                 }
 
                 if (includeTypes) {
@@ -1959,104 +2249,32 @@
 
             // Create result cards using factory functions with error boundaries
             const cards = results.map(result =>
-                safeRender(() => {
-                    const expanded = state.ui.expandedResults.has(result.relative_path);
-                    return createResultCard(result, expanded);
-                })
+                safeRender(() => createResultCard(result))
             );
 
             table.append(...cards);
             resultsDiv.replaceChildren(table);
         }
 
-        // ========================================
-        // Result Card Toggle Logic
-        // ========================================
-
-        function toggleResultExpanded(resultId) {
-            if (state.ui.expandedResults.has(resultId)) {
-                state.ui.expandedResults.delete(resultId);
-            } else {
-                state.ui.expandedResults.add(resultId);
-            }
-            saveState();
-
-            // Update the specific card's DOM
-            const card = document.querySelector(`[data-result-id="${CSS.escape(resultId)}"]`);
-            if (!card) return;
-
-            const isExpanded = state.ui.expandedResults.has(resultId);
-            card.classList.toggle('expanded', isExpanded);
-
-            // Get the result data to create details if expanding
-            if (isExpanded && !card.querySelector('.result-details')) {
-                const result = state.results.find(r => r.relative_path === resultId);
-                if (result) {
-                    const details = createResultDetails(result);
-                    card.appendChild(details);
-                }
-            } else if (!isExpanded) {
-                const details = card.querySelector('.result-details');
-                if (details) {
-                    details.remove();
-                }
-            }
-        }
-
-        function collapseAllResults() {
-            state.ui.expandedResults.clear();
-            saveState();
-
-            // Update all cards
-            document.querySelectorAll('.result-row').forEach(card => {
-                card.classList.remove('expanded');
-                const details = card.querySelector('.result-details');
-                if (details) {
-                    details.remove();
-                }
-            });
-        }
-
-        function expandAllResults() {
-            // Add all result IDs to expanded set
-            state.results.forEach(result => {
-                state.ui.expandedResults.add(result.relative_path);
-            });
-            saveState();
-
-            // Update all cards
-            document.querySelectorAll('.result-row').forEach(card => {
-                const resultId = card.dataset.resultId;
-                if (!resultId) return;
-
-                card.classList.add('expanded');
-                if (!card.querySelector('.result-details')) {
-                    const result = state.results.find(r => r.relative_path === resultId);
-                    if (result) {
-                        const details = createResultDetails(result);
-                        card.appendChild(details);
-                    }
-                }
-            });
-        }
-
-        // Event delegation for result card clicks
-        resultsDiv.addEventListener('click', (e) => {
-            const card = e.target.closest('.result-row');
-            if (!card) return;
-
-            // Don't toggle if clicking on a link
-            if (e.target.tagName === 'A') return;
-
-            const resultId = card.dataset.resultId;
-            if (resultId) {
-                toggleResultExpanded(resultId);
-            }
-        });
 
         // ========================================
         // Component Factory Functions (Safe DOM)
         // ========================================
+
+        // Format date to readable format (absolute dates only)
+        function formatDate(dateStr) {
+            if (!dateStr) return null;
+
+            try {
+                const date = new Date(dateStr);
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            } catch (err) {
+                return dateStr; // Fallback to original string
+            }
+        }
 
         function createBadge(className, content, href = null) {
             const badge = document.createElement(href ? 'a' : 'span')
@@ -2075,33 +2293,39 @@
             return tag
         }
 
-        function createResultHeader(result) {
-            const header = document.createElement('div')
-            header.className = 'result-header'
+        // Create single result card
+        function createResultCard(result) {
+            const card = document.createElement('div')
+            card.className = 'result-row'
+            card.dataset.resultId = result.relative_path
 
-            // Title link
+            // Title row with type/project badges
+            const titleRow = document.createElement('div')
+            titleRow.style.display = 'flex'
+            titleRow.style.justifyContent = 'space-between'
+            titleRow.style.alignItems = 'flex-start'
+            titleRow.style.gap = '12px'
+            titleRow.style.marginBottom = '8px'
+
             const titleLink = document.createElement('a')
             titleLink.className = 'result-title-link'
             titleLink.href = result.obsidian_uri
             titleLink.textContent = result.title || result.relative_path
-            header.appendChild(titleLink)
+            titleRow.appendChild(titleLink)
 
-            // Badges container
+            // Badges for type/project
             const badgesDiv = document.createElement('div')
-            badgesDiv.className = 'result-badges'
+            badgesDiv.style.display = 'flex'
+            badgesDiv.style.gap = '6px'
+            badgesDiv.style.flexShrink = '0'
 
-            // Type badge
             if (result.frontmatter?.type) {
                 let type = result.frontmatter.type
-                if (Array.isArray(type)) {
-                    type = type.join(', ')
-                } else {
-                    type = String(type)
-                }
+                if (Array.isArray(type)) type = type.join(', ')
+                else type = String(type)
                 badgesDiv.appendChild(createBadge('type-badge', type))
             }
 
-            // Project badge
             if (result.frontmatter?.project) {
                 const vaultName = result.obsidian_uri.split('/')[3]
                 let project = result.frontmatter.project
@@ -2112,91 +2336,109 @@
                 badgesDiv.appendChild(createBadge('project-badge', projectName, projectUri))
             }
 
-            // Score badge
-            const scoreDiv = document.createElement('div')
-            scoreDiv.className = 'result-score-badge'
-            if (result.bm25_score !== undefined) {
-                scoreDiv.textContent = `${((result.similarity_score || 0) * 100).toFixed(1)}% | ${result.bm25_score.toFixed(1)}`
-            } else {
-                scoreDiv.textContent = `${((result.similarity_score || 0) * 100).toFixed(1)}%`
-            }
-            badgesDiv.appendChild(scoreDiv)
-
-            // Tags (inline after score)
-            if (result.tags && result.tags.length) {
-                result.tags.forEach(tag => {
-                    badgesDiv.appendChild(createTag(tag))
-                })
+            if (badgesDiv.children.length > 0) {
+                titleRow.appendChild(badgesDiv)
             }
 
-            header.appendChild(badgesDiv)
-            return header
-        }
+            card.appendChild(titleRow)
 
-        function createResultDetails(result) {
-            const details = document.createElement('div')
-            details.className = 'result-details'
+            // File path
+            const pathDiv = document.createElement('div')
+            pathDiv.className = 'result-path'
+            pathDiv.textContent = result.relative_path
+            pathDiv.style.fontSize = '11px'
+            pathDiv.style.color = '#666666'
+            pathDiv.style.marginBottom = '4px'
+            pathDiv.style.fontFamily = 'Monaco, Menlo, monospace'
+            card.appendChild(pathDiv)
 
-            // Meta info (path, date)
-            const meta = document.createElement('div')
-            meta.className = 'result-meta'
+            // Dates (right below path, same style)
+            const datesDiv = document.createElement('div')
+            datesDiv.style.fontSize = '11px'
+            datesDiv.style.color = '#666666'
+            datesDiv.style.marginBottom = '8px'
+            datesDiv.style.fontFamily = 'Monaco, Menlo, monospace'
 
-            const pathItem = document.createElement('div')
-            pathItem.className = 'result-meta-item'
-            const pathSpan = document.createElement('span')
-            pathSpan.className = 'result-path'
-            pathSpan.textContent = result.relative_path
-            pathItem.appendChild(pathSpan)
-            meta.appendChild(pathItem)
-
-            if (result.created_date) {
-                const dateItem = document.createElement('div')
-                dateItem.className = 'result-meta-item'
-                const dateSpan = document.createElement('span')
-                dateSpan.textContent = result.created_date
-                dateItem.appendChild(dateSpan)
-                meta.appendChild(dateItem)
+            const dateParts = []
+            if (result.frontmatter?.created) {
+                dateParts.push(`Created: ${formatDate(result.frontmatter.created)}`)
+            }
+            if (result.frontmatter?.modified) {
+                dateParts.push(`Modified: ${formatDate(result.frontmatter.modified)}`)
             }
 
-            details.appendChild(meta)
+            if (dateParts.length > 0) {
+                datesDiv.textContent = dateParts.join('  •  ')
+                card.appendChild(datesDiv)
+            }
 
-            // Description
+            // Description (3 lines max)
             if (result.description) {
                 const desc = document.createElement('div')
                 desc.className = 'result-description'
                 desc.textContent = result.description
-                details.appendChild(desc)
+                card.appendChild(desc)
             }
 
-            // Tags
-            if (result.tags && result.tags.length) {
+            // Tags (all)
+            if (result.tags && result.tags.length > 0) {
                 const tagsDiv = document.createElement('div')
                 tagsDiv.className = 'result-tags'
                 result.tags.forEach(tag => {
                     tagsDiv.appendChild(createTag(tag))
                 })
-                details.appendChild(tagsDiv)
+                card.appendChild(tagsDiv)
             }
 
-            return details
-        }
+            // All scores in one line
+            const scoresDiv = document.createElement('div')
+            scoresDiv.className = 'result-scores-compact'
 
-        function createResultCard(result, expanded = false) {
-            const card = document.createElement('div')
-            card.className = 'result-row'
-            if (expanded) {
-                card.classList.add('expanded')
+            const scoreParts = []
+            if (result.similarity_score !== undefined) {
+                scoreParts.push(`${(result.similarity_score * 100).toFixed(1)}% semantic`)
             }
-            card.dataset.resultId = result.relative_path
+            if (result.bm25_score !== undefined) {
+                scoreParts.push(`${result.bm25_score.toFixed(1)} BM25`)
+            }
+            if (result.rrf_score !== undefined) {
+                scoreParts.push(`RRF ${result.rrf_score.toFixed(4)}`)
+            }
+            if (result.rerank_score !== undefined) {
+                scoreParts.push(`cross-enc ${result.rerank_score.toFixed(4)}`)
+            }
+            if (result.tag_boosted) {
+                scoreParts.push('tag boosted')
+            }
+            if (result.time_boost !== undefined && result.time_boost > 0) {
+                scoreParts.push(`time +${(result.time_boost * 100).toFixed(0)}%`)
+            }
 
-            // Header (always visible)
-            const header = createResultHeader(result)
-            card.appendChild(header)
+            scoresDiv.textContent = scoreParts.join(' | ')
+            card.appendChild(scoresDiv)
 
-            // Details (conditionally visible)
-            if (expanded) {
-                const details = createResultDetails(result)
-                card.appendChild(details)
+            // Source/URL for gleanings
+            if (result.frontmatter?.source) {
+                const sourceDiv = document.createElement('div')
+                sourceDiv.style.fontSize = '11px'
+                sourceDiv.style.color = '#888888'
+                sourceDiv.style.marginTop = '8px'
+                sourceDiv.textContent = `Source: ${result.frontmatter.source}`
+                card.appendChild(sourceDiv)
+            }
+
+            if (result.frontmatter?.url) {
+                const urlDiv = document.createElement('div')
+                urlDiv.style.marginTop = '4px'
+                const urlLink = document.createElement('a')
+                urlLink.href = result.frontmatter.url
+                urlLink.textContent = result.frontmatter.url
+                urlLink.target = '_blank'
+                urlLink.style.color = '#6a6aff'
+                urlLink.style.textDecoration = 'none'
+                urlLink.style.fontSize = '11px'
+                urlDiv.appendChild(urlLink)
+                card.appendChild(urlDiv)
             }
 
             return card

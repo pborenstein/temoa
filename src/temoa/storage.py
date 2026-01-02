@@ -177,7 +177,7 @@ def get_vault_metadata(storage_dir: Path, model: str) -> Optional[Dict[str, Any]
         return {
             "vault_path": Path(index_data.get("vault_path", "")),
             "vault_name": index_data.get("vault_name"),
-            "indexed_at": index_data.get("indexed_at"),
+            "indexed_at": index_data.get("created_at"),  # Synthesis uses 'created_at' not 'indexed_at'
             "file_count": len(index_data.get("file_tracking", {}))
         }
     except (json.JSONDecodeError, IOError):

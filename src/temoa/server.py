@@ -513,16 +513,59 @@ async def list_vaults(request: Request):
         )
 
 
+@app.get("/config")
+async def get_config(request: Request, vault: str = None):
+    """
+    Get vault configuration including chunking settings.
+
+    Returns configuration for specified vault or default vault.
+    Includes chunking settings, model, and other vault-specific config.
+    """
+    config = request.app.state.config
+
+    try:
+        # Build response with all vaults' configs
+        vaults_config = {}
+        for vc in config.get_all_vaults():
+            vaults_config[vc["name"]] = {
+                "name": vc["name"],
+                "path": vc["path"],
+                "enable_chunking": vc.get("enable_chunking", False),
+                "chunk_size": vc.get("chunk_size", 2000),
+                "chunk_overlap": vc.get("chunk_overlap", 400),
+                "chunk_threshold": vc.get("chunk_threshold", 4000),
+                "is_default": vc.get("is_default", False)
+            }
+
+        return JSONResponse(content={
+            "vaults": vaults_config,
+            "default_vault": config.get_default_vault()["name"],
+            "default_model": config.default_model
+        })
+
+    except Exception as e:
+        logger.error(f"Error getting config: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to get config: {str(e)}"
+        )
+
+
 @app.get("/profiles")
-async def list_search_profiles():
+async def list_search_profiles(
+    include_config: bool = Query(
+        default=True,
+        description="Include full configuration details"
+    )
+):
     """
     List available search profiles with their descriptions.
 
     Returns JSON with all available profiles (built-in and custom).
-    Each profile includes name, display_name, and description.
+    Each profile includes name, display_name, description, and optionally configuration.
 
     Example:
-        GET /profiles
+        GET /profiles?include_config=true
 
     Returns:
         {
@@ -530,14 +573,19 @@ async def list_search_profiles():
                 {
                     "name": "repos",
                     "display_name": "Repos & Tech",
-                    "description": "Find GitHub repos, libraries, tools..."
+                    "description": "Find GitHub repos, libraries, tools...",
+                    "hybrid_weight": 0.3,
+                    "use_reranker": false,
+                    "expand_query": false,
+                    "time_boost": false,
+                    ...
                 },
                 ...
             ]
         }
     """
     try:
-        profiles = list_profiles()
+        profiles = list_profiles(include_config=include_config)
         return JSONResponse(content={"profiles": profiles})
     except Exception as e:
         logger.error(f"Error listing profiles: {e}", exc_info=True)
@@ -1027,6 +1075,10 @@ async def reindex(
         default=True,
         description="Force rebuild even if embeddings exist"
     ),
+    model: Optional[str] = Query(
+        default=None,
+        description="Embedding model to use (default: config model)"
+    ),
     enable_chunking: bool = Query(
         default=False,
         description="Enable adaptive chunking for large files"
@@ -1054,6 +1106,10 @@ async def reindex(
 
     Example:
         POST /reindex?force=true
+        POST /reindex?force=true&enable_chunking=true&chunk_size=2000
+
+    Note: The 'model' parameter is for future use. Changing models requires
+    restarting the server with a different model in config.
 
     Returns:
         {
@@ -1069,6 +1125,15 @@ async def reindex(
     try:
         # Get client for specified vault
         synthesis, vault_path, vault_name = get_client_for_vault(request, vault)
+
+        # Note: Model parameter is reserved for future use. Currently, the model
+        # is set at server startup from config and cannot be changed per-request.
+        if model and model != config.default_model:
+            logger.warning(
+                f"Model parameter '{model}' ignored. "
+                f"Using configured model '{config.default_model}'. "
+                f"To change models, update config.json and restart server."
+            )
 
         logger.info(f"Reindex requested for vault '{vault_name}' (force={force}, chunking={enable_chunking})")
 
@@ -1398,6 +1463,239 @@ async def get_gleaning(request: Request, gleaning_id: str):
         raise HTTPException(
             status_code=500,
             detail=f"Failed to get gleaning: {str(e)}"
+        )
+
+
+@app.get("/gleaning/stats")
+async def gleaning_stats(request: Request, vault: Optional[str] = None):
+    """
+    Get statistics about gleanings by status.
+
+    Example:
+        GET /gleaning/stats
+        GET /gleaning/stats?vault=amoxtli
+
+    Returns:
+        {
+            "active": 482,
+            "inactive": 23,
+            "hidden": 0,
+            "total": 505
+        }
+    """
+    try:
+        _, vault_path, _ = get_client_for_vault(request, vault)
+        gleaning_manager = request.app.state.gleaning_manager
+
+        # Scan all gleanings and count by status
+        all_gleanings = scan_gleaning_files(
+            vault_path=vault_path,
+            status_manager=gleaning_manager,
+            status_filter=None
+        )
+
+        stats = {
+            "active": 0,
+            "inactive": 0,
+            "hidden": 0,
+            "total": len(all_gleanings)
+        }
+
+        for gleaning in all_gleanings:
+            status = gleaning.get("status", "active")
+            if status in stats:
+                stats[status] += 1
+
+        return JSONResponse(content=stats)
+
+    except Exception as e:
+        logger.error(f"Error getting gleaning stats: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to get gleaning stats: {str(e)}"
+        )
+
+
+@app.get("/models")
+async def list_models():
+    """
+    List available embedding models.
+
+    Returns:
+        {
+            "models": [
+                {
+                    "name": "all-mpnet-base-v2",
+                    "dimensions": 768,
+                    "description": "High quality, larger embeddings"
+                },
+                {
+                    "name": "all-MiniLM-L6-v2",
+                    "dimensions": 384,
+                    "description": "Fast, smaller embeddings (default)"
+                },
+                ...
+            ]
+        }
+    """
+    models = [
+        {
+            "name": "all-mpnet-base-v2",
+            "dimensions": 768,
+            "description": "High quality, larger embeddings"
+        },
+        {
+            "name": "all-MiniLM-L6-v2",
+            "dimensions": 384,
+            "description": "Fast, smaller embeddings (default)",
+            "default": True
+        },
+        {
+            "name": "all-MiniLM-L12-v2",
+            "dimensions": 384,
+            "description": "Better quality than L6, still fast"
+        },
+        {
+            "name": "paraphrase-albert-small-v2",
+            "dimensions": 768,
+            "description": "Optimized for paraphrase detection"
+        },
+        {
+            "name": "multi-qa-mpnet-base-cos-v1",
+            "dimensions": 768,
+            "description": "Optimized for Q&A tasks"
+        }
+    ]
+
+    return JSONResponse(content={"models": models})
+
+
+@app.get("/stats/advanced")
+async def advanced_stats(request: Request, vault: Optional[str] = None):
+    """
+    Get advanced vault statistics including chunking, tags, types, and index health.
+
+    Example:
+        GET /stats/advanced
+        GET /stats/advanced?vault=amoxtli
+
+    Returns:
+        {
+            "coverage": {
+                "files_indexed": 2006,
+                "chunks_created": 8755,
+                "chunks_per_file": 4.4,
+                "avg_file_size": 3200
+            },
+            "tags": {
+                "total_tags": 234,
+                "top_tags": [
+                    {"tag": "python", "count": 234},
+                    {"tag": "obsidian", "count": 189},
+                    ...
+                ]
+            },
+            "types": {
+                "gleaning": 482,
+                "article": 156,
+                "tool": 89,
+                "daily": 365
+            },
+            "index_health": {
+                "status": "healthy",
+                "last_indexed": "2025-12-31T10:30:00Z",
+                "stale_files": 0
+            }
+        }
+    """
+    try:
+        client, vault_path, _ = get_client_for_vault(request, vault)
+
+        # Get basic stats from client
+        basic_stats = client.get_stats()
+
+        # Get metadata from storage for indexed_at timestamp and chunk counts
+        from .storage import get_vault_metadata
+        config = request.app.state.config
+        vault_metadata = get_vault_metadata(client.storage_dir, config.default_model)
+
+        # Read metadata.json to get accurate chunk counts and compute tag/type distributions
+        metadata_file = client.storage_dir / config.default_model / "metadata.json"
+        total_items = basic_stats.get("num_embeddings", 0)
+        chunk_count = 0
+        file_count = 0
+        tag_freq = {}
+        type_dist = {}
+
+        if metadata_file.exists():
+            import json
+            with open(metadata_file) as f:
+                metadata_list = json.load(f)
+
+                # Process each item - only count non-chunks for tags/types to avoid duplication
+                for item in metadata_list:
+                    is_chunk = item.get("is_chunk", False)
+
+                    if is_chunk:
+                        chunk_count += 1
+                    else:
+                        file_count += 1
+
+                        # Count tags (only for non-chunks)
+                        for tag in item.get("tags", []):
+                            if tag:  # Skip empty tags
+                                tag_freq[tag] = tag_freq.get(tag, 0) + 1
+
+                        # Count types (only for non-chunks)
+                        frontmatter = item.get("frontmatter", {})
+                        doc_type = frontmatter.get("type")
+                        if doc_type:
+                            # Handle case where type might be a list
+                            if isinstance(doc_type, list):
+                                doc_type = doc_type[0] if doc_type else None
+                            if doc_type:
+                                type_dist[doc_type] = type_dist.get(doc_type, 0) + 1
+
+        # Use actual counts
+        files_indexed = file_count if file_count > 0 else total_items
+        chunks_created = total_items  # total embeddings = all chunks + non-chunked files
+
+        coverage = {
+            "files_indexed": files_indexed,
+            "chunks_created": chunks_created,
+            "chunks_per_file": round(chunks_created / files_indexed, 1) if files_indexed > 0 else 0,
+            "avg_file_size": basic_stats.get("avg_file_size", 0)
+        }
+
+        # Get tag distribution (top 10)
+        top_tags = sorted(tag_freq.items(), key=lambda x: x[1], reverse=True)[:10]
+        tags = {
+            "total_tags": len(tag_freq),
+            "top_tags": [{"tag": tag, "count": count} for tag, count in top_tags]
+        }
+
+        # Type distribution already computed above
+
+        # Index health - use vault_metadata for indexed_at
+        last_indexed = vault_metadata.get("indexed_at") if vault_metadata else None
+        index_health = {
+            "status": "healthy" if files_indexed > 0 else "unindexed",
+            "last_indexed": last_indexed,
+            "stale_files": basic_stats.get("stale_files", 0)
+        }
+
+        return JSONResponse(content={
+            "coverage": coverage,
+            "tags": tags,
+            "types": type_dist,
+            "index_health": index_health
+        })
+
+    except Exception as e:
+        logger.error(f"Error getting advanced stats: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to get advanced stats: {str(e)}"
         )
 
 

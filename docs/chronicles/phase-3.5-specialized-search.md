@@ -1087,3 +1087,24 @@ Semantic: 0.177 | BM25: 18.047  ✅ Real similarity!
 - Deleted: `docs/CHRONICLES.md`
 - Commit: `280546f` - "refactor: migrate to token-efficient documentation system"
 
+---
+
+## Entry 7: QoL Phase 3 - Management Page Enhancements (2026-01-02)
+
+**What**: Implemented Phase 3 of QoL improvements - enhanced management page with gleaning statistics, advanced vault statistics, and index options.
+
+**Why**: Bridge CLI/Web UI feature gap. Management page was minimal (reindex + extract only), while CLI had gleaning management, model selection, and detailed statistics. Web UI needed parity for mobile-first workflow.
+
+**How**:
+- **Gleaning Management Section**: Display active/inactive/hidden counts, "View Inactive" button
+- **Advanced Statistics Section**: Coverage (files/chunks), tag distribution (top 10), content types, index health
+- **Index Options**: Model selector dropdown + collapsible chunking options (size/overlap/threshold)
+- **New API endpoints**: `/gleaning/stats`, `/models`, `/stats/advanced`
+- **Extended `/reindex`**: Added `model` parameter (reserved for future - requires server restart)
+
+**Decisions**: None (implementation only - followed Phase 3 plan from Entry 5)
+
+**Files**:
+- Modified: `src/temoa/server.py` (+193 lines), `src/temoa/ui/manage.html` (+279 lines)
+- Commits: `8591067` - "feat(ui): QoL Phase 3 - Management page enhancements"
+

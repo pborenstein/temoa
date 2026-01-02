@@ -357,6 +357,21 @@
             text-align: center;
         }
 
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 0;
+        }
+
+        .stat-grid .stat-row {
+            border-bottom: 1px solid #333333;
+            padding: 8px 12px;
+        }
+
+        .stat-grid .stat-row:last-child {
+            border-bottom: 1px solid #333333;
+        }
+
         @media (max-width: 600px) {
             body {
                 padding: 12px;
@@ -374,6 +389,10 @@
 
             .nav-link {
                 align-self: flex-end;
+            }
+
+            .stat-grid {
+                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -403,26 +422,162 @@
             <div style="margin-top: 8px;">Processing...</div>
         </div>
 
-        <!-- Actions Section -->
+        <!-- Vault Management Section -->
         <div class="section">
-            <h2 class="section-title">Actions</h2>
+            <h2 class="section-title">Vault Management</h2>
 
+            <!-- Current Index Status -->
+            <div style="margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #404040;">
+                <div style="font-size: 14px; font-weight: 600; color: #ffffff; margin-bottom: 8px;">Current Index Status</div>
+                <div class="stat-row">
+                    <span class="stat-label">Status</span>
+                    <span class="stat-value" id="health-status">
+                        <span class="status-indicator"></span>Loading...
+                    </span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Model</span>
+                    <span class="stat-value" id="health-model">-</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Files indexed</span>
+                    <span class="stat-value" id="health-files">-</span>
+                </div>
+                <div class="stat-row" id="chunking-status-row">
+                    <span class="stat-label">Chunking</span>
+                    <span class="stat-value" id="chunking-status">-</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Last indexed</span>
+                    <span class="stat-value" id="adv-last-indexed">-</span>
+                </div>
+            </div>
+
+            <!-- Reindex Action -->
             <button class="action-button" id="reindex-btn" onclick="reindex()">
                 Reindex Vault
             </button>
 
-            <div style="margin-top: 12px; margin-bottom: 24px;">
+            <div style="margin-top: 12px; margin-bottom: 12px;">
                 <div class="checkbox-group">
                     <input type="checkbox" id="full-rebuild">
                     <label for="full-rebuild">Full rebuild (process all files)</label>
                 </div>
             </div>
 
+            <details open style="margin-bottom: 24px;">
+                <summary style="cursor: pointer; font-size: 14px; color: #888888; padding: 8px 0; user-select: none;">
+                    Index Options
+                </summary>
+                <div style="padding: 12px 0 0 16px; border-left: 2px solid #404040; margin-left: 8px;">
+                    <div style="font-size: 12px; color: #666666; margin-bottom: 12px; font-style: italic;">
+                        These settings apply to the next reindex operation
+                    </div>
+
+                    <div style="margin-bottom: 12px;">
+                        <label style="display: block; font-size: 13px; color: #888888; margin-bottom: 4px;">
+                            Embedding Model
+                        </label>
+                        <select id="model-select" class="vault-select" style="width: 100%;">
+                            <option value="">Loading models...</option>
+                        </select>
+                        <div style="font-size: 12px; color: #666666; margin-top: 4px;">
+                            Note: Changing model requires server restart
+                        </div>
+                    </div>
+
+                    <div class="checkbox-group" style="margin-bottom: 8px;">
+                        <input type="checkbox" id="enable-chunking">
+                        <label for="enable-chunking">Enable chunking for large files</label>
+                    </div>
+
+                    <div id="chunking-options" style="display: none; padding-left: 28px; margin-bottom: 12px;">
+                        <div style="margin-bottom: 8px;">
+                            <label style="display: block; font-size: 13px; color: #888888; margin-bottom: 4px;">
+                                Chunk size (characters)
+                            </label>
+                            <input type="number" id="chunk-size" value="2000" min="500" max="5000" step="100"
+                                   style="width: 100%; padding: 6px 10px; font-size: 13px; border: 1px solid #404040; border-radius: 6px; background: #1a1a1a; color: #e0e0e0;">
+                        </div>
+                        <div style="margin-bottom: 8px;">
+                            <label style="display: block; font-size: 13px; color: #888888; margin-bottom: 4px;">
+                                Chunk overlap (characters)
+                            </label>
+                            <input type="number" id="chunk-overlap" value="400" min="0" max="1000" step="50"
+                                   style="width: 100%; padding: 6px 10px; font-size: 13px; border: 1px solid #404040; border-radius: 6px; background: #1a1a1a; color: #e0e0e0;">
+                        </div>
+                        <div style="margin-bottom: 8px;">
+                            <label style="display: block; font-size: 13px; color: #888888; margin-bottom: 4px;">
+                                Chunking threshold (characters)
+                            </label>
+                            <input type="number" id="chunk-threshold" value="4000" min="1000" max="10000" step="500"
+                                   style="width: 100%; padding: 6px 10px; font-size: 13px; border: 1px solid #404040; border-radius: 6px; background: #1a1a1a; color: #e0e0e0;">
+                        </div>
+                    </div>
+                </div>
+            </details>
+
+            <!-- Advanced Statistics -->
+            <details open style="margin-top: 20px;">
+                <summary style="cursor: pointer; font-size: 14px; color: #888888; padding: 8px 0; user-select: none;">
+                    Advanced Statistics
+                </summary>
+                <div style="padding: 12px 0 0 0;">
+                    <div style="margin-bottom: 16px;">
+                        <div style="font-size: 14px; font-weight: 600; color: #ffffff; margin-bottom: 8px;">Tag Distribution (top 10)</div>
+                        <div id="adv-tag-distribution">
+                            <div style="text-align: center; color: #888888; padding: 12px;">Loading...</div>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 16px;">
+                        <div style="font-size: 14px; font-weight: 600; color: #ffffff; margin-bottom: 8px;">Content Types</div>
+                        <div id="adv-type-distribution">
+                            <div style="text-align: center; color: #888888; padding: 12px;">Loading...</div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div style="font-size: 14px; font-weight: 600; color: #ffffff; margin-bottom: 8px;">Index Health</div>
+                        <div class="stat-row">
+                            <span class="stat-label">Status</span>
+                            <span class="stat-value" id="adv-index-status">-</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Stale files</span>
+                            <span class="stat-value" id="adv-stale-files">-</span>
+                        </div>
+                    </div>
+                </div>
+            </details>
+        </div>
+
+        <!-- Gleaning Management Section -->
+        <div class="section">
+            <h2 class="section-title">Gleaning Management</h2>
+
+            <!-- Gleaning Stats -->
+            <div style="margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #404040;">
+                <div class="stat-row">
+                    <span class="stat-label">Active gleanings</span>
+                    <span class="stat-value" id="gleaning-active">-</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Inactive gleanings</span>
+                    <span class="stat-value" id="gleaning-inactive">-</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Hidden gleanings</span>
+                    <span class="stat-value" id="gleaning-hidden">-</span>
+                </div>
+            </div>
+
+            <!-- Extract Action -->
             <button class="action-button" id="extract-btn" onclick="extract()">
                 Extract Gleanings
             </button>
 
-            <div style="margin-top: 12px;">
+            <div style="margin-top: 12px; margin-bottom: 16px;">
                 <div class="checkbox-group">
                     <input type="checkbox" id="incremental" checked>
                     <label for="incremental">Incremental (only new files)</label>
@@ -432,42 +587,11 @@
                     <label for="auto-reindex">Auto-reindex after extraction</label>
                 </div>
             </div>
-        </div>
 
-        <!-- System Health Section -->
-        <div class="section">
-            <h2 class="section-title">System Health</h2>
-            <div class="stat-row">
-                <span class="stat-label">Status</span>
-                <span class="stat-value" id="health-status">
-                    <span class="status-indicator"></span>Loading...
-                </span>
-            </div>
-            <div class="stat-row">
-                <span class="stat-label">Model</span>
-                <span class="stat-value" id="health-model">-</span>
-            </div>
-            <div class="stat-row">
-                <span class="stat-label">Files Indexed</span>
-                <span class="stat-value" id="health-files">-</span>
-            </div>
-        </div>
-
-        <!-- Vault Statistics Section -->
-        <div class="section">
-            <h2 class="section-title">Vault Statistics</h2>
-            <div class="stat-row">
-                <span class="stat-label">Embeddings</span>
-                <span class="stat-value" id="stats-embeddings">-</span>
-            </div>
-            <div class="stat-row">
-                <span class="stat-label">Tags</span>
-                <span class="stat-value" id="stats-tags">-</span>
-            </div>
-            <div class="stat-row">
-                <span class="stat-label">Directories</span>
-                <span class="stat-value" id="stats-directories">-</span>
-            </div>
+            <!-- View Inactive Button -->
+            <button class="action-button" id="view-inactive-btn" onclick="viewInactiveGleanings()">
+                View Inactive Gleanings
+            </button>
         </div>
 
         <footer>
@@ -611,16 +735,64 @@
             url.searchParams.set('vault', state.currentVault);
             window.history.replaceState({}, '', url);
 
-            // Reload health and stats for new vault
+            // Reload config and stats for new vault
+            loadVaultConfig();
             loadHealth();
-            loadStats();
+            loadGleaningStats();
+            loadAdvancedStats();
+        }
+
+        // Load vault configuration and populate form controls
+        async function loadVaultConfig() {
+            try {
+                let url = '/config';
+                if (state.currentVault) {
+                    url += `?vault=${encodeURIComponent(state.currentVault)}`;
+                }
+
+                const response = await fetch(url);
+                if (!response.ok) return;
+
+                const data = await response.json();
+
+                // Get the vault config
+                const vaultConfig = data.vaults?.[state.currentVault];
+                if (!vaultConfig) return;
+
+                // Populate chunking settings
+                const enableChunking = vaultConfig.enable_chunking || false;
+                document.getElementById('enable-chunking').checked = enableChunking;
+                document.getElementById('chunking-options').style.display =
+                    enableChunking ? 'block' : 'none';
+
+                if (vaultConfig.chunk_size) {
+                    document.getElementById('chunk-size').value = vaultConfig.chunk_size;
+                }
+                if (vaultConfig.chunk_overlap) {
+                    document.getElementById('chunk-overlap').value = vaultConfig.chunk_overlap;
+                }
+                if (vaultConfig.chunk_threshold) {
+                    document.getElementById('chunk-threshold').value = vaultConfig.chunk_threshold;
+                }
+            } catch (error) {
+                console.error('Failed to load vault config:', error);
+            }
         }
 
         // Load health and stats on page load
         window.addEventListener('load', async () => {
             await fetchVaults();
+            await loadModels();
+            await loadVaultConfig();
             loadHealth();
-            loadStats();
+            loadGleaningStats();
+            loadAdvancedStats();
+
+            // Setup chunking options toggle
+            document.getElementById('enable-chunking').addEventListener('change', (e) => {
+                document.getElementById('chunking-options').style.display =
+                    e.target.checked ? 'block' : 'none';
+            });
         });
 
         async function loadHealth() {
@@ -640,21 +812,6 @@
             }
         }
 
-        async function loadStats() {
-            try {
-                let url = '/stats';
-                if (state.currentVault) {
-                    url += `?vault=${encodeURIComponent(state.currentVault)}`;
-                }
-
-                const response = await fetch(url);
-                const data = await response.json();
-                displayStats(data);
-            } catch (error) {
-                console.error('Failed to load stats:', error);
-            }
-        }
-
         function displayHealth(data) {
             const statusEl = document.getElementById('health-status');
             const modelEl = document.getElementById('health-model');
@@ -669,13 +826,141 @@
             filesEl.textContent = data.files_indexed?.toLocaleString() || '0';
         }
 
-        function displayStats(data) {
-            document.getElementById('stats-embeddings').textContent =
-                data.num_embeddings?.toLocaleString() || '0';
-            document.getElementById('stats-tags').textContent =
-                data.total_tags?.toLocaleString() || '0';
-            document.getElementById('stats-directories').textContent =
-                data.directories?.toLocaleString() || '0';
+        async function loadModels() {
+            try {
+                const response = await fetch('/models');
+                const data = await response.json();
+                displayModels(data.models);
+            } catch (error) {
+                console.error('Failed to load models:', error);
+            }
+        }
+
+        function displayModels(models) {
+            const select = document.getElementById('model-select');
+            select.innerHTML = '';
+
+            models.forEach(model => {
+                const option = document.createElement('option');
+                option.value = model.name;
+                option.textContent = `${model.name} (${model.dimensions}d) - ${model.description}`;
+                if (model.default) {
+                    option.selected = true;
+                }
+                select.appendChild(option);
+            });
+        }
+
+        async function loadGleaningStats() {
+            try {
+                let url = '/gleaning/stats';
+                if (state.currentVault) {
+                    url += `?vault=${encodeURIComponent(state.currentVault)}`;
+                }
+
+                const response = await fetch(url);
+                const data = await response.json();
+                displayGleaningStats(data);
+            } catch (error) {
+                console.error('Failed to load gleaning stats:', error);
+            }
+        }
+
+        function displayGleaningStats(data) {
+            document.getElementById('gleaning-active').textContent =
+                data.active?.toLocaleString() || '0';
+            document.getElementById('gleaning-inactive').textContent =
+                data.inactive?.toLocaleString() || '0';
+            document.getElementById('gleaning-hidden').textContent =
+                data.hidden?.toLocaleString() || '0';
+        }
+
+        async function loadAdvancedStats() {
+            try {
+                let url = '/stats/advanced';
+                if (state.currentVault) {
+                    url += `?vault=${encodeURIComponent(state.currentVault)}`;
+                }
+
+                const response = await fetch(url);
+                const data = await response.json();
+                displayAdvancedStats(data);
+            } catch (error) {
+                console.error('Failed to load advanced stats:', error);
+            }
+        }
+
+        function displayAdvancedStats(data) {
+            // Coverage - chunking status
+            const coverage = data.coverage || {};
+            const chunksPerFile = coverage.chunks_per_file || 0;
+            const chunksCreated = coverage.chunks_created || 0;
+            const filesIndexed = coverage.files_indexed || 0;
+
+            // Display chunking status clearly
+            const chunkingStatusEl = document.getElementById('chunking-status');
+            if (chunksPerFile > 1.01) {
+                // Chunking is enabled
+                chunkingStatusEl.textContent =
+                    `Enabled (${chunksCreated.toLocaleString()} chunks, ${chunksPerFile.toFixed(1)}x per file)`;
+            } else {
+                // No chunking
+                chunkingStatusEl.textContent = 'Not enabled';
+            }
+
+            // Tag distribution
+            const tags = data.tags || {};
+            const tagDistEl = document.getElementById('adv-tag-distribution');
+            if (tags.top_tags && tags.top_tags.length > 0) {
+                const rows = tags.top_tags.map(t =>
+                    `<div class="stat-row">
+                        <span class="stat-label">${t.tag}</span>
+                        <span class="stat-value">${t.count.toLocaleString()}</span>
+                    </div>`
+                ).join('');
+                tagDistEl.innerHTML = `<div class="stat-grid">${rows}</div>`;
+            } else {
+                tagDistEl.innerHTML = '<div style="text-align: center; color: #888888; padding: 12px;">No tags found</div>';
+            }
+
+            // Type distribution
+            const types = data.types || {};
+            const typeDistEl = document.getElementById('adv-type-distribution');
+            const typeEntries = Object.entries(types).sort((a, b) => b[1] - a[1]); // Sort by count descending
+            if (typeEntries.length > 0) {
+                const rows = typeEntries.map(([type, count]) =>
+                    `<div class="stat-row">
+                        <span class="stat-label">${type}</span>
+                        <span class="stat-value">${count.toLocaleString()}</span>
+                    </div>`
+                ).join('');
+                typeDistEl.innerHTML = `<div class="stat-grid">${rows}</div>`;
+            } else {
+                typeDistEl.innerHTML = '<div style="text-align: center; color: #888888; padding: 12px;">No type information available</div>';
+            }
+
+            // Index health
+            const health = data.index_health || {};
+            const statusEl = document.getElementById('adv-index-status');
+            const isHealthy = health.status === 'healthy';
+            const statusClass = isHealthy ? 'status-healthy' : 'status-unhealthy';
+            const statusText = health.status || 'Unknown';
+            statusEl.innerHTML = `<span class="status-indicator ${statusClass}"></span>${statusText}`;
+
+            // Last indexed - moved to Current Index Status section
+            document.getElementById('adv-last-indexed').textContent =
+                health.last_indexed || 'Never';
+            document.getElementById('adv-stale-files').textContent =
+                health.stale_files?.toLocaleString() || '0';
+        }
+
+        function viewInactiveGleanings() {
+            const vault = state.currentVault || '';
+            let url = '/gleanings?status=inactive';
+            if (vault) {
+                url += `&vault=${encodeURIComponent(vault)}`;
+            }
+            window.open(url, '_blank');
         }
 
         async function reindex() {
@@ -708,6 +993,19 @@
                     url += `&vault=${encodeURIComponent(state.currentVault)}`;
                 }
 
+                // Add chunking parameters
+                const enableChunking = document.getElementById('enable-chunking').checked;
+                if (enableChunking) {
+                    const chunkSize = document.getElementById('chunk-size').value;
+                    const chunkOverlap = document.getElementById('chunk-overlap').value;
+                    const chunkThreshold = document.getElementById('chunk-threshold').value;
+
+                    url += `&enable_chunking=true`;
+                    url += `&chunk_size=${chunkSize}`;
+                    url += `&chunk_overlap=${chunkOverlap}`;
+                    url += `&chunk_threshold=${chunkThreshold}`;
+                }
+
                 const response = await fetch(url, { method: 'POST' });
                 const data = await response.json();
 
@@ -719,7 +1017,8 @@
                     showMessage(message, 'success');
                     // Refresh health and stats
                     await loadHealth();
-                    await loadStats();
+                    await loadGleaningStats();
+                    await loadAdvancedStats();
                 } else {
                     throw new Error(data.detail || 'Reindex failed');
                 }
@@ -759,9 +1058,8 @@
                         `skipped ${data.duplicates || 0} duplicates`,
                         'success'
                     );
-                    // Refresh health and stats
-                    await loadHealth();
-                    await loadStats();
+                    // Refresh gleaning stats
+                    await loadGleaningStats();
                 } else {
                     throw new Error(data.detail || 'Extraction failed');
                 }

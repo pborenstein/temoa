@@ -231,20 +231,21 @@ See: chronicles/production-hardening.md (Entries 33-44)
 ### Next Session Start Here
 
 **Current Branch**: `phase-3.5-search-modes`
-**Current Focus**: PAUSED Phase 3.5 to address QoL improvements (CLI/Web UI feature gap)
+**Current Focus**: QoL improvements (CLI/Web UI feature parity)
 
-**Recent Work** (2026-01-01):
-- ✅ Session pickup: reviewed Phase 3.5 status (3.5.1 & 3.5.2 complete)
-- ✅ Identified CLI/Web UI feature gap (profiles, chunking, gleaning management CLI-only)
-- ✅ Created comprehensive QoL improvement plan: `docs/QoL-improvements/PLAN.md`
-- ✅ Made design decisions (async link checking, 3-line descriptions, profile persistence)
-- ✅ Documented in chronicles: Entry 5 (phase-3.5-specialized-search.md)
+**Recent Work** (2026-01-02):
+- ✅ Implemented QoL Phase 3: Management page enhancements
+- ✅ Added gleaning management section (active/inactive/hidden counts)
+- ✅ Added advanced statistics section (coverage, tags, types, index health)
+- ✅ Added model selector and chunking options (collapsible advanced options)
+- ✅ New API endpoints: /gleaning/stats, /models, /stats/advanced
+- ✅ Extended /reindex with model parameter (reserved for future)
 
-**Next**: QoL Improvements (3-4 days)
-1. **Phase 1**: Search result redesign (content-first layout, dates visible)
-2. **Phase 2**: Profile integration (dropdown in web UI)
-3. **Phase 3**: Management enhancements (gleaning management, model selection, advanced stats)
-4. **Phase 4-5**: Integration & testing (mobile-first)
+**Current**: QoL Improvements (3-4 days)
+1. ✅ **Phase 1**: Search result redesign (content-first layout, dates visible) - COMPLETE
+2. ✅ **Phase 2**: Profile integration (dropdown in web UI) - COMPLETE
+3. ✅ **Phase 3**: Management enhancements (gleaning management, model selection, advanced stats) - COMPLETE
+4. 🔵 **Phase 4-5**: Integration & testing (mobile-first) - NEXT
 5. See [docs/QoL-improvements/PLAN.md](QoL-improvements/PLAN.md) for detailed plan
 
 **After QoL**: Resume Phase 3.5.3 - Metadata Boosting (with web UI from day 1)
