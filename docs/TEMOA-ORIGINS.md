@@ -1,8 +1,33 @@
-# The Evolution of Gleanings
+# Temoa Origins: A Chronicle
 
 **Period**: Pre-Temoa (2024) → Present (2026-01-04)
 **Status**: Knowledge Archaeology Document
-**Purpose**: Trace how our thinking about gleanings evolved from failed complexity to elegant simplicity
+**Purpose**: Trace the evolution from failed gleanings system to full vault semantic search
+
+---
+
+## The Foundation: Synthesis Project
+
+**Before Temoa existed**, there was **Synthesis** (`~/projects/obsidian-projects/synthesis`).
+
+**What it was**:
+- Local semantic search engine for Obsidian vaults
+- Built with sentence-transformers (local embeddings)
+- 5 model support (all-MiniLM-L6-v2, all-mpnet-base-v2, etc.)
+- CLI-based: `uv run main.py search "query" --json`
+- Already indexing **1,899 vault files** (entire vault, not just gleanings)
+
+**What it provided**:
+- Semantic search capability (the hard part already solved)
+- Multi-model architecture (quality vs speed tradeoff)
+- JSON output (perfect for building on top)
+- Interest archaeology (`archaeology` command for temporal analysis)
+- Production-ready, battle-tested code
+
+**Key insight**:
+> You didn't need to build semantic search. You needed to make it **accessible from mobile** and **useful for research workflows**.
+
+**Synthesis was the engine. Temoa became the interface.**
 
 ---
 
@@ -84,6 +109,25 @@ From phase-0-1-foundation.md:
 - Understanding of gleaning formats in daily notes
 - 505 gleanings in state file (Jan-Aug 2025) to migrate
 
+**The Original Vision** (Nov 17, 2025):
+
+From PROJECT-PROPOSAL.md:
+> "Fast semantic search across **entire vault (1899+ files)**"
+> "Surfaces gleanings when contextually relevant"
+
+**Critical realization**: The vision was **never "search gleanings only"**—it was always **"search entire vault, with gleanings as the killer use case"**.
+
+**Why gleanings were special**:
+- Already filtered (you decided these were important)
+- Timestamped (temporal context preserved)
+- Atomic (one link per note, perfect for embeddings)
+- Pre-structured knowledge (huge advantage over raw documents)
+
+**The framing**:
+- Gleanings were the **justification** for building Temoa
+- Vault search was the **actual product**
+- Mobile access was the **enabling constraint** (had to build server)
+
 ---
 
 ## Phase 2: Gleanings Implementation (Nov 18-19, 2025)
@@ -137,6 +181,100 @@ From phase-0-1-foundation.md:
 - Daily extraction runs (manual or cron)
 - Automatic reindexing after extraction
 - Seamless integration with Synthesis
+
+**Then came the wake-up call** (Nov 22, 2025)...
+
+---
+
+## The Scope Shift: From Gleanings to Full Vault Search (Nov 22, 2025)
+
+### The Wake-Up Call: Type Filtering (Commit b780e4e)
+
+**User observation**:
+> "the temoa web app filters daily notes. the cli search does not. is that right? I'd like to implement a mechanism that filters on the `type:` field."
+
+**The problem discovered**:
+- Search results **cluttered with daily notes**
+- Daily notes are the **source** of gleanings (where links are saved)
+- Gleanings are the **artifacts** (extracted, curated knowledge)
+- Searching daily notes = finding fleeting context
+- Searching gleanings = finding permanent knowledge
+
+**The realization**:
+```
+Daily notes: Ephemeral source (excluded)
+Gleanings: Permanent artifacts (searched)
+```
+
+**DEC-025: Default exclude_types=["daily"]**
+
+**Rationale**:
+> "Gleanings extracted from daily notes are the actual findings"
+
+**Implementation** (Phase 2.5):
+- Comprehensive type filtering system
+- Frontmatter `type:` field parsing (string or YAML array)
+- Inclusive (`--type`) and exclusive (`--exclude-type`) modes
+- Multi-select UI dropdowns
+- Default excludes `type: daily` to reduce noise
+
+**The shift in thinking**:
+
+**Before**: "How do I search my gleanings?"
+**After**: "How do I search my vault and exclude the noise?"
+
+### The Scope Explicitly Expands (Dec 2025)
+
+**Entry 40 (chunking analysis)** made it official:
+
+> **Phase 0-1 assumptions** (November 2025):
+> - ✓ Temoa designed for **gleanings only**
+> - ✓ Gleanings are small (500 chars)
+> - ✓ No need to search full vault
+>
+> **Current reality** (December 2025):
+> - ✗ Vault scope expanded to **full vault indexing (all content types)**
+> - ✗ New use case: **Large document libraries** (books, articles, reference docs)
+> - ✗ Files up to **9MB** in production use
+> - ✗ **Daily notes excluded by default**, so indexed content is everything else
+
+**Three vaults, three different use cases**:
+
+| Vault | Indexed Content (daily excluded) | File Size Range | Primary Use |
+|-------|----------------------------------|-----------------|-------------|
+| **amoxtli** | Gleanings + writering/llmering | 500-10,000 bytes | Research + writing |
+| **rodeo** | Work notes (type varies) | 1,000-10,000 bytes | Project notes |
+| **1002** | Project Gutenberg books | 100KB-**9.1MB** | Reading library |
+
+**Content type breakdown discovered**:
+- **gleaning**: Extracted links (~500 chars) - ✅ Fully searchable
+- **daily**: Daily notes, excluded by default - N/A
+- **story**: Books, novels (100KB-9MB) - Required chunking
+- **writering/llmering/article/reference**: Varies (500-50,000+ chars) - Mixed
+- **note**: General notes - Mixed
+
+**The evolution**:
+```
+Nov 17: "Search entire vault, surface gleanings"
+    ↓
+    Gleanings are the justification
+
+Nov 22: "Daily notes clutter results, add type filtering"
+    ↓
+    Need to exclude SOURCE to find ARTIFACTS
+
+Dec 2025: "Vault scope includes books, articles, all content types"
+    ↓
+    Full vault search with metadata-based filtering
+```
+
+**Gleanings' role transformed**:
+
+From: **The product** (what you search for)
+To: **One content type** (among story, article, writering, note, etc.)
+
+**The pattern**:
+> Real-world usage reveals true needs. You thought you were building gleaning search. You were actually building **vault search with metadata-based content filtering**. Gleanings were the gateway drug.
 
 ---
 
@@ -396,59 +534,123 @@ github:
 
 ## The Meta-Lesson
 
-**The evolution of gleanings mirrors the evolution of Temoa**:
+**The complete arc from Synthesis to Temoa**:
 
 ```
-Start: Complex system trying to impose order
+2024: Synthesis built (vault semantic search engine)
   ↓
-Failure: Over-engineering kills adoption
+  Local embeddings, 1,899 files indexed, CLI-based
+
+2024: Old-gleanings failed (2,771 lines, abandoned)
   ↓
-Insight: "You don't have an organization problem"
+  Over-engineering kills adoption
+
+Nov 17, 2025: "You don't have an organization problem"
   ↓
-Pivot: Semantic search surfaces what's relevant
+  Insight: Surfacing > organizing
+
+Nov 17, 2025: Temoa proposed
   ↓
-Success: Simple files + smart search
+  "Make Synthesis accessible from mobile"
   ↓
-Refinement: Add value based on real usage
+  Gleanings are the justification (killer use case)
   ↓
-Present: 900+ gleanings, searchable, enriched, useful
+  Vault search is the actual product
+
+Nov 18-19, 2025: Phase 1-2 implementation
+  ↓
+  FastAPI server wrapping Synthesis
+  ↓
+  Extract 505 gleanings, make searchable
+
+Nov 22, 2025: Type filtering wake-up call
+  ↓
+  "Daily notes clutter results"
+  ↓
+  Realization: Need metadata-based filtering
+  ↓
+  Gleanings are ONE type among many
+
+Dec 2025: Scope explicitly expands
+  ↓
+  Books (9MB files), articles, all content types
+  ↓
+  Full vault search with smart filtering
+
+Present: Three vaults, multiple content types
+  ↓
+  900+ gleanings (just one part of the system)
+  ↓
+  Full semantic vault search from mobile (<2s)
 ```
 
 **The pattern that works**:
-1. **Start simple**: Individual files, basic extraction
-2. **Use in production**: Discover real patterns
-3. **Add intelligence**: Normalize, enrich, enhance
-4. **Stay flexible**: No rigid structure, organic growth
+1. **Build on existing foundations**: Synthesis already worked
+2. **Start simple**: FastAPI wrapper, individual files, basic extraction
+3. **Use in production**: Discover real patterns (type filtering, normalization)
+4. **Add intelligence**: Normalize, enrich, enhance based on usage
+5. **Stay flexible**: No rigid structure, organic growth
+6. **Let scope emerge**: Gleanings → full vault search
 
 **The pattern that fails**:
-1. **Design upfront**: 15 categories, complex state
-2. **Build infrastructure**: Web app, regeneration scripts
-3. **Impose structure**: Force gleanings into categories
-4. **Abandon**: Friction > value
+1. **Build from scratch**: Ignore existing tools (Synthesis was already there!)
+2. **Design upfront**: 15 categories, complex state
+3. **Build infrastructure**: Web app, regeneration scripts
+4. **Impose structure**: Force content into predefined categories
+5. **Resist change**: "This is a gleanings tool" (scope rigidity)
+6. **Abandon**: Friction > value
 
 ---
 
 ## Current State (2026-01-04)
 
-**Gleanings in production**: 900+
-**Format support**: 5 input formats recognized
-**Normalization**: GitHub domain-specific
-**Enrichment**: GitHub API metadata (266 repos)
-**Integration**: Unified vault search (semantic + BM25 + tags)
-**Maintenance**: Automated extraction, link checking, status tracking
-**Mobile**: Fast search from phone (<2s)
+**System Architecture**:
+- **Foundation**: Synthesis (local semantic search engine)
+- **Interface**: Temoa (FastAPI server + web UI)
+- **Integration**: Direct Python imports (10x faster than subprocess)
+- **Deployment**: macOS launchd service, Tailscale network access
+
+**Content Scope**:
+- **Three vaults**: amoxtli (research), rodeo (work), 1002 (books)
+- **Multiple content types**: gleaning, story, article, writering, llmering, note
+- **Daily notes excluded** by default (type filtering)
+- **900+ gleanings** (one content type among many)
+- **Adaptive chunking** for large files (9MB books fully searchable)
+
+**Gleanings Specifically**:
+- **Format support**: 5 input formats recognized
+- **Normalization**: GitHub domain-specific (91% of gleanings)
+- **Enrichment**: GitHub API metadata (266 repos with stars, language, topics)
+- **Maintenance**: Automated extraction, link checking, status tracking
+- **Integration**: Part of unified vault search (not standalone system)
+
+**Search Quality**:
+- Hybrid search (BM25 + semantic with RRF fusion)
+- Tag boosting (5x multiplier for frontmatter tags)
+- Cross-encoder re-ranking (20-30% precision improvement)
+- Time-aware scoring (recent work boosted)
+- Type filtering (exclude daily, include specific types)
+- Search profiles (repos, recent, deep, keywords, default)
+
+**Performance**:
+- **Mobile**: <2s response time from phone
+- **Incremental reindexing**: 30x faster (5s vs 159s)
+- **Multi-vault**: LRU cache (3 vaults, ~1.5GB RAM)
 
 **What's working**:
 - Vault-first research workflow adopted
-- Forgotten gleanings resurfacing regularly
+- Gleanings surfacing when relevant (not as separate feature)
+- Books, articles, notes all searchable
 - Low friction (faster than googling)
 - No categories, no complexity, no manual indexing
 
 **What's evolved**:
-- From 2,771 lines of abandoned Python
-- To ~500 lines of focused extraction + maintenance
-- From "where does this belong?"
-- To "what's related to this?"
+- From: 2,771 lines of abandoned Python (old-gleanings)
+- To: ~500 lines of extraction + maintenance + FastAPI wrapper
+- From: "Search my gleanings"
+- To: "Search my vault, filter by metadata"
+- From: "Gleanings are the product"
+- To: "Gleanings are one content type in full vault search"
 
 ---
 
@@ -483,35 +685,68 @@ Present: 900+ gleanings, searchable, enriched, useful
 
 ## Lessons for Future Projects
 
-**1. Organization is not the problem**
-- Old-gleanings spent 2,771 lines organizing
-- Temoa spends ~500 lines surfacing
+**1. Build on existing foundations**
+- Synthesis already worked (1,899 files indexed)
+- Don't rebuild what exists—wrap it, extend it, make it accessible
+- "Make Synthesis mobile-accessible" > "Build semantic search from scratch"
+
+**2. Let the justification evolve into the product**
+- Started: "Build this for gleanings" (justification)
+- Became: "Full vault search with filtering" (actual product)
+- Gleanings were the gateway drug, not the endgame
+
+**3. Organization is not the problem**
+- Old-gleanings: 2,771 lines organizing
+- Temoa: ~500 lines surfacing
 - Surfacing > organizing
 
-**2. Complexity kills adoption**
+**4. Complexity kills adoption**
 - 15 categories = friction
 - Simple files + smart search = adoption
+- Metadata-based filtering > rigid structure
 
-**3. Real usage reveals true needs**
-- GitHub is 91% of gleanings (discovered after deployment)
-- Normalization became critical (not designed upfront)
-- Enrichment added value (based on real usage patterns)
+**5. Real usage reveals true needs**
+- Type filtering: Discovered daily notes were noise (not predicted)
+- GitHub normalization: 91% of gleanings (scale surprise)
+- Scope expansion: Books, articles (use cases emerged)
+- You can't design this upfront—you discover it
 
-**4. Start simple, add intelligence**
-- Phase 2: Extract → save
-- Normalization: Clean → save
-- Enrichment: Fetch → enhance
-- Each step additive, not revolutionary
+**6. Start simple, add intelligence**
+- Phase 1: FastAPI wrapper around Synthesis
+- Phase 2: Extract gleanings → save as files
+- Phase 2.5: Type filtering (exclude daily)
+- Production: Normalization → enrichment → chunking
+- Each step additive, based on real usage
 
-**5. The code you don't write is the code you don't maintain**
-- No categories, no state, no indexes
-- Just files, frontmatter, and semantic search
+**7. The code you don't write is the code you don't maintain**
+- No categories, no state management, no custom indexes
+- Just files, frontmatter, and Synthesis
+- Wrapper code < 2,000 lines total
 - Simplicity scales
+
+**8. Scope rigidity kills evolution**
+- If Temoa stayed "gleanings only": Books wouldn't work
+- If no type filtering: Daily notes would clutter results
+- If no normalization: GitHub gleanings stay noisy
+- Flexibility to evolve > adherence to original vision
 
 ---
 
 **Created**: 2026-01-04
 **Author**: Traced from git history, chronicles, and documentation
-**Type**: Knowledge Archaeology
-**Purpose**: Preserve thinking evolution for future reference
-**Related**: KNOWLEDGE-ARCHAEOLOGY.md, GLEANINGS.md, CHRONICLES (all phases)
+**Type**: Knowledge Archaeology - Origins Chronicle
+**Purpose**: Preserve the complete arc from Synthesis → Old-Gleanings failure → Temoa → Full vault search
+
+**The complete story**:
+- How Synthesis provided the foundation
+- How old-gleanings' failure taught "surfacing > organizing"
+- How gleanings justified building Temoa
+- How real usage revealed the true need (full vault search with metadata filtering)
+- How scope flexibility enabled evolution
+
+**Related Documents**:
+- KNOWLEDGE-ARCHAEOLOGY.md - The pattern at multiple scales
+- GLEANINGS.md - Current workflow
+- CHRONICLES (all phases) - Implementation timeline
+- docs/archive/original-planning/PROJECT-PROPOSAL.md - First vision
+- ~/projects/obsidian-projects/synthesis - The foundation
