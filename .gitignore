@@ -37,6 +37,12 @@ config.json
 # Logs
 *.log
 
+# Backup files
+*.backup
+*.bak
+*.old
+.session
+
 # OS
 .DS_Store
 Thumbs.db
