@@ -1,8 +1,8 @@
 # Temoa Deployment Guide
 
-**Last Updated**: 2025-12-03
+**Last Updated**: 2026-01-04
 **Version**: 0.6.0
-**For**: Phase 3 Complete - Production Deployment
+**For**: Phase 3.5 Complete - Production Deployment
 
 ---
 
@@ -70,32 +70,53 @@ cat > ~/.config/temoa/config.json << 'EOF'
     "default_limit": 10,
     "max_limit": 100,
     "timeout": 10,
+    "default_profile": "default",
     "time_decay": {
       "enabled": true,
       "half_life_days": 90,
       "max_boost": 0.2
     }
+  },
+  "chunking": {
+    "enabled": true,
+    "chunk_size": 2000,
+    "chunk_overlap": 400,
+    "chunk_threshold": 4000
   }
 }
 EOF
 ```
 
+**New in Phase 3.5:**
+- `search.default_profile`: Default search profile to use ("default", "repos", "recent", "deep", "keywords")
+- `chunking`: Adaptive chunking configuration (Phase 3.5.2 - enables 100% content searchability)
+
 ### Multi-Vault Configuration
 
-For multiple vaults, add a `vaults` array:
+For multiple vaults, use the `vaults` dictionary with per-vault settings:
 
 ```bash
 cat > ~/.config/temoa/config.json << 'EOF'
 {
-  "vaults": [
-    {"name": "main", "path": "~/Obsidian/main-vault", "is_default": true},
-    {"name": "work", "path": "~/Obsidian/work-vault", "is_default": false},
-    {"name": "archive", "path": "~/Obsidian/archive", "is_default": false}
-  ],
-  "vault_path": "~/Obsidian/main-vault",
+  "vaults": {
+    "amoxtli": {
+      "path": "~/Obsidian/amoxtli",
+      "model": "all-mpnet-base-v2",
+      "default_profile": "default"
+    },
+    "1002": {
+      "path": "~/Obsidian/1002",
+      "model": "all-MiniLM-L6-v2",
+      "default_profile": "deep"
+    },
+    "work": {
+      "path": "~/Obsidian/work-vault",
+      "model": "all-mpnet-base-v2",
+      "default_profile": "repos"
+    }
+  },
+  "default_vault": "amoxtli",
   "synthesis_path": "~/projects/temoa/synthesis",
-  "storage_dir": null,
-  "default_model": "all-mpnet-base-v2",
   "server": {
     "host": "0.0.0.0",
     "port": 8080
@@ -103,28 +124,41 @@ cat > ~/.config/temoa/config.json << 'EOF'
   "search": {
     "default_limit": 10,
     "max_limit": 100,
-    "timeout": 10,
-    "time_decay": {
-      "enabled": true,
-      "half_life_days": 90,
-      "max_boost": 0.2
-    }
+    "timeout": 10
+  },
+  "chunking": {
+    "enabled": true,
+    "chunk_size": 2000,
+    "chunk_overlap": 400,
+    "chunk_threshold": 4000
   }
 }
 EOF
 ```
 
-Multi-vault support includes LRU cache (max 3 vaults in memory), independent indexes per vault (stored in `vault/.temoa/`), vault selector in web UI, and `--vault` CLI flag for all commands.
+**Multi-vault features:**
+- **LRU cache**: Max 3 vaults in memory (~1.5GB total)
+- **Independent indexes**: Each vault has `.temoa/model-name/` directory
+- **Per-vault configuration**: Model, default profile customizable per vault
+- **Vault selector**: Dropdown in web UI
+- **CLI vault flag**: `--vault` flag for all commands
+- **Fast switching**: ~400ms when cached, ~15-20s on first load
 
 ### Configuration Fields
 
 | Field | Description |
 |:------|:------------|
-| `vaults` | Array of vault configurations (optional) |
-| `vault_path` | Path to your Obsidian vault (or default vault) |
-| `storage_dir` | Leave `null` to use `vault/.temoa/` |
+| `vaults` | Dictionary of vault configurations with per-vault settings (optional) |
+| `default_vault` | Which vault to use by default (multi-vault only) |
+| `vault_path` | Path to your Obsidian vault (single-vault setup) |
+| `storage_dir` | Leave `null` to use `vault/.temoa/model-name/` |
 | `server.port` | Change if 8080 already in use |
+| `search.default_profile` | Default search profile ("default", "repos", "recent", "deep", "keywords") |
 | `search.time_decay` | Time-aware scoring configuration (boosts recent documents) |
+| `chunking.enabled` | Enable adaptive chunking for large files (recommended: true) |
+| `chunking.chunk_size` | Chunk size in characters (default: 2000) |
+| `chunking.chunk_overlap` | Overlap between chunks to prevent boundary misses (default: 400) |
+| `chunking.chunk_threshold` | Minimum file size to trigger chunking (default: 4000) |
 
 Use `~` for home directory in paths (auto-expanded).
 
@@ -138,7 +172,7 @@ Use `~` for home directory in paths (auto-expanded).
 temoa index
 ```
 
-The indexing process scans the vault for all markdown files, downloads the sentence-transformer model (first time only, then cached), generates embeddings for all files, and stores them in the `vault/.temoa/model-name/` directory with file tracking.
+The indexing process scans the vault for all markdown files, downloads the sentence-transformer model (first time only, then cached), generates embeddings for all files (splitting large files into chunks if chunking enabled), and stores them in the `vault/.temoa/model-name/` directory with file tracking.
 
 Expected output:
 ```
@@ -146,23 +180,44 @@ Building index for: /Users/you/Obsidian/vault
 Indexing vault...
 ✓ Index built successfully
 Files indexed: 3,059
+Chunks created: 8,755 (from 2,006 files with chunking enabled)
 Model: all-mpnet-base-v2
 ```
 
 First index takes 2-3 minutes. After that, use `temoa reindex` which is 30x faster (only processes changed files).
 
+**Adaptive Chunking (Phase 3.5.2)**:
+
+```bash
+# Enable chunking during indexing (recommended)
+temoa index --enable-chunking
+
+# Or configure in config.json (chunking.enabled = true)
+```
+
+**IMPORTANT**: `--enable-chunking` is an **indexing-time setting only**. Once indexed with chunking:
+- Searches work normally (no special flag needed)
+- Chunk deduplication happens automatically (keeps best chunk per file)
+- You don't need to "remember" the index was chunked
+
+**What chunking does**:
+- Files >= 4,000 chars: Split into 2,000-char chunks with 400-char overlap
+- Files < 4,000 chars: Indexed as-is (no chunking)
+- Result: 100% content searchability (vs ~35% for large files without chunking)
+
 **Multi-vault indexing**:
 ```bash
 # Index specific vault
-temoa index --vault work
+temoa index --vault work --enable-chunking
 
-# Each vault gets independent index at vault/.temoa/
+# Each vault gets independent index at vault/.temoa/model-name/
 ```
 
 **Troubleshooting**:
 - "No config file found" → Create config (see above)
 - "Vault path does not exist" → Fix `vault_path` in config
 - Takes >2 minutes → Normal for large vaults (>1000 files)
+- Chunking adds 2.5-3x indexing time (acceptable for 100% coverage)
 
 ---
 
@@ -325,6 +380,7 @@ curl http://localhost:8080/health | jq .
 
 ### Search Test
 
+**Basic search**:
 ```bash
 curl "http://localhost:8080/search?q=obsidian&limit=3" | jq '.results[] | {title, score: .similarity_score}'
 ```
@@ -338,6 +394,31 @@ curl "http://localhost:8080/search?q=obsidian&limit=3" | jq '.results[] | {title
   },
   ...
 ]
+```
+
+**Search with profile** (Phase 3.5.1):
+```bash
+# Repos profile (optimized for GitHub repos/tech docs)
+curl "http://localhost:8080/search?q=obsidian&profile=repos&limit=3" | jq '.results[] | {title, score: .similarity_score}'
+
+# Deep profile (optimized for long-form content)
+curl "http://localhost:8080/search?q=narrative&profile=deep&limit=3" | jq '.results[] | {title, score: .similarity_score}'
+```
+
+**List available profiles**:
+```bash
+curl http://localhost:8080/profiles | jq .
+```
+
+**Expected**:
+```json
+{
+  "default": "Balanced search (50/50 hybrid, all features)",
+  "repos": "GitHub repos and tech docs (70% BM25, metadata boost)",
+  "recent": "Recent work (7-day half-life, 90-day cutoff)",
+  "deep": "Long-form content (80% semantic, 3 chunks/file)",
+  "keywords": "Exact keyword matching (80% BM25, fast)"
+}
 ```
 
 ### Statistics
@@ -460,7 +541,7 @@ Open mobile browser: `http://100.85.23.42:8080` (use your IP)
 3. Name: "Vault Search"
 4. Tap "Add"
 
-Now you have a home screen icon! 📱
+Now you have a home screen icon for quick access!
 
 ---
 
@@ -701,12 +782,13 @@ Installing as a PWA provides one-tap access from your home screen, launches with
 ## References
 
 - **[README.md](../README.md)**: Quick start guide
-- **[ARCHITECTURE.md](ARCHITECTURE.md)**: System architecture
-- **[IMPLEMENTATION.md](IMPLEMENTATION.md)**: Phase 2.5 details
-- **[CHRONICLES.md](CHRONICLES.md)**: Design decisions
+- **[ARCHITECTURE.md](ARCHITECTURE.md)**: System architecture (updated for Phase 3.5)
+- **[SEARCH-MECHANISMS.md](SEARCH-MECHANISMS.md)**: Search algorithms and profiles
+- **[IMPLEMENTATION.md](IMPLEMENTATION.md)**: Implementation plan and progress
+- **[CONTEXT.md](CONTEXT.md)**: Current project status
 
 ---
 
 **Created**: 2025-11-19
-**Last Updated**: 2025-12-03
+**Last Updated**: 2026-01-04
 **Version**: 0.6.0
