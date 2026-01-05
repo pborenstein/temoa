@@ -6,10 +6,10 @@
 
 **Project**: Temoa - Local Semantic Search Server for Obsidian Vault
 **Created**: 2025-11-18
-**Status**: Phase 3 ✅ COMPLETE → Phase 3.5 🔵 IN PROGRESS
+**Status**: Phase 3.5 (Profiles & Chunking) ✅ COMPLETE → Ready for Next Phase
 **Last Updated**: 2026-01-04
-**Current Version**: 0.6.0 → 0.7.0 (in development)
-**Current Branch**: `phase-3.5-search-modes`
+**Current Version**: 0.7.0
+**Current Branch**: `main`
 **Estimated Timeline**: 4-6 weeks for Phases 0-2, ongoing for Phases 3-4
 
 ---
@@ -230,8 +230,8 @@ See: chronicles/production-hardening.md (Entries 33-44)
 
 ### Next Session Start Here
 
-**Current Branch**: `phase-3.5-search-modes`
-**Current Focus**: Ready for Phase 3.5.3 - Metadata Boosting
+**Current Branch**: `main`
+**Current Focus**: Phase 3.5 (Profiles & Chunking) complete - Ready for next phase or refinements
 
 **Recent Work**:
 
