@@ -22,6 +22,21 @@ Comprehensive reviews conducted at end of Phase 2.5 (2025-11-23):
 
 **Note**: These three reviews were consolidated into `PHASE-3-READY.md` (parent directory).
 
+### `QoL-improvements/`
+Quality of Life improvements implementation (2025-12-30 to 2026-01-02):
+
+- **PLAN.md** - Five-phase QoL improvement plan (completed, squash merged to phase-3.5-search-modes)
+- **before-*.png** - Screenshots of UI before improvements (3 images)
+
+**Implemented features**:
+- Content-first search results layout
+- Profile selector dropdown in UI
+- Enhanced management page (gleaning stats, advanced stats, model selector)
+- Mobile-optimized UX (collapsible results, keyboard shortcuts)
+- PWA manifest for installable web app
+
+**Status**: All phases complete, merged to main branch
+
 ### `original-planning/`
 Initial project planning documents:
 
@@ -57,4 +72,4 @@ Keep active when:
 ---
 
 **Archive Created**: 2025-11-24
-**Last Updated**: 2025-11-24
+**Last Updated**: 2026-01-04

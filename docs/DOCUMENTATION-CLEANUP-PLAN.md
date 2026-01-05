@@ -31,7 +31,7 @@ Recent work (Phase 3.5.1, 3.5.2, QoL Phases 1-5) added significant new features 
 |----------|-------------|--------|-------|
 | **CONTEXT.md** | 2026-01-02 | ✅ CURRENT | Just updated in session wrap-up |
 | **IMPLEMENTATION.md** | 2026-01-02 | ✅ CURRENT | Just updated in session wrap-up |
-| **DOCUMENTATION-GUIDE.md** | 2025-12-14 | ✅ CURRENT | Guides session workflows, adequate |
+| ~~**DOCUMENTATION-GUIDE.md**~~ | ~~2025-12-14~~ | 🗑️ DELETED | Session workflows now handled by plinth plugin |
 
 ### Chronicles (Session Notes)
 
@@ -215,7 +215,7 @@ docs/QoL-improvements/ → docs/archive/QoL-improvements/
    - Update navigation
 
 5. ✅ **Commit all changes**
-   - `docs: update ARCHITECTURE.md for Phase 3.5 and QoL features`
+   - `docs: comprehensive cleanup - update ARCHITECTURE.md, archive QoL, remove DOCUMENTATION-GUIDE.md`
 
 ---
 
@@ -248,6 +248,11 @@ docs/QoL-improvements/ → docs/archive/QoL-improvements/
    - PLAN.md
    - 3 screenshot PNGs
 
+### Deletions
+
+6. **docs/DOCUMENTATION-GUIDE.md** (already deleted, needs commit)
+   - Session workflows now handled by plinth plugin
+
 ---
 
 ## Success Criteria
@@ -273,6 +278,10 @@ After cleanup:
 - Chronicles files - Historical records, don't modify except to add new entries
 - CONTEXT.md - Just updated in session wrap-up
 - IMPLEMENTATION.md - Just updated in session wrap-up
+
+**Already removed**:
+
+- DOCUMENTATION-GUIDE.md - Deleted (session workflows now handled by plinth plugin)
 
 **Philosophy**:
 

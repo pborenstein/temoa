@@ -2,7 +2,7 @@
 
 > **Navigation guide** for all documentation in this directory.
 
-**Last Updated**: 2025-12-14
+**Last Updated**: 2026-01-04
 
 ---
 
@@ -34,10 +34,12 @@ Living documents tracking implementation progress and decisions.
 
 | Document | Purpose | Audience |
 |----------|---------|----------|
-| [DOCUMENTATION-GUIDE.md](DOCUMENTATION-GUIDE.md) | **How documentation works** - structure, session workflows, governance | Contributors, LLMs |
+| [CONTEXT.md](CONTEXT.md) | Current project status and session context | Everyone |
 | [IMPLEMENTATION.md](IMPLEMENTATION.md) | Master progress tracker across all phases (current phase detailed) | Everyone |
 | [DECISIONS.md](DECISIONS.md) | Architectural decision registry (DEC-001+) with governance process | Developers, Contributors, LLMs |
 | [CHRONICLES.md](CHRONICLES.md) | Design discussions and historical context (links to decisions) | Developers, Future maintainers |
+
+**Note**: Session workflows (pick-up/wrap-up) are now managed by the plinth plugin (`/session-wrapup` command).
 
 ---
 
@@ -78,9 +80,9 @@ Session notes with detailed implementation decisions:
 - Gleanings bugs → Entries 9, 10, 12 (phase-2-gleanings.md, phase-2.5-deployment.md)
 
 **If you're continuing development**, check:
-- CONTEXT.md for current session state
-- IMPLEMENTATION.md for current phase status
-- Latest chronicle file for recent work
+- CONTEXT.md for current session state and active tasks
+- IMPLEMENTATION.md for Phase 3.5 status (profiles, chunking, QoL complete)
+- Latest chronicle file (phase-3.5-specialized-search.md) for recent work
 
 ---
 
@@ -93,6 +95,7 @@ Session notes with detailed implementation decisions:
 
 **Historical Documents** (`docs/archive/`):
 - Completed implementation plans (moved after phase completion)
+- QoL improvements (archived 2026-01-04 - all phases complete)
 - Research notes (e.g., copilot-learnings.md)
 - Superseded plans
 
@@ -110,11 +113,11 @@ Session notes with detailed implementation decisions:
 
 **Understand how search works**: Read [SEARCH-MECHANISMS.md](SEARCH-MECHANISMS.md)
 
-**Understand system architecture**: Read [ARCHITECTURE.md](ARCHITECTURE.md)
+**Understand system architecture**: Read [ARCHITECTURE.md](ARCHITECTURE.md) (updated for Phase 3.5)
 
-**Understand how documentation works**: Read [DOCUMENTATION-GUIDE.md](DOCUMENTATION-GUIDE.md) for structure, session workflows, and governance
+**See current project status**: Check [CONTEXT.md](CONTEXT.md) for active tasks and session state
 
-**See current progress**: Check [IMPLEMENTATION.md](IMPLEMENTATION.md) current phase section
+**See current progress**: Check [IMPLEMENTATION.md](IMPLEMENTATION.md) for Phase 3.5 status
 
 **Look up a design decision**: Search [DECISIONS.md](DECISIONS.md) for quick reference, or read [CHRONICLES.md](CHRONICLES.md) for full context
 
@@ -122,7 +125,7 @@ Session notes with detailed implementation decisions:
 
 **Extract gleanings from daily notes**: Read [GLEANINGS.md](GLEANINGS.md)
 
-**Start a new session**: Read [DOCUMENTATION-GUIDE.md](DOCUMENTATION-GUIDE.md) section "Session Pick-Up Process"
+**Start a new session**: Use `/session-pickup` command (plinth plugin)
 
 ---
 
