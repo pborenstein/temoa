@@ -400,14 +400,14 @@ Temoa supports multiple vaults with independent indexes and LRU caching for effi
 ┌─────────────────────────────────────────────────────────────┐
 │                    Client Cache (LRU)                       │
 │                                                             │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
-│  │ Vault: amoxtli│ │ Vault: 1002  │ │ Vault: test  │      │
-│  ├──────────────┤  ├──────────────┤  ├──────────────┤      │
-│  │ Bi-encoder   │  │ Bi-encoder   │  │ Bi-encoder   │      │
-│  │ Cross-encoder│  │ Cross-encoder│  │ Cross-encoder│      │
-│  │ BM25 index   │  │ BM25 index   │  │ BM25 index   │      │
-│  │ Embeddings   │  │ Embeddings   │  │ Embeddings   │      │
-│  └──────────────┘  └──────────────┘  └──────────────┘      │
+│  ┌────────────────┐  ┌──────────────┐  ┌──────────────┐     │
+│  │ Vault: amoxtli │  │ Vault: 1002  │  │ Vault: test  │     │
+│  ├────────────────┤  ├──────────────┤  ├──────────────┤     │
+│  │ Bi-encoder     │  │ Bi-encoder   │  │ Bi-encoder   │     │
+│  │ Cross-encoder. │  │ Cross-encoder│  │ Cross-encoder│     │
+│  │ BM25 index     │  │ BM25 index   │  │ BM25 index   │     │
+│  │ Embeddings     │  │ Embeddings   │  │ Embeddings   │     │
+│  └────────────────┘  └──────────────┘  └──────────────┘     │
 │       ~500MB           ~500MB           ~500MB              │
 │                                                             │
 │  Max 3 vaults cached (LRU eviction)                         │
@@ -636,9 +636,9 @@ See [SEARCH-MECHANISMS.md](SEARCH-MECHANISMS.md) for detailed technical referenc
 **Added in Phase 2.5**: Results can be filtered by document type using frontmatter metadata.
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│ Type Filtering (Applied After Search)                          │
-└─────────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────┐
+│ Type Filtering (Applied After Search)                      │
+└────────────────────────────────────────────────────────────┘
 
 1. Search Returns Results (with cached frontmatter)
    ┌─────────────────────────────────────────────────────────┐
