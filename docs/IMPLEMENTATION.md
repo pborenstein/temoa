@@ -117,19 +117,37 @@ See: chronicles/phase-2.5-deployment.md (Entries 11-19)
 See: chronicles/phase-3-implementation.md (Entries 20-32)
 
 ---
-## Production Hardening ✅
+## Production Hardening 🔵
 
-**Status**: COMPLETE (2025-12-30)
+**Status**: IN PROGRESS (2025-12-06 onwards)
 
-**Part 1: Infrastructure & Critical Fixes** - Vault format agnostic support (plain text files), critical bug fixes (pipeline order, path traversal, query expansion), Unicode sanitization
+**Part 1: Infrastructure & Critical Fixes** - ✅ COMPLETE
+- Vault format agnostic support (plain text files)
+- Critical bug fixes (pipeline order, path traversal, query expansion)
+- Unicode sanitization
 
-**Part 2: Deployment** - macOS launchd service management (auto-start, auto-restart, port 4001)
+**Part 2: Deployment** - ✅ COMPLETE
+- macOS launchd service management (auto-start, auto-restart, port 8080)
 
-**Part 3: Search Quality** - Frontmatter-aware search (BM25 tag boosting with 5x multiplier, 100% success for tag queries), description field integration
+**Part 3: Search Quality** - ✅ COMPLETE
+- Frontmatter-aware search (BM25 tag boosting with 5x multiplier, 100% success for tag queries)
+- Description field integration
 
-**Part 4: Gleaning Enhancement** - URL normalization system (GitHub cleanup, emoji removal), GitHub API enrichment (7 metadata fields, 259 repos enriched)
+**Part 4: Gleaning Enhancement** - ✅ COMPLETE
+- URL normalization system (GitHub cleanup, emoji removal)
+- GitHub API enrichment (7 metadata fields, 259 repos enriched)
 
-See: chronicles/production-hardening.md (Entries 33-44)
+**Part 5: Code Quality & Refinement** - 🔵 IN PROGRESS
+- [x] Comprehensive code review (2026-01-05) - 20 issues identified
+- [x] Production hardening roadmap created (6 phases, 25-30 hours estimated)
+- [ ] Phase 0: Testing Infrastructure (edge cases, unicode, performance benchmarks)
+- [ ] Phase 1: Low-Risk Simplifications (dead code removal, DRY fixes)
+- [ ] Phase 2: Performance Optimizations (file I/O hot path, tag matching, memory leak)
+- [ ] Phase 3: Error Handling (specific exceptions, philosophy documentation)
+- [ ] Phase 4: Security Hardening (CORS, rate limiting, path validation)
+- [ ] Phase 6: Documentation (SECURITY.md, TESTING.md, architecture updates)
+
+See: chronicles/production-hardening.md (Entries 33-46), docs/PRODUCTION-HARDENING-ROADMAP.md
 
 ---
 

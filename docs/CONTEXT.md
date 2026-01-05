@@ -1,9 +1,9 @@
 ---
-phase: "Meta"
-phase_name: "Knowledge Archaeology & Documentation"
+phase: "Production Hardening"
+phase_name: "Code Quality & Planning"
 updated: 2026-01-05
-last_commit: 343c2e8
-last_entry: "N/A (knowledge archaeology session)"
+last_commit: b0d53e5
+last_entry: 46
 branch: main
 ---
 
@@ -11,29 +11,29 @@ branch: main
 
 ## Current Focus
 
-Knowledge archaeology session: Created KNOWLEDGE-ARCHAEOLOGY.md (meta-Temoa pattern) and TEMOA-ORIGINS.md (complete chronicle from Synthesis through scope evolution). Cleaned up vestigial files.
+Comprehensive code review completed. Created PRODUCTION-HARDENING-ROADMAP.md with 6-phase plan to address 20 findings (security, performance, error handling, simplifications).
 
 ## Active Tasks
 
-- [x] Remove vestigial files (.session, launchd.backup, *.backup)
-- [x] Add backup patterns to .gitignore
-- [x] Create KNOWLEDGE-ARCHAEOLOGY.md (Temoa solving same problem at multiple scales)
-- [x] Create TEMOA-ORIGINS.md (complete arc from Synthesis to full vault search)
-- [x] Document scope evolution: gleanings → full vault search with metadata filtering
+- [x] Perform thorough code review (20 issues identified)
+- [x] Create production hardening roadmap document
+- [x] Organize fixes by risk level and dependencies (Phases 0-6)
+- [ ] User review and approval of roadmap
+- [ ] Begin Phase 0: Testing Infrastructure (if approved)
 
 ## Blockers
 
-None
+None - awaiting user decision on roadmap approach
 
 ## Context
 
-- Knowledge archaeology documents preserve project evolution thinking
-- KNOWLEDGE-ARCHAEOLOGY.md: Pattern of surfacing accumulated knowledge at 3 scales
-- TEMOA-ORIGINS.md: Complete story from Synthesis foundation through scope pivots
-- Key insight: "Gleanings were justification, vault search was actual product"
-- Scope evolution: Nov 17 (entire vault) → Nov 22 (type filtering) → Dec (books/articles)
-- Ready to try meta-Temoa: Index project docs with Temoa itself
+- Code review grade: B+ (solid foundation, refactoring opportunities)
+- Critical issues: bare exceptions (20+), CORS wildcard, file I/O in hot path
+- 6-phase plan: Testing → Simplifications → Performance → Error Handling → Security → Docs
+- Estimated timeline: 25-30 hours for Phases 0-4 + 6 (skip optional Phase 5)
+- Some items already fixed: path traversal, Unicode sanitization, pipeline order
+- Roadmap minimizes risk to daily operations (can deploy after each phase)
 
 ## Next Session
 
-Consider indexing Temoa docs as vault for searching development decisions/chronicles. Regular development: Phase 3.5.3 (metadata boosting) or Phase 4 (LLM).
+Review PRODUCTION-HARDENING-ROADMAP.md with user. Decide whether to start Phase 0 (testing) or return to feature development (Phase 3.5.3 metadata boosting or Phase 4 LLM).

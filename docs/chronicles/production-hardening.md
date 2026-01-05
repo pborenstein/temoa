@@ -2073,3 +2073,146 @@ github_readme_excerpt: "A simple terminal UI for git commands..."
 **Files modified**:
 - `docs/GLEANINGS.md` (+68 lines) - GitHub enrichment section
 - `docs/IMPLEMENTATION.md` (+6 lines, -5 lines) - Backfill results
+
+---
+
+## Entry 46: Comprehensive Code Review and Production Hardening Roadmap (2026-01-05)
+
+**Context**: After completing Phase 3.5 (profiles and chunking) and initial production hardening, performed comprehensive code review to identify remaining quality, security, and performance issues.
+
+### The Code Review
+
+**Approach**: Reviewed ~4,700 lines of production code as if seeing it for the first time, focusing on:
+- Code simplicity and over-engineering
+- Potential bugs and edge cases
+- Security concerns (injection, path traversal, CORS)
+- Performance bottlenecks
+- Error handling comprehensiveness
+- Testing gaps
+- Documentation accuracy
+
+**Grade**: B+ (solid foundation, refactoring opportunities)
+
+### Key Findings (20 Issues)
+
+**Critical (HIGH severity)**:
+1. Bare exception catching (20+ instances) - could mask KeyboardInterrupt, MemoryError
+2. Path traversal vulnerability (server.py:401) - ✅ Already fixed (Entry 41)
+3. Race condition in cache invalidation (concurrent reindex)
+4. File I/O in hot path (filter_inactive_gleanings reads every result file)
+
+**Performance**:
+5. Quadratic tag matching (O(N²) substring comparisons)
+6. Memory leak in hybrid search (large arrays not released)
+7. Unnecessary file I/O duplicating frontmatter reads
+
+**Security**:
+8. CORS allows all origins (allow_origins=["*"])
+9. No rate limiting (vulnerable to DoS)
+10. Path traversal protection (already fixed, needs tests)
+
+**Simplification**:
+11. Dead code: metadata_boost defined but never used
+12. Over-engineered profiles (14 params, many unimplemented)
+13. Redundant config properties (just forwarding to dict)
+14. Duplicate frontmatter parsing (2 identical blocks)
+
+**Testing Gaps**:
+15. No edge case tests (cache eviction, concurrent ops, malformed frontmatter)
+16. No unicode sanitization tests
+17. Missing path traversal tests
+18. No performance benchmarks
+
+**Documentation Mismatches**:
+19. Chunking default claim (docs say enabled, config defaults to False)
+20. Metadata boost extensively documented but never used
+
+### The Solution: Phased Roadmap
+
+**Created**: `docs/PRODUCTION-HARDENING-ROADMAP.md` (674 lines)
+
+**6-Phase Plan** (25-30 hours estimated):
+
+**Phase 0: Testing Infrastructure** (4-6 hours, ZERO risk)
+- 35+ edge case tests
+- Unicode sanitization tests
+- Performance benchmarks
+- Establishes baseline before refactoring
+
+**Phase 1: Low-Risk Simplifications** (3-4 hours, LOW risk)
+- Remove metadata_boost dead code
+- Extract duplicate frontmatter parsing
+- Limit gleaning history growth
+- Optional: simplify config properties
+
+**Phase 2: Performance Optimizations** (4-6 hours, LOW-MEDIUM risk)
+- Fix file I/O in hot path (500-1000ms improvement)
+- Optimize tag matching (O(N²) → O(N))
+- Fix memory leak in hybrid search
+
+**Phase 3: Error Handling** (6-8 hours, MEDIUM risk)
+- Replace 20+ bare exceptions with specific types
+- Document error handling philosophy
+- Better observability
+
+**Phase 4: Security Hardening** (4-6 hours, MEDIUM-HIGH risk)
+- Fix CORS configuration (localhost by default)
+- Add rate limiting (prevent DoS)
+- Verify path traversal protection
+
+**Phase 5: Architecture Improvements** (8-12 hours, OPTIONAL)
+- Abstract Synthesis coupling
+- Simplify search profiles
+- Add cache locking
+- User decision needed - defer or skip
+
+**Phase 6: Documentation** (3-4 hours, ZERO risk)
+- SECURITY.md, TESTING.md
+- Update ARCHITECTURE.md, CLAUDE.md
+
+### Design Principles
+
+**Risk-based ordering**: Safest changes first (testing), riskiest last (security)
+
+**Independent deployment**: Can ship after each phase
+
+**Minimal disruption**: Daily searches keep working throughout
+
+**Clear success criteria**: Each task has specific checkboxes
+
+### Open Questions for User
+
+1. Config properties - keep for IDE support or simplify?
+2. CORS defaults - localhost only OK? (might break Tailscale)
+3. Rate limit values - too aggressive? too lenient?
+4. Synthesis coupling - worth abstracting?
+5. Search profiles - simplify or implement missing features?
+6. Cache locking - add for safety?
+
+### Already Complete
+
+Some fixes already done in previous entries:
+- ✅ Path traversal validation (Entry 41, commit 26e20c6)
+- ✅ Query expansion error handling (Entry 41)
+- ✅ Pipeline order fix (Entry 41)
+- ✅ Unicode sanitization (Entry 35, commit 03d3468)
+
+Just need verification, tests, and documentation.
+
+---
+
+**Entry created**: 2026-01-05
+**Author**: Claude (Sonnet 4.5)
+**Type**: Code Review + Planning
+**Impact**: HIGH - Systematic plan to address all code quality issues
+**Duration**: ~6 hours (review + roadmap creation + documentation)
+**Branch**: `main`
+
+**Files created**:
+- `docs/PRODUCTION-HARDENING-ROADMAP.md` (674 lines) - Complete 6-phase plan
+
+**Files modified**:
+- `docs/CONTEXT.md` - Updated to reflect code review session
+- `docs/IMPLEMENTATION.md` - Added Part 5: Code Quality & Refinement section
+
+**Next**: User reviews roadmap, decides whether to start Phase 0 or return to feature development
