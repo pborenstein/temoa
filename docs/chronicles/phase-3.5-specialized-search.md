@@ -1148,3 +1148,26 @@ Semantic: 0.177 | BM25: 18.047  ✅ Real similarity!
 - Created: `docs/DOCUMENTATION-CLEANUP-PLAN.md` (comprehensive cleanup plan)
 - Modified: `docs/CONTEXT.md` (updated for cleanup planning status)
 
+
+---
+
+## Entry 10: Documentation Cleanup Complete (2026-01-04)
+
+**What**: Updated ARCHITECTURE.md and DEPLOYMENT.md to reflect Phase 3.5 and QoL features. Archived completed QoL planning materials. Updated documentation navigation.
+
+**Why**: ARCHITECTURE.md and DEPLOYMENT.md were last updated Dec 18/Dec 13 - pre-Phase 3.5. Missing search profiles, adaptive chunking, multi-vault details, 9 new API endpoints, and QoL improvements. Documentation cleanup plan (Entry 9) identified what needed updating.
+
+**How**:
+- ARCHITECTURE.md: Added sections for Search Profiles, Adaptive Chunking, Multi-Vault Support. Updated API endpoints (22 total, grouped by function, link to /docs). Updated Request Flow diagram.
+- DEPLOYMENT.md: Updated config format with profiles and chunking. Added critical chunking clarification: --enable-chunking is indexing-time only, searches work automatically.
+- Archived docs/QoL-improvements/ → docs/archive/QoL-improvements/ (5 phases complete, squash merged)
+- Updated docs/README.md: Removed DOCUMENTATION-GUIDE.md (handled by plinth plugin), added CONTEXT.md, updated navigation
+- Removed emoji from DEPLOYMENT.md (Pluto-friendly house rules)
+
+**Key Files**:
+- Commits: 7f498aa (ARCHITECTURE), 9975e0b (DEPLOYMENT), 61c2dfb (archive + navigation)
+- Updated: docs/ARCHITECTURE.md, docs/DEPLOYMENT.md, docs/README.md, docs/archive/README.md
+- Archived: docs/QoL-improvements/ (PLAN.md + 3 screenshots)
+- Deleted: docs/DOCUMENTATION-GUIDE.md (workflows in plinth plugin)
+
+**Status**: All Phase 3.5 documentation current. Ready for Phase 3.5.3 (Metadata Boosting).

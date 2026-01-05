@@ -7,7 +7,7 @@
 **Project**: Temoa - Local Semantic Search Server for Obsidian Vault
 **Created**: 2025-11-18
 **Status**: Phase 3 ✅ COMPLETE → Phase 3.5 🔵 IN PROGRESS
-**Last Updated**: 2025-12-30
+**Last Updated**: 2026-01-04
 **Current Version**: 0.6.0 → 0.7.0 (in development)
 **Current Branch**: `phase-3.5-search-modes`
 **Estimated Timeline**: 4-6 weeks for Phases 0-2, ongoing for Phases 3-4
@@ -233,7 +233,17 @@ See: chronicles/production-hardening.md (Entries 33-44)
 **Current Branch**: `phase-3.5-search-modes`
 **Current Focus**: Ready for Phase 3.5.3 - Metadata Boosting
 
-**Recent Work** (2026-01-02):
+**Recent Work**:
+
+*2026-01-04*: Documentation cleanup
+- ✅ Updated ARCHITECTURE.md for Phase 3.5 (profiles, chunking, multi-vault, 22 API endpoints)
+- ✅ Updated DEPLOYMENT.md for Phase 3.5 (config format, chunking clarification)
+- ✅ Archived QoL materials to docs/archive/QoL-improvements/
+- ✅ Updated docs navigation (README.md, archive README)
+- ✅ Removed DOCUMENTATION-GUIDE.md (session workflows now in plinth plugin)
+- Commits: 7f498aa, 9975e0b, 61c2dfb
+
+*2026-01-02*:
 - ✅ Completed all QoL improvements (Phases 1-5)
 - ✅ Mobile testing validated (iOS/Android working well)
 - ✅ Squash merged qol-detour → phase-3.5-search-modes
