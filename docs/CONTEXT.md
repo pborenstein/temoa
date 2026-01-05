@@ -1,9 +1,9 @@
 ---
-phase: 3.5
-phase_name: "Specialized Search Modes"
-updated: 2026-01-04
-last_commit: e4eedb4
-last_entry: "Entry 10 (phase-3.5)"
+phase: "Meta"
+phase_name: "Knowledge Archaeology & Documentation"
+updated: 2026-01-05
+last_commit: 343c2e8
+last_entry: "N/A (knowledge archaeology session)"
 branch: main
 ---
 
@@ -11,16 +11,15 @@ branch: main
 
 ## Current Focus
 
-Phase 3.5 (Search Profiles & Adaptive Chunking) complete and merged to main. Documentation current. Ready for next phase or refinements.
+Knowledge archaeology session: Created KNOWLEDGE-ARCHAEOLOGY.md (meta-Temoa pattern) and TEMOA-ORIGINS.md (complete chronicle from Synthesis through scope evolution). Cleaned up vestigial files.
 
 ## Active Tasks
 
-- [x] Phase 3.5.1: Search Profiles (5 built-in profiles)
-- [x] Phase 3.5.2: Adaptive Chunking (100% content searchability)
-- [x] QoL improvements (5 phases, web UI feature parity)
-- [x] Documentation cleanup and updates
-- [x] Merge to main
-- [ ] Decide next: Phase 3.5.3 (Metadata Boosting), Phase 4 (LLM), or refinements
+- [x] Remove vestigial files (.session, launchd.backup, *.backup)
+- [x] Add backup patterns to .gitignore
+- [x] Create KNOWLEDGE-ARCHAEOLOGY.md (Temoa solving same problem at multiple scales)
+- [x] Create TEMOA-ORIGINS.md (complete arc from Synthesis to full vault search)
+- [x] Document scope evolution: gleanings → full vault search with metadata filtering
 
 ## Blockers
 
@@ -28,13 +27,13 @@ None
 
 ## Context
 
-- Phase 3.5 complete: Profiles + chunking + QoL improvements all shipped
-- Merged phase-3.5-search-modes → main (fast-forward, e4eedb4)
-- Version: 0.7.0
-- All documentation current (ARCHITECTURE, DEPLOYMENT, SEARCH-MECHANISMS updated)
-- Original Phase 3.5 plan had 6 sub-phases, completed 2 + QoL improvements
-- Remaining sub-phases optional: Metadata boosting, profile recommendation, UI updates, docs
+- Knowledge archaeology documents preserve project evolution thinking
+- KNOWLEDGE-ARCHAEOLOGY.md: Pattern of surfacing accumulated knowledge at 3 scales
+- TEMOA-ORIGINS.md: Complete story from Synthesis foundation through scope pivots
+- Key insight: "Gleanings were justification, vault search was actual product"
+- Scope evolution: Nov 17 (entire vault) → Nov 22 (type filtering) → Dec (books/articles)
+- Ready to try meta-Temoa: Index project docs with Temoa itself
 
 ## Next Session
 
-Decide direction: Continue Phase 3.5 (metadata boosting), start Phase 4 (Vault-First LLM), or focus on refinements/polish.
+Consider indexing Temoa docs as vault for searching development decisions/chronicles. Regular development: Phase 3.5.3 (metadata boosting) or Phase 4 (LLM).
