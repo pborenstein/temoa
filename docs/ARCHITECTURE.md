@@ -3,8 +3,8 @@
 > **Purpose**: This document explains the technical architecture of Temoa, how components interact, and how semantic search with embeddings works.
 
 **Created**: 2025-11-22
-**Last Updated**: 2025-12-18
-**Status**: Phase 3 Complete (Multi-stage Search Pipeline, token limits documented)
+**Last Updated**: 2026-01-04
+**Status**: Phase 3.5 Complete (Search Profiles, Adaptive Chunking, QoL Improvements)
 
 ---
 
@@ -12,10 +12,13 @@
 
 1. [High-Level Architecture](#high-level-architecture)
 2. [How Embeddings Work](#how-embeddings-work)
-3. [Request Flow](#request-flow)
-4. [Storage Architecture](#storage-architecture)
-5. [Component Details](#component-details)
-6. [Deployment Model](#deployment-model)
+3. [Search Profiles](#search-profiles)
+4. [Adaptive Chunking](#adaptive-chunking)
+5. [Multi-Vault Support](#multi-vault-support)
+6. [Request Flow](#request-flow)
+7. [Storage Architecture](#storage-architecture)
+8. [Component Details](#component-details)
+9. [Deployment Model](#deployment-model)
 
 ---
 
@@ -255,76 +258,230 @@ Where:
 
 **Current Default**: `all-MiniLM-L6-v2` (good balance for mobile use)
 
-### Token Limits and Document Truncation
+### Token Limits
 
-**Critical Limitation** (discovered December 2025):
+**Important**: All sentence-transformer models have maximum sequence lengths (typically 512 tokens ≈ 2,500 characters).
 
-All sentence-transformer models have maximum sequence lengths:
+| Model | Max Tokens | Max Chars (approx) |
+|-------|------------|--------------------|
+| `all-mpnet-base-v2` | 512 | ~2,000-2,500 |
+| `all-MiniLM-L6-v2` (default) | 512 | ~2,000-2,500 |
+| `all-MiniLM-L12-v2` | 512 | ~2,000-2,500 |
+| `paraphrase-albert-small-v2` | 100 | ~400 |
 
-| Model | Max Tokens | Max Chars (approx) | Coverage on 9MB File |
-|-------|------------|-------------------|---------------------|
-| `all-mpnet-base-v2` | 512 | ~2,000-2,500 | 0.027% |
-| `all-MiniLM-L6-v2` (default) | 512 | ~2,000-2,500 | 0.027% |
-| `all-MiniLM-L12-v2` | 512 | ~2,000-2,500 | 0.027% |
-| `paraphrase-albert-small-v2` | 100 | ~400 | 0.004% |
+**Solution**: Temoa uses adaptive chunking for large files (see [Adaptive Chunking](#adaptive-chunking) section above), ensuring 100% content searchability regardless of file size.
 
-**Token estimation**: ~1 token per 3-4 characters (English text)
+---
 
-**What happens to large files**:
-1. Synthesis reads full file content (up to 9MB+)
-2. Prepends frontmatter description (if present)
-3. Cleans markdown formatting
-4. Sends entire text to sentence-transformers
-5. **Model silently truncates** at token limit (512 tokens)
-6. Only first ~2,500 characters are embedded
-7. **No warning or error message**
+## Search Profiles
 
-**Impact on search coverage** (indexed content - daily notes excluded by default):
+**Added in Phase 3.5.1** (December 2025)
 
-| File Size | Searchable | Example Content Type |
-|-----------|------------|---------------------|
-| < 2,500 chars | 100% | Gleanings (type=gleaning), short notes |
-| 2,500-5,000 | ~50% | Medium articles, writering |
-| 5,000-10,000 | ~25% | Long articles, reference docs |
-| 100KB+ | < 1% | Essays, short stories (type=story) |
-| 1MB+ | < 0.1% | Books, anthologies (type=story) |
-| 9MB | 0.027% | Complete works (type=story) |
+Search profiles provide optimized search configurations for different content types and use cases. Instead of manually tuning parameters for each search, profiles automatically configure the search pipeline.
 
-**Note**: Daily notes (type=daily) are excluded via `exclude_types=daily` by default and are not indexed.
+**Built-in Profiles:**
 
-**Query behavior**:
-- Matches in first 2,500 chars: ✅ FOUND
-- Matches after char 2,500: ❌ MISSED
-- Embedding biased toward document beginning
-
-**Real example** (1002 vault with Project Gutenberg books):
 ```
-File: 3254.md
-Size: 9,153,615 bytes (9.1MB)
-Content: John Galsworthy's complete works
-Model limit: 512 tokens (~2,500 chars)
-Indexed: 0.027% of content
-Lost: 99.973% of content
-
-Search: "Forsyte Saga Chapter 45"
-Result: ❌ NOT FOUND (Chapter 45 is past char 2,500)
+┌─────────────┬──────────────────────────────────────────────────┐
+│ default     │ Balanced (50/50 hybrid, all features enabled)    │
+│ repos       │ Tech docs (70% BM25, metadata boost, no chunking)│
+│ recent      │ Recent work (7-day half-life, 90-day cutoff)     │
+│ deep        │ Long content (80% semantic, 3 chunks/file)       │
+│ keywords    │ Exact match (80% BM25, fast, no fuzzy matching)  │
+└─────────────┴──────────────────────────────────────────────────┘
 ```
 
-**Chunking Support** (Phase 4):
+**How Profiles Work:**
 
-**Status**: Approved via DEC-085, implementation deferred
+Each profile configures multiple search parameters automatically:
+- Hybrid weight (BM25 vs semantic balance)
+- BM25 boost multiplier (tag emphasis)
+- Chunking settings (enabled/disabled, chunks per file)
+- Cross-encoder re-ranking (on/off)
+- Time decay (half-life, cutoff)
+- Type filtering (include/exclude patterns)
 
-**Strategy**: Adaptive chunking
-- Files < 4,000 chars: No chunking (current behavior)
-- Files ≥ 4,000 chars: Split into 2,000-char chunks with 400-char overlap
+**Usage:**
+```
+API:  GET /search?q=obsidian&profile=repos
+CLI:  temoa search "obsidian plugin" --profile repos
+List: temoa profiles  (or GET /profiles)
+```
 
-**Expected impact**:
-- Search coverage: 100% (vs current 35% for large files)
-- Index size: +3-4x (acceptable - disk space is cheap)
-- Indexing time: +2.5-3x (acceptable - indexing is infrequent)
-- Search latency: No change (400ms)
+**Custom Profiles:**
 
-**See**: docs/chronicles/production-hardening.md Entry 40 for full analysis and trade-offs.
+Add to `config.json`:
+```json
+{
+  "search_profiles": {
+    "myprofile": {
+      "description": "Custom search config",
+      "hybrid_weight": 0.6,
+      "bm25_boost": 2.5,
+      "enable_chunking": true
+    }
+  }
+}
+```
+
+**See**: [SEARCH-MECHANISMS.md](SEARCH-MECHANISMS.md#search-profiles) for detailed profile configurations and parameter reference.
+
+---
+
+## Adaptive Chunking
+
+**Status**: IMPLEMENTED (Phase 3.5.2, December 2025)
+
+Adaptive chunking solves the 512-token embedding limit by splitting large files into overlapping chunks, ensuring full content searchability.
+
+**The Problem:**
+
+All embedding models have token limits (typically 512 tokens ≈ 2,500 characters). Before chunking:
+- Files >2,500 chars: Only first 2,500 chars searchable
+- 9MB book: 0.027% coverage (99.973% missed)
+- Matches after char 2,500: ❌ NOT FOUND
+
+**The Solution:**
+
+Files ≥ 4,000 characters are automatically split:
+- **Chunk size**: 2,000 characters
+- **Overlap**: 400 characters (prevents boundary misses)
+- **Deduplication**: Best-scoring chunk per file (prevents duplicate results)
+- **Sliding window**: Full content coverage
+
+**Impact:**
+
+```
+Before Chunking:
+  2,006 files → 2,006 searchable items (35% content coverage)
+
+After Chunking:
+  2,006 files → 8,755 searchable chunks (100% content coverage)
+
+Search latency: No change (400ms - deduplication removes duplicates)
+Index size: +3-4x (acceptable - disk space is cheap)
+Indexing time: +2.5-3x (acceptable - indexing is infrequent)
+```
+
+**Configuration:**
+
+Per-profile setting:
+```json
+{
+  "enable_chunking": true,
+  "chunk_size": 2000,
+  "chunk_overlap": 400,
+  "chunk_threshold": 4000
+}
+```
+
+CLI flag:
+```bash
+temoa index --enable-chunking
+```
+
+**Profile Defaults:**
+- `default`, `deep`: Chunking enabled
+- `repos`, `keywords`, `recent`: Chunking disabled (short content)
+
+**See**: [SEARCH-MECHANISMS.md](SEARCH-MECHANISMS.md#adaptive-chunking) for technical implementation details.
+
+---
+
+## Multi-Vault Support
+
+**Added in Phase 3** (December 2025)
+
+Temoa supports multiple vaults with independent indexes and LRU caching for efficient memory usage.
+
+**Architecture:**
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Client Cache (LRU)                       │
+│                                                             │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
+│  │ Vault: amoxtli│ │ Vault: 1002  │ │ Vault: test  │      │
+│  ├──────────────┤  ├──────────────┤  ├──────────────┤      │
+│  │ Bi-encoder   │  │ Bi-encoder   │  │ Bi-encoder   │      │
+│  │ Cross-encoder│  │ Cross-encoder│  │ Cross-encoder│      │
+│  │ BM25 index   │  │ BM25 index   │  │ BM25 index   │      │
+│  │ Embeddings   │  │ Embeddings   │  │ Embeddings   │      │
+│  └──────────────┘  └──────────────┘  └──────────────┘      │
+│       ~500MB           ~500MB           ~500MB              │
+│                                                             │
+│  Max 3 vaults cached (LRU eviction)                         │
+│  Total memory: ~1.5GB                                       │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Key Features:**
+
+1. **Independent Indexes**: Each vault has its own `.temoa/model-name/` directory
+2. **LRU Cache**: Max 3 vaults in memory (~1.5GB total)
+3. **Fast Switching**: ~400ms when cached, ~15-20s on first load
+4. **Per-Vault Configuration**: Model selection, chunking settings, profiles
+5. **Vault Validation**: Prevents index corruption from wrong vault
+
+**Storage Layout:**
+
+```
+~/Obsidian/amoxtli/
+  └── .temoa/
+      ├── all-mpnet-base-v2/      ← Model-specific indexes
+      │   ├── embeddings.pkl
+      │   ├── bm25_index.pkl
+      │   └── frontmatter_cache.pkl
+      └── config.json              ← Vault-local config
+
+~/Obsidian/1002/
+  └── .temoa/
+      └── all-MiniLM-L6-v2/        ← Different model OK
+          ├── embeddings.pkl
+          └── ...
+```
+
+**Configuration:**
+
+Global config (`~/.config/temoa/config.json`):
+```json
+{
+  "vaults": {
+    "amoxtli": {
+      "path": "~/Obsidian/amoxtli",
+      "model": "all-mpnet-base-v2",
+      "default_profile": "default"
+    },
+    "1002": {
+      "path": "~/Obsidian/1002",
+      "model": "all-MiniLM-L6-v2",
+      "default_profile": "deep"
+    }
+  },
+  "default_vault": "amoxtli"
+}
+```
+
+**Usage:**
+
+```bash
+# CLI vault selection
+temoa search "query" --vault amoxtli
+temoa index --vault 1002
+
+# API vault selection
+GET /search?q=query&vault=amoxtli
+
+# Web UI: Vault dropdown selector
+```
+
+**Performance:**
+
+```
+Cache Hit (vault already loaded):  ~400ms search
+Cache Miss (load new vault):       ~15-20s + search
+Cache Eviction (4th vault):        LRU removes oldest
+```
 
 ---
 
@@ -344,14 +501,24 @@ Temoa uses a sophisticated multi-stage pipeline for high-precision search:
 ┌─────────────────────────────────────────────────────────────────┐
 │ 2. HTTP Request                                                 │
 └─────────────────────────────────────────────────────────────────┘
-    GET http://100.x.x.x:8080/search?q=AI&limit=10
-        &rerank=true&expand_query=true&time_boost=true
+    GET http://100.x.x.x:8080/search?q=AI&limit=10&profile=default
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │ 3. FastAPI Endpoint (src/temoa/server.py)                       │
 └─────────────────────────────────────────────────────────────────┘
-    Six-stage pipeline:
+    ╔═══════════════════════════════════════════════════════════╗
+    ║ STAGE -1: Profile Application (if specified)              ║
+    ╚═══════════════════════════════════════════════════════════╝
+    Profile: "default" → Configure pipeline:
+       - hybrid_weight: 0.5 (50/50 BM25/semantic)
+       - enable_chunking: true
+       - rerank: true
+       - time_boost: true
+    Time: <1ms
+                              │
+                              ▼
+    Multi-stage search pipeline:
                               │
                               ▼
     ╔═══════════════════════════════════════════════════════════╗
@@ -368,8 +535,17 @@ Temoa uses a sophisticated multi-stage pipeline for high-precision search:
     ╚═══════════════════════════════════════════════════════════╝
     Method: Semantic OR Hybrid (BM25 + semantic with RRF)
        ↓ Synthesis Engine (all-mpnet-base-v2)
-    Returns: Top 100 candidates
+       ↓ Searches chunked content (if chunking enabled)
+    Returns: Top 100 candidates (from 8,755 chunks)
     Time: ~400ms
+                              │
+                              ▼
+    ╔═══════════════════════════════════════════════════════════╗
+    ║ STAGE 1.5: Chunk Deduplication (if chunking enabled)      ║
+    ╚═══════════════════════════════════════════════════════════╝
+    Keep only best-scoring chunk per file
+    Prevents duplicate results from same document
+    Time: <5ms
                               │
                               ▼
     ╔═══════════════════════════════════════════════════════════╗
@@ -445,6 +621,8 @@ Total Time:
 ```
 
 **Key Improvements Over Simple Search**:
+- **Search profiles**: Automatic parameter optimization per content type
+- **Adaptive chunking**: 100% content searchability (vs 35% before)
 - **Query expansion**: Handles short, ambiguous queries better
 - **Cross-encoder re-ranking**: 20-30% precision improvement
 - **Time-aware scoring**: Recent documents surface naturally
@@ -764,17 +942,49 @@ Key Responsibilities:
 │ 6. CORS headers (for browser access)                    │
 └─────────────────────────────────────────────────────────┘
 
-Endpoints:
-┌────────────────────┬─────────────────────────────────────┐
-│ GET  /search       │ Semantic search with type filtering │
-│ GET  /archaeology  │ Temporal analysis of topics         │
-│ GET  /stats        │ Vault statistics                    │
-│ POST /reindex      │ Rebuild embedding index             │
-│ POST /extract      │ Extract gleanings from daily notes  │
-│ GET  /health       │ Server health check                 │
-│ GET  /             │ Serve web UI (search.html)          │
-│ GET  /docs         │ OpenAPI documentation               │
-└────────────────────┴─────────────────────────────────────┘
+API Endpoints (grouped by function):
+
+Core Search & Discovery:
+┌────────────────────┬──────────────────────────────────────┐
+│ GET  /search       │ Semantic/hybrid search with profiles │
+│ GET  /archaeology  │ Temporal analysis of topics          │
+│ GET  /profiles     │ List available search profiles       │
+└────────────────────┴──────────────────────────────────────┘
+
+Vault Management:
+┌────────────────────┬──────────────────────────────────────┐
+│ GET  /vaults       │ List configured vaults               │
+│ GET  /stats        │ Basic vault statistics               │
+│ GET  /stats/advanced│ Extended vault statistics           │
+│ GET  /config       │ Vault configuration (chunking, model)│
+│ GET  /models       │ List available embedding models      │
+│ POST /reindex      │ Rebuild embedding index              │
+└────────────────────┴──────────────────────────────────────┘
+
+Gleaning Management:
+┌─────────────────────────────────┬───────────────────────┐
+│ POST /extract                   │ Extract from daily    │
+│ GET  /gleanings                 │ List with filters     │
+│ GET  /gleanings/{id}            │ Get single gleaning   │
+│ POST /gleanings/{id}/status     │ Update status         │
+│ GET  /gleaning/stats            │ Counts by status      │
+└─────────────────────────────────┴───────────────────────┘
+
+UI & PWA:
+┌────────────────────┬──────────────────────────────────────┐
+│ GET  /             │ Main search UI (search.html)         │
+│ GET  /manage       │ Management UI (reindex, extract)     │
+│ GET  /manifest.json│ PWA manifest                         │
+│ GET  /health       │ Server health check                  │
+└────────────────────┴──────────────────────────────────────┘
+
+Documentation:
+┌────────────────────┬──────────────────────────────────────┐
+│ GET  /docs         │ Interactive API reference (Swagger)  │
+└────────────────────┴──────────────────────────────────────┘
+
+For complete API documentation with request/response schemas,
+parameters, and interactive testing, visit: http://SERVER:8080/docs
 
 Search Query Parameters:
 ┌────────────────────┬─────────────────────────────────────┐
@@ -1145,22 +1355,27 @@ Costs:
 - Cache invalidation complexity
 ```
 
-### PWA Support (Phase 3)
+### PWA Support
 
-Progressive Web App for mobile:
+**Status**: IMPLEMENTED (Phase 3.5 QoL)
+
+Progressive Web App features for mobile:
 
 ```
 ┌─────────────────────────────────────────────────────────┐
 │ manifest.json:                                          │
-│   - Install to home screen                              │
-│   - Offline fallback                                    │
-│   - App-like experience                                 │
+│   [DONE] Install to home screen                         │
+│   [DONE] App icons and branding                         │
+│   [DONE] Standalone display mode                        │
 │                                                         │
-│ Service Worker:                                         │
-│   - Cache UI assets                                     │
-│   - Background sync                                     │
+│ Service Worker: (future)                                │
+│   [FUTURE] Cache UI assets                              │
+│   [FUTURE] Background sync                              │
+│   [FUTURE] Offline fallback                             │
 └─────────────────────────────────────────────────────────┘
 ```
+
+Current implementation allows installing Temoa as a standalone app on iOS/Android with app-like experience. Full offline support planned for future enhancement.
 
 ### LLM Integration (Phase 4)
 
