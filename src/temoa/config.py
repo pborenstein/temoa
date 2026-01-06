@@ -3,10 +3,7 @@ import json
 from pathlib import Path
 from typing import Dict, Any, Optional, List
 
-
-class ConfigError(Exception):
-    """Configuration error"""
-    pass
+from .exceptions import ConfigError
 
 
 class Config:

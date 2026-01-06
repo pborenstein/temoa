@@ -18,7 +18,8 @@
 6. [Request Flow](#request-flow)
 7. [Storage Architecture](#storage-architecture)
 8. [Component Details](#component-details)
-9. [Deployment Model](#deployment-model)
+9. [Error Handling Philosophy](#error-handling-philosophy)
+10. [Deployment Model](#deployment-model)
 
 ---
 
@@ -1118,6 +1119,143 @@ Status Management:
 │ inactive  Dead link, excluded from search, auto-restore │
 │ hidden    Manually hidden, never auto-restored          │
 └─────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Error Handling Philosophy
+
+### Fail-Open vs Fail-Closed
+
+Temoa uses different error handling strategies depending on the operation's criticality and impact on user experience.
+
+**Fail-Open** (include on error, continue gracefully):
+- **Search result filtering** - Better to show too much than miss relevant results
+  - If frontmatter can't be parsed → include the file in results
+  - If status can't be determined → treat as "active"
+  - Example: `filter_by_type()` catches file read errors and includes files
+- **Optional metadata** - Missing data doesn't prevent core functionality
+  - Missing description → use empty string
+  - Missing tags → use empty list
+  - Missing dates → omit from display
+- **Search enhancements** - Quality features shouldn't break basic search
+  - Query expansion fails → continue with original query
+  - Re-ranking fails → use original ordering
+  - Time scoring fails → no temporal boost
+- **Snippet extraction** - Better to show basic info than fail completely
+  - Can't extract context → show title only
+  - Encoding errors → show file path
+
+**Fail-Closed** (reject on error, prevent corruption):
+- **Authentication/authorization** - Deny access on error (future feature)
+- **Data modification** - Reject rather than corrupt
+  - Gleaning extraction fails → report error, don't create invalid file
+  - Reindex with errors → abort and preserve old index
+- **Security validation** - Path traversal → reject immediately
+  - File path outside vault → skip file, log warning
+  - Malicious relative paths → validate and reject
+- **Critical operations** - System integrity over availability
+  - Server initialization fails → don't start server
+  - Model loading fails → don't accept requests
+  - Config errors → don't start with defaults
+
+### Exception Types
+
+Temoa uses specific exception types (defined in `src/temoa/exceptions.py`) instead of bare `except Exception`:
+
+```python
+class TemoaError(Exception):
+    """Base exception for all Temoa errors"""
+
+class VaultReadError(TemoaError):
+    """Error reading vault files"""
+
+class SearchError(TemoaError):
+    """Error during search operation"""
+
+class IndexError(TemoaError):
+    """Error during indexing"""
+
+class ConfigError(TemoaError):
+    """Configuration error"""
+
+class GleaningError(TemoaError):
+    """Error during gleaning operations"""
+```
+
+**Guidelines**:
+
+1. **Catch specific exceptions first**:
+   ```python
+   try:
+       content = file.read()
+   except (FileNotFoundError, OSError, UnicodeDecodeError) as e:
+       logger.debug(f"Expected error: {e}")
+       # Handle gracefully
+   except Exception as e:
+       logger.error(f"Unexpected error: {e}", exc_info=True)
+       # Re-raise or handle conservatively
+   ```
+
+2. **Never catch system exceptions**:
+   - `KeyboardInterrupt` - User wants to stop the process
+   - `SystemExit` - Process is exiting
+   - `MemoryError` - System is out of memory
+
+3. **Log appropriately**:
+   - `logger.debug()` - Expected errors in fail-open scenarios
+   - `logger.warning()` - Recoverable errors that shouldn't happen
+   - `logger.error()` - Unexpected errors, use `exc_info=True` for traceback
+
+4. **HTTP endpoints**: FastAPI handles most errors
+   - Catch all exceptions in endpoints and return HTTP 500
+   - FastAPI handles `KeyboardInterrupt` at application level
+   - Always log unexpected errors with full traceback
+
+### Exception Handling Patterns
+
+**Pattern 1: Fail-Open for Optional Features**
+```python
+try:
+    metadata, _ = parse_file(file_path)
+    types = parse_type_field(metadata or {})
+except (FileNotFoundError, OSError, UnicodeDecodeError, ValueError) as e:
+    # Expected failures - fail-open
+    logger.debug(f"Error reading frontmatter: {e}")
+    types = []
+except Exception as e:
+    # Unexpected error - log but still fail-open
+    logger.warning(f"Unexpected error: {e}")
+    types = []
+```
+
+**Pattern 2: Fail-Closed for Critical Operations**
+```python
+try:
+    self.pipeline = EmbeddingPipeline(vault_root, model_name)
+except (ImportError, RuntimeError, IOError, OSError) as e:
+    # Expected failures - re-raise
+    raise SynthesisError(f"Failed to initialize: {e}")
+except Exception as e:
+    # Unexpected error - log and re-raise
+    logger.error(f"Unexpected error: {e}", exc_info=True)
+    raise SynthesisError(f"Failed to initialize: {e}")
+```
+
+**Pattern 3: HTTP Endpoint Error Handling**
+```python
+@app.get("/search")
+async def search_endpoint():
+    try:
+        # ... search logic ...
+        return results
+    except SynthesisError as e:
+        # Expected search failure
+        raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e:
+        # Unexpected error
+        logger.error(f"Unexpected error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
 ```
 
 ---

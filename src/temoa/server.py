@@ -139,8 +139,13 @@ async def lifespan(app: FastAPI):
         logger.info(f"  Server: http://{config.server_host}:{config.server_port}")
         logger.info("=" * 60)
 
-    except Exception as e:
+    except (ConfigError, SynthesisError, IOError, OSError, ImportError, RuntimeError) as e:
+        # Expected initialization failures - log and re-raise
         logger.error(f"Failed to initialize server: {e}")
+        raise
+    except Exception as e:
+        # Unexpected initialization error - log with traceback and re-raise
+        logger.error(f"Unexpected error during server initialization: {e}", exc_info=True)
         raise
 
     yield
@@ -300,8 +305,13 @@ def filter_by_type(
                 from nahuatl_frontmatter import parse_file
                 metadata, _ = parse_file(file_path)
                 types = parse_type_field(metadata or {})
-            except Exception as e:
+            except (FileNotFoundError, OSError, UnicodeDecodeError, ValueError) as e:
+                # Fail-open: include file even if frontmatter can't be read
                 logger.debug(f"Error reading frontmatter for {file_path}: {e}")
+                types = []
+            except Exception as e:
+                # Unexpected error - log as warning but still fail-open
+                logger.warning(f"Unexpected error reading frontmatter for {file_path}: {e}")
                 types = []
 
         # Infer type if not explicitly set:
@@ -773,8 +783,13 @@ async def search(
                 except SynthesisError as e:
                     logger.warning(f"Initial search for expansion failed: {e}, proceeding with original query")
                     # Continue with original query
-                except Exception as e:
+                except (ValueError, IndexError, KeyError) as e:
+                    # Expected failures in query expansion (empty results, TF-IDF errors, etc.)
                     logger.warning(f"Query expansion failed: {e}, proceeding with original query")
+                    # Continue with original query
+                except Exception as e:
+                    # Unexpected error - log as error but still fail-open
+                    logger.error(f"Unexpected error during query expansion: {e}", exc_info=True)
                     # Continue with original query
 
         # Perform search (request more results to account for filtering)
@@ -1285,8 +1300,14 @@ async def extract_gleanings(
                 client_cache.invalidate(vault_path, config.default_model)
                 result["reindexed"] = True
                 result["files_indexed"] = reindex_result.get("files_indexed", 0)
-            except Exception as e:
+            except (SynthesisError, IOError, OSError) as e:
+                # Expected failures during reindex - extraction still succeeded
                 logger.warning(f"Auto-reindex failed: {e}")
+                result["reindexed"] = False
+                result["reindex_error"] = str(e)
+            except Exception as e:
+                # Unexpected error - log but don't fail extraction
+                logger.error(f"Unexpected error during auto-reindex: {e}", exc_info=True)
                 result["reindexed"] = False
                 result["reindex_error"] = str(e)
         else:

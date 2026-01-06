@@ -14,6 +14,7 @@ from typing import Dict, Any, List, Optional
 from urllib.parse import quote
 
 from .bm25_index import BM25Index, reciprocal_rank_fusion
+from .exceptions import SearchError
 
 logger = logging.getLogger(__name__)
 
@@ -209,7 +210,7 @@ def deduplicate_chunks(
     return deduplicated
 
 
-class SynthesisError(Exception):
+class SynthesisError(SearchError):
     """Synthesis operation failed"""
     pass
 
@@ -293,7 +294,12 @@ class SynthesisClient:
                 model_name=model
             )
             logger.info(f"✓ Model '{model}' loaded into memory")
+        except (ImportError, RuntimeError, IOError, OSError) as e:
+            # Expected failures during model initialization
+            raise SynthesisError(f"Failed to initialize Synthesis pipeline: {e}")
         except Exception as e:
+            # Unexpected error - log with traceback and re-raise
+            logger.error(f"Unexpected error initializing pipeline: {e}", exc_info=True)
             raise SynthesisError(f"Failed to initialize Synthesis pipeline: {e}")
 
         # Initialize temporal archaeologist (for archaeology queries)
