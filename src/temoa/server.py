@@ -12,7 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from .__version__ import __version__
 from .config import Config, ConfigError
 from .synthesis import SynthesisClient, SynthesisError
-from .gleanings import parse_frontmatter_status, GleaningStatusManager, scan_gleaning_files
+from .gleanings import GleaningStatusManager, scan_gleaning_files
 from .client_cache import ClientCache
 from .reranker import CrossEncoderReranker
 from .query_expansion import QueryExpander
@@ -227,31 +227,25 @@ def filter_inactive_gleanings(results: list) -> list:
     filtered = []
 
     for result in results:
-        # Get file path from result
-        file_path = result.get("file_path")
-        if not file_path:
-            # If no file_path, include result (not a gleaning)
-            filtered.append(result)
-            continue
+        # Try to get status from cached frontmatter in results first (no file I/O!)
+        frontmatter_data = result.get("frontmatter")
 
-        try:
-            # Read file to check status
-            with open(file_path, "r", encoding="utf-8") as f:
-                content = f.read()
+        if frontmatter_data is not None:
+            # Use cached frontmatter from Synthesis results
+            status = frontmatter_data.get("status", "active")
 
-            status = parse_frontmatter_status(content)
-
-            # If no status found or status is active, include result
-            if status is None or status == "active":
-                filtered.append(result)
             # If status is inactive or hidden, skip this result
-            elif status in ("inactive", "hidden"):
+            if status in ("inactive", "hidden"):
                 logger.debug(f"Filtered out {status} gleaning: {result.get('title', 'Unknown')}")
                 continue
 
-        except Exception as e:
-            # If we can't read file, include it anyway (fail open)
-            logger.warning(f"Error checking status for {file_path}: {e}")
+            # Status is active or not specified, include result
+            filtered.append(result)
+        else:
+            # No frontmatter in results - this shouldn't happen often
+            # since Synthesis includes frontmatter, but handle gracefully
+            # by including the result (fail open)
+            logger.debug(f"No frontmatter in result for {result.get('title', 'Unknown')}, including")
             filtered.append(result)
 
     return filtered
