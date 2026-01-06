@@ -19,6 +19,10 @@ from typing import Literal, Optional
 
 GleaningStatus = Literal["active", "inactive", "hidden"]
 
+# Maximum number of history entries to keep per gleaning
+# Prevents unbounded growth in gleaning_status.json
+MAX_HISTORY = 100
+
 
 class GleaningStatusManager:
     """Manages gleaning status (active/inactive)."""
@@ -106,6 +110,9 @@ class GleaningStatusManager:
             "reason": reason,
         })
 
+        # Limit history size to prevent unbounded growth
+        record["history"] = record["history"][-MAX_HISTORY:]
+
         data[gleaning_id] = record
         self._save_status_data(data)
 
@@ -185,6 +192,37 @@ class GleaningStatusManager:
             return None
 
 
+def extract_frontmatter(content: str) -> Optional[str]:
+    """
+    Extract raw frontmatter string from markdown content.
+
+    This helper function extracts the YAML frontmatter block from markdown
+    files. Frontmatter must start with '---\\n' and end with '\\n---\\n'.
+
+    Args:
+        content: Markdown content potentially with frontmatter
+
+    Returns:
+        Frontmatter string without delimiters, or None if not found
+
+    Examples:
+        >>> content = "---\\ntitle: Test\\n---\\nBody"
+        >>> extract_frontmatter(content)
+        'title: Test'
+
+        >>> extract_frontmatter("No frontmatter here")
+        None
+    """
+    if not content.startswith("---\n"):
+        return None
+
+    end_idx = content.find("\n---\n", 4)
+    if end_idx == -1:
+        return None
+
+    return content[4:end_idx]
+
+
 def parse_frontmatter_status(content: str) -> Optional[GleaningStatus]:
     """
     Parse status from markdown file frontmatter.
@@ -195,14 +233,9 @@ def parse_frontmatter_status(content: str) -> Optional[GleaningStatus]:
     Returns:
         "active", "inactive", or None if no status found
     """
-    if not content.startswith("---\n"):
+    frontmatter = extract_frontmatter(content)
+    if frontmatter is None:
         return None
-
-    end_idx = content.find("\n---\n", 4)
-    if end_idx == -1:
-        return None
-
-    frontmatter = content[4:end_idx]
 
     for line in frontmatter.split("\n"):
         if line.startswith("status:"):
@@ -268,15 +301,10 @@ def scan_gleaning_files(
             with open(file_path, "r", encoding="utf-8") as f:
                 content = f.read()
 
-            # Parse frontmatter
-            if not content.startswith("---\n"):
+            # Parse frontmatter using helper function
+            frontmatter = extract_frontmatter(content)
+            if frontmatter is None:
                 continue
-
-            end_idx = content.find("\n---\n", 4)
-            if end_idx == -1:
-                continue
-
-            frontmatter = content[4:end_idx]
 
             # Extract fields from frontmatter
             gleaning_data = {}
