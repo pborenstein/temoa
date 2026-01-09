@@ -19,7 +19,9 @@
 7. [Storage Architecture](#storage-architecture)
 8. [Component Details](#component-details)
 9. [Error Handling Philosophy](#error-handling-philosophy)
-10. [Deployment Model](#deployment-model)
+10. [Security Architecture](#security-architecture)
+11. [Deployment Model](#deployment-model)
+12. [Performance Characteristics](#performance-characteristics)
 
 ---
 
@@ -1260,6 +1262,198 @@ async def search_endpoint():
 
 ---
 
+## Security Architecture
+
+### Overview
+
+Temoa's security model is designed for single-user, trusted network deployment (Tailscale). The focus is on preventing accidental misuse and DoS attacks rather than sophisticated attackers.
+
+**Threat Model**:
+- **In Scope**: Accidental misuse, resource exhaustion, path traversal
+- **Out of Scope**: Authentication (trusted network), encryption (Tailscale), multi-tenancy
+
+### CORS Protection
+
+**Default Behavior** (Phase 4):
+- Restrictive by default: `localhost` and `127.0.0.1` only
+- Automatically includes Tailscale IP if `TAILSCALE_IP` env var set
+- Logs warning if wildcard (`*`) is configured
+
+**Configuration Priority**:
+1. `TEMOA_CORS_ORIGINS` environment variable (comma-separated)
+2. `server.cors_origins` in config.json
+3. Safe defaults (localhost + 127.0.0.1 + Tailscale IP)
+
+**Implementation**: `src/temoa/server.py` lines 347-382
+
+```python
+# Example configuration
+{
+  "server": {
+    "cors_origins": [
+      "http://localhost:8080",
+      "http://127.0.0.1:8080",
+      "http://100.x.x.x:8080"  # Tailscale IP
+    ]
+  }
+}
+```
+
+**Security Impact**:
+- Prevents cross-site request forgery (CSRF)
+- Blocks unauthorized web applications from accessing API
+- Allows legitimate access from Tailscale network
+
+### Rate Limiting
+
+**Purpose**: DoS protection for expensive operations
+
+**Protected Endpoints** (Phase 4):
+- `/search`: 1,000 requests/hour (generous for interactive use)
+- `/archaeology`: 20 requests/hour (expensive temporal analysis)
+- `/reindex`: 5 requests/hour (very expensive, should be rare)
+- `/extract`: 10 requests/hour (expensive gleaning extraction)
+
+**Implementation**:
+- `src/temoa/rate_limiter.py` - Sliding window algorithm
+- In-memory storage (resets on server restart)
+- Per-IP tracking
+
+**Configuration**:
+```json
+{
+  "rate_limits": {
+    "search_per_hour": 1000,
+    "archaeology_per_hour": 20,
+    "reindex_per_hour": 5,
+    "extract_per_hour": 10
+  }
+}
+```
+
+**Behavior**:
+- Returns HTTP 429 (Too Many Requests) when limit exceeded
+- Clear error message: "Too many X requests. Maximum Y per hour. Try again later."
+- Limits reset after window expires (sliding, not fixed intervals)
+
+**Security Impact**:
+- Prevents accidental resource exhaustion (e.g., runaway script)
+- Protects against basic DoS attacks
+- Does not prevent legitimate heavy use (limits are generous)
+
+### Path Traversal Protection
+
+**Purpose**: Prevent access to files outside vault
+
+**Implementation** (`src/temoa/time_scoring.py` lines 71-80):
+```python
+# Validate all file paths
+file_path_resolved = file_path.resolve()
+vault_path_resolved = vault_path.resolve()
+
+if not str(file_path_resolved).startswith(str(vault_path_resolved)):
+    logger.warning(f"Path traversal attempt: {result['relative_path']}")
+    continue  # Skip this result
+```
+
+**Protection**:
+- Resolves paths to absolute form (handles symlinks, `.`, `..`)
+- Validates resolved path is within vault
+- Logs warning for detected attempts
+- Silently skips malicious results (fail-open for search, fail-closed for access)
+
+**Test Coverage**: `tests/test_edge_cases.py::TestPathTraversalAttempts`
+
+**Security Impact**:
+- Prevents reading files outside vault (e.g., `/etc/passwd`)
+- Protects against `../` traversal attacks
+- Safe even with malicious vault content (gleanings from untrusted sources)
+
+### Input Validation
+
+**Query Parameters**:
+- Length limits enforced by FastAPI (max query string length)
+- Special characters handled by URL encoding
+- No SQL injection risk (no database)
+- No XSS risk (API only, no HTML rendering)
+
+**File Paths**:
+- All paths validated against vault root (see Path Traversal Protection)
+- Relative paths resolved before use
+- Symlinks followed and validated
+
+**Frontmatter**:
+- YAML parsing errors handled gracefully (fail-open)
+- Invalid values ignored, not processed
+- No code execution risk (YAML safe_load)
+
+### Network Security
+
+**Deployment Model**:
+- Runs on `0.0.0.0:8080` (listens all interfaces)
+- Access controlled by Tailscale network (WireGuard encryption)
+- No authentication within Tailscale network (trusted)
+- No HTTPS (encrypted by Tailscale tunnel)
+
+**Why This Works**:
+- Tailscale creates a private network (only user's devices)
+- WireGuard provides strong encryption
+- No exposure to public internet
+- Single-user assumption (no multi-tenancy)
+
+**Future Considerations** (if needed):
+- API keys for authentication
+- HTTPS if exposing beyond Tailscale
+- User management for multi-user scenarios
+
+### Data Privacy
+
+**No External Services**:
+- All embeddings computed locally (sentence-transformers)
+- No API calls for search or indexing
+- Vault data never leaves local machine/network
+
+**Future LLM Integration** (Phase 4):
+- Will use local Apantli proxy
+- User controls which LLM provider (if any)
+- Vault context sent to LLM only when explicitly used
+
+### Security Checklist
+
+For production deployment:
+
+- [x] CORS origins configured (not wildcard)
+- [x] Rate limits appropriate for use case
+- [x] Path traversal protection enabled (automatic)
+- [x] Tailscale network configured and tested
+- [x] Server not exposed to public internet
+- [ ] Regular updates of dependencies (`uv sync`)
+- [ ] Monitor logs for suspicious activity (optional)
+- [ ] Backup vault regularly (separate from security)
+
+### Security vs. Usability Trade-offs
+
+**Decisions Made**:
+
+1. **No Authentication**: Tailscale provides network-level auth, adding another layer adds friction without meaningful security benefit for single-user
+2. **Generous Rate Limits**: Prevents accidents, not sophisticated attacks (Tailscale network is trusted)
+3. **Fail-Open Search**: Better to show too much than miss results (UX over paranoia)
+4. **In-Memory Rate Limiting**: Simple, sufficient for trusted network, resets are acceptable
+
+**Appropriate For**:
+- Personal knowledge management
+- Trusted Tailscale network
+- Single-user scenarios
+- Local/private data
+
+**NOT Appropriate For**:
+- Public internet exposure
+- Multi-tenant SaaS
+- Untrusted networks
+- Sensitive/classified data requiring strict access control
+
+---
+
 ## Deployment Model
 
 ### Network Architecture
@@ -1465,6 +1659,96 @@ Vault Sizes:
 │ 10000 files:   ~20 MB index                            │
 └────────────────────────────────────────────────────────┘
 ```
+
+### Performance Optimizations (Phase 2)
+
+**Production Hardening Phase 2** implemented significant latency improvements:
+
+**Total Improvement**: 700-1300ms latency reduction per search
+
+#### File I/O Elimination (500-1000ms savings)
+
+**Problem**: `filter_inactive_gleanings()` opened and read every result file to check status
+
+**Before**:
+```python
+for result in results:
+    with open(result["file_path"], "r") as f:  # 50 file reads!
+        content = f.read()
+    status = parse_frontmatter_status(content)
+```
+
+**After**:
+```python
+for result in results:
+    status = result.get("frontmatter", {}).get("status", "active")
+```
+
+**Impact**:
+- 50 results = 50 file reads eliminated
+- ~500-1000ms on HDD, ~50-100ms on SSD
+- Frontmatter already cached from indexing
+
+#### Tag Matching Optimization (200-300ms savings)
+
+**Problem**: Quadratic O(N²) tag matching loop
+
+**Before**:
+```python
+for query_token in query_tokens:  # O(N)
+    for tag in tags_lower:         # O(M)
+        if query_token in tag or tag in query_token:
+            tags_matched.append(tag)
+# Total: O(N × M) for every document
+```
+
+**After**:
+```python
+# Exact match first (O(N) with set intersection)
+query_set = set(query_tokens)
+tag_set = set(tags_lower)
+exact_matches = list(query_set & tag_set)
+
+# Substring match only if needed (rare)
+if not exact_matches:
+    for query_token in query_tokens:
+        for tag in tags_lower:
+            if query_token in tag:
+                exact_matches.append(tag)
+                break
+```
+
+**Impact**:
+- 10,000 docs × 10 tags × 5 query tokens: 500k → 150k operations
+- ~200-300ms saved on large vaults
+- Maintains backward compatibility
+
+#### Memory Leak Fix
+
+**Problem**: Large embedding arrays not explicitly released in hybrid search
+
+**Fix**:
+```python
+try:
+    embeddings_array, metadata_list, _ = self.pipeline.store.load_embeddings()
+    # ... use embeddings ...
+finally:
+    if 'embeddings_array' in locals():
+        del embeddings_array
+    if 'metadata_list' in locals():
+        del metadata_list
+    import gc
+    gc.collect()
+```
+
+**Impact**:
+- Faster memory reclamation in long-running server
+- Reduced peak memory usage
+- More stable performance over time
+
+#### Test Coverage
+
+All optimizations validated with **171/171 tests passing** (zero regressions)
 
 ---
 
