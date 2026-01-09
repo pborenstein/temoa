@@ -14,6 +14,7 @@ from typing import Dict, Any, List, Optional
 from urllib.parse import quote
 
 from .bm25_index import BM25Index, reciprocal_rank_fusion
+from .exceptions import SearchError
 
 logger = logging.getLogger(__name__)
 
@@ -209,7 +210,7 @@ def deduplicate_chunks(
     return deduplicated
 
 
-class SynthesisError(Exception):
+class SynthesisError(SearchError):
     """Synthesis operation failed"""
     pass
 
@@ -293,7 +294,12 @@ class SynthesisClient:
                 model_name=model
             )
             logger.info(f"✓ Model '{model}' loaded into memory")
+        except (ImportError, RuntimeError, IOError, OSError) as e:
+            # Expected failures during model initialization
+            raise SynthesisError(f"Failed to initialize Synthesis pipeline: {e}")
         except Exception as e:
+            # Unexpected error - log with traceback and re-raise
+            logger.error(f"Unexpected error initializing pipeline: {e}", exc_info=True)
             raise SynthesisError(f"Failed to initialize Synthesis pipeline: {e}")
 
         # Initialize temporal archaeologist (for archaeology queries)
@@ -642,47 +648,57 @@ class SynthesisClient:
             embeddings_array = None
             metadata_list = None
 
-            for result in merged_results:
-                path = result.get('relative_path')
+            try:
+                for result in merged_results:
+                    path = result.get('relative_path')
 
-                # Find this result in semantic results
-                semantic_match = next((r for r in semantic_results if r.get('relative_path') == path), None)
-                if semantic_match:
-                    result['similarity_score'] = semantic_match.get('similarity_score', 0.0)
-                else:
-                    # BM25-only result: calculate ACTUAL semantic similarity
-                    # Load embeddings on-demand if needed
-                    if query_embedding is None:
-                        query_embedding = self.pipeline.engine.embed_text(query)
-                        embeddings_array, metadata_list, _ = self.pipeline.store.load_embeddings()
-
-                    # Find this document's embedding by path
-                    if embeddings_array is not None and metadata_list is not None:
-                        doc_idx = None
-                        for idx, meta in enumerate(metadata_list):
-                            if meta.get('relative_path') == path:
-                                doc_idx = idx
-                                break
-
-                        if doc_idx is not None:
-                            # Calculate actual cosine similarity
-                            doc_embedding = embeddings_array[doc_idx]
-                            similarity = self.pipeline.engine.similarity(query_embedding, doc_embedding)
-                            result['similarity_score'] = float(similarity)
-                        else:
-                            # Document not in embeddings (shouldn't happen)
-                            result['similarity_score'] = 0.0
+                    # Find this result in semantic results
+                    semantic_match = next((r for r in semantic_results if r.get('relative_path') == path), None)
+                    if semantic_match:
+                        result['similarity_score'] = semantic_match.get('similarity_score', 0.0)
                     else:
-                        # No embeddings loaded (shouldn't happen in hybrid mode)
-                        result['similarity_score'] = 0.0
+                        # BM25-only result: calculate ACTUAL semantic similarity
+                        # Load embeddings on-demand if needed
+                        if query_embedding is None:
+                            query_embedding = self.pipeline.engine.embed_text(query)
+                            embeddings_array, metadata_list, _ = self.pipeline.store.load_embeddings()
 
-                # Find this result in BM25 results
-                bm25_match = next((r for r in bm25_results if r.get('relative_path') == path), None)
-                if bm25_match:
-                    result['bm25_score'] = bm25_match.get('bm25_score', 0.0)
-                else:
-                    # Semantic-only result: set bm25_score to 0.0
-                    result['bm25_score'] = 0.0
+                        # Find this document's embedding by path
+                        if embeddings_array is not None and metadata_list is not None:
+                            doc_idx = None
+                            for idx, meta in enumerate(metadata_list):
+                                if meta.get('relative_path') == path:
+                                    doc_idx = idx
+                                    break
+
+                            if doc_idx is not None:
+                                # Calculate actual cosine similarity
+                                doc_embedding = embeddings_array[doc_idx]
+                                similarity = self.pipeline.engine.similarity(query_embedding, doc_embedding)
+                                result['similarity_score'] = float(similarity)
+                            else:
+                                # Document not in embeddings (shouldn't happen)
+                                result['similarity_score'] = 0.0
+                        else:
+                            # No embeddings loaded (shouldn't happen in hybrid mode)
+                            result['similarity_score'] = 0.0
+
+                    # Find this result in BM25 results
+                    bm25_match = next((r for r in bm25_results if r.get('relative_path') == path), None)
+                    if bm25_match:
+                        result['bm25_score'] = bm25_match.get('bm25_score', 0.0)
+                    else:
+                        # Semantic-only result: set bm25_score to 0.0
+                        result['bm25_score'] = 0.0
+
+            finally:
+                # Explicit cleanup for large arrays to aid garbage collection
+                if embeddings_array is not None:
+                    del embeddings_array
+                if metadata_list is not None:
+                    del metadata_list
+                if query_embedding is not None:
+                    del query_embedding
 
             logger.debug(f"Hybrid search merged {len(merged_results)} results (before dedup)")
 

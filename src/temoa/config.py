@@ -3,14 +3,42 @@ import json
 from pathlib import Path
 from typing import Dict, Any, Optional, List
 
-
-class ConfigError(Exception):
-    """Configuration error"""
-    pass
+from .exceptions import ConfigError
 
 
 class Config:
-    """Application configuration loaded from config.json"""
+    """
+    Application configuration loaded from config.json.
+
+    Design Note: Property Methods
+    ------------------------------
+    This class provides property methods (e.g., vault_path, default_model) that
+    forward to the internal _config dict. While these might seem redundant, they
+    serve important purposes:
+
+    1. **IDE Support**: Properties provide autocomplete and type hints, making the
+       API more discoverable and less error-prone than dict access.
+
+    2. **Type Safety**: Properties return typed values (Path, str, int, bool)
+       instead of Any, enabling better static analysis.
+
+    3. **API Stability**: Properties provide a stable interface that can evolve
+       independently of the internal dict structure.
+
+    4. **Backward Compatibility**: Changing internal dict keys doesn't break
+       external code using properties.
+
+    5. **Documentation**: Each property has its own docstring explaining purpose,
+       whereas dict keys are just strings.
+
+    Alternative approaches considered:
+    - Direct dict access (config['key']): Loses type hints and IDE support
+    - __getitem__ method: Still returns Any type, no autocomplete
+    - Dataclass: Requires migration, breaks existing code
+
+    The small overhead of property forwarding is worth the developer experience
+    and maintainability benefits.
+    """
 
     def __init__(self, config_path: Optional[Path] = None):
         """

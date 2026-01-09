@@ -1,5 +1,6 @@
 """FastAPI server for Temoa semantic search"""
 import logging
+import os
 import sys
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -12,12 +13,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from .__version__ import __version__
 from .config import Config, ConfigError
 from .synthesis import SynthesisClient, SynthesisError
-from .gleanings import parse_frontmatter_status, GleaningStatusManager, scan_gleaning_files
+from .gleanings import GleaningStatusManager, scan_gleaning_files
 from .client_cache import ClientCache
 from .reranker import CrossEncoderReranker
 from .query_expansion import QueryExpander
 from .time_scoring import TimeAwareScorer
 from .search_profiles import get_profile, list_profiles, load_custom_profiles
+from .rate_limiter import RateLimiter
 
 # Configure logging
 logging.basicConfig(
@@ -139,8 +141,13 @@ async def lifespan(app: FastAPI):
         logger.info(f"  Server: http://{config.server_host}:{config.server_port}")
         logger.info("=" * 60)
 
-    except Exception as e:
+    except (ConfigError, SynthesisError, IOError, OSError, ImportError, RuntimeError) as e:
+        # Expected initialization failures - log and re-raise
         logger.error(f"Failed to initialize server: {e}")
+        raise
+    except Exception as e:
+        # Unexpected initialization error - log with traceback and re-raise
+        logger.error(f"Unexpected error during server initialization: {e}", exc_info=True)
         raise
 
     yield
@@ -227,31 +234,25 @@ def filter_inactive_gleanings(results: list) -> list:
     filtered = []
 
     for result in results:
-        # Get file path from result
-        file_path = result.get("file_path")
-        if not file_path:
-            # If no file_path, include result (not a gleaning)
-            filtered.append(result)
-            continue
+        # Try to get status from cached frontmatter in results first (no file I/O!)
+        frontmatter_data = result.get("frontmatter")
 
-        try:
-            # Read file to check status
-            with open(file_path, "r", encoding="utf-8") as f:
-                content = f.read()
+        if frontmatter_data is not None:
+            # Use cached frontmatter from Synthesis results
+            status = frontmatter_data.get("status", "active")
 
-            status = parse_frontmatter_status(content)
-
-            # If no status found or status is active, include result
-            if status is None or status == "active":
-                filtered.append(result)
             # If status is inactive or hidden, skip this result
-            elif status in ("inactive", "hidden"):
+            if status in ("inactive", "hidden"):
                 logger.debug(f"Filtered out {status} gleaning: {result.get('title', 'Unknown')}")
                 continue
 
-        except Exception as e:
-            # If we can't read file, include it anyway (fail open)
-            logger.warning(f"Error checking status for {file_path}: {e}")
+            # Status is active or not specified, include result
+            filtered.append(result)
+        else:
+            # No frontmatter in results - this shouldn't happen often
+            # since Synthesis includes frontmatter, but handle gracefully
+            # by including the result (fail open)
+            logger.debug(f"No frontmatter in result for {result.get('title', 'Unknown')}, including")
             filtered.append(result)
 
     return filtered
@@ -306,8 +307,13 @@ def filter_by_type(
                 from nahuatl_frontmatter import parse_file
                 metadata, _ = parse_file(file_path)
                 types = parse_type_field(metadata or {})
-            except Exception as e:
+            except (FileNotFoundError, OSError, UnicodeDecodeError, ValueError) as e:
+                # Fail-open: include file even if frontmatter can't be read
                 logger.debug(f"Error reading frontmatter for {file_path}: {e}")
+                types = []
+            except Exception as e:
+                # Unexpected error - log as warning but still fail-open
+                logger.warning(f"Unexpected error reading frontmatter for {file_path}: {e}")
                 types = []
 
         # Infer type if not explicitly set:
@@ -338,6 +344,43 @@ def filter_by_type(
     return filtered, num_filtered
 
 
+# Determine CORS allowed origins
+# Priority: 1. Environment variable, 2. Config file, 3. Safe defaults
+cors_origins_env = os.getenv("TEMOA_CORS_ORIGINS", "").strip()
+if cors_origins_env:
+    # Environment variable takes precedence (comma-separated list)
+    allowed_origins = [origin.strip() for origin in cors_origins_env.split(",") if origin.strip()]
+else:
+    # Try to load config for CORS settings, but provide defaults if not available
+    try:
+        _early_config = Config()
+        allowed_origins = _early_config._config.get("server", {}).get("cors_origins", None)
+        server_port = _early_config._config.get("server", {}).get("port", 8080)
+    except ConfigError:
+        # Config not available (e.g., during testing) - use safe defaults
+        allowed_origins = None
+        server_port = 8080
+
+    if not allowed_origins:
+        # Default: localhost only with configured port
+        allowed_origins = [
+            f"http://localhost:{server_port}",
+            f"http://127.0.0.1:{server_port}",
+        ]
+
+        # Add Tailscale IP if available
+        tailscale_ip = os.getenv("TAILSCALE_IP", "").strip()
+        if tailscale_ip:
+            allowed_origins.append(f"http://{tailscale_ip}:{server_port}")
+            logger.info(f"Added Tailscale IP to CORS origins: {tailscale_ip}")
+
+# Warn if wildcard is used
+if "*" in allowed_origins:
+    logger.warning("⚠️  CORS wildcard (*) enabled - this is insecure for production!")
+    logger.warning("   Set TEMOA_CORS_ORIGINS environment variable or server.cors_origins in config")
+
+logger.info(f"CORS allowed origins: {allowed_origins}")
+
 # Create FastAPI app
 app = FastAPI(
     title="Temoa",
@@ -348,14 +391,45 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Add CORS middleware for development
+# Add CORS middleware with restrictive defaults
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # TODO: Restrict in production
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Initialize rate limiter for DoS protection
+rate_limiter = RateLimiter()
+
+
+def get_rate_limit(endpoint: str) -> int:
+    """
+    Get rate limit for an endpoint from config or use defaults.
+
+    Args:
+        endpoint: Endpoint name (search, archaeology, reindex, extract)
+
+    Returns:
+        Rate limit (requests per hour)
+    """
+    defaults = {
+        "search": 1000,
+        "archaeology": 20,
+        "reindex": 5,
+        "extract": 10
+    }
+
+    try:
+        # Try to get from _early_config if it was loaded
+        if '_early_config' in globals():
+            rate_limits = _early_config._config.get("rate_limits", {})
+            return rate_limits.get(f"{endpoint}_per_hour", defaults[endpoint])
+    except (NameError, AttributeError, KeyError):
+        pass
+
+    return defaults[endpoint]
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -675,6 +749,16 @@ async def search(
             "model": "all-MiniLM-L6-v2"
         }
     """
+    # Rate limiting
+    client_ip = request.client.host if request.client else "unknown"
+    search_limit = get_rate_limit("search")
+
+    if not rate_limiter.check_limit(client_ip, "search", max_requests=search_limit):
+        raise HTTPException(
+            status_code=429,
+            detail=f"Too many search requests. Maximum {search_limit} per hour. Try again later."
+        )
+
     config = request.app.state.config
 
     # Load search profile
@@ -779,8 +863,13 @@ async def search(
                 except SynthesisError as e:
                     logger.warning(f"Initial search for expansion failed: {e}, proceeding with original query")
                     # Continue with original query
-                except Exception as e:
+                except (ValueError, IndexError, KeyError) as e:
+                    # Expected failures in query expansion (empty results, TF-IDF errors, etc.)
                     logger.warning(f"Query expansion failed: {e}, proceeding with original query")
+                    # Continue with original query
+                except Exception as e:
+                    # Unexpected error - log as error but still fail-open
+                    logger.error(f"Unexpected error during query expansion: {e}", exc_info=True)
                     # Continue with original query
 
         # Perform search (request more results to account for filtering)
@@ -935,6 +1024,16 @@ async def archaeology(
             "model": "all-mpnet-base-v2"
         }
     """
+    # Rate limiting
+    client_ip = request.client.host if request.client else "unknown"
+    archaeology_limit = get_rate_limit("archaeology")
+
+    if not rate_limiter.check_limit(client_ip, "archaeology", max_requests=archaeology_limit):
+        raise HTTPException(
+            status_code=429,
+            detail=f"Too many archaeology requests. Maximum {archaeology_limit} per hour. Try again later."
+        )
+
     try:
         # Get client for specified vault
         synthesis, vault_path, vault_name = get_client_for_vault(request, vault)
@@ -1119,6 +1218,16 @@ async def reindex(
             "message": "Successfully reindexed 516 files"
         }
     """
+    # Rate limiting
+    client_ip = request.client.host if request.client else "unknown"
+    reindex_limit = get_rate_limit("reindex")
+
+    if not rate_limiter.check_limit(client_ip, "reindex", max_requests=reindex_limit):
+        raise HTTPException(
+            status_code=429,
+            detail=f"Too many reindex requests. Maximum {reindex_limit} per hour. Try again later."
+        )
+
     config = request.app.state.config
     client_cache = request.app.state.client_cache
 
@@ -1205,6 +1314,16 @@ async def extract_gleanings(
             "reindexed": true
         }
     """
+    # Rate limiting
+    client_ip = request.client.host if request.client else "unknown"
+    extract_limit = get_rate_limit("extract")
+
+    if not rate_limiter.check_limit(client_ip, "extract", max_requests=extract_limit):
+        raise HTTPException(
+            status_code=429,
+            detail=f"Too many extract requests. Maximum {extract_limit} per hour. Try again later."
+        )
+
     config = request.app.state.config
     client_cache = request.app.state.client_cache
 
@@ -1291,8 +1410,14 @@ async def extract_gleanings(
                 client_cache.invalidate(vault_path, config.default_model)
                 result["reindexed"] = True
                 result["files_indexed"] = reindex_result.get("files_indexed", 0)
-            except Exception as e:
+            except (SynthesisError, IOError, OSError) as e:
+                # Expected failures during reindex - extraction still succeeded
                 logger.warning(f"Auto-reindex failed: {e}")
+                result["reindexed"] = False
+                result["reindex_error"] = str(e)
+            except Exception as e:
+                # Unexpected error - log but don't fail extraction
+                logger.error(f"Unexpected error during auto-reindex: {e}", exc_info=True)
                 result["reindexed"] = False
                 result["reindex_error"] = str(e)
         else:

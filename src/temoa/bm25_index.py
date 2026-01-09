@@ -169,11 +169,22 @@ class BM25Index:
                         tags_lower = [str(tag).lower() for tag in tags]
 
                         # Check if any query token matches a tag
-                        for query_token in query_tokens:
-                            for tag in tags_lower:
-                                if query_token in tag or tag in query_token:
-                                    tags_matched.append(tag)
-                                    break
+                        # Optimized: try exact match first (O(N)), then substring (O(N²))
+                        query_set = set(query_tokens)
+                        tag_set = set(tags_lower)
+
+                        # Exact matches (fast)
+                        exact_matches = list(query_set & tag_set)
+
+                        if exact_matches:
+                            tags_matched = exact_matches
+                        else:
+                            # Substring matching only if no exact matches (backward compatibility)
+                            for query_token in query_tokens:
+                                for tag in tags_lower:
+                                    if query_token in tag or tag in query_token:
+                                        tags_matched.append(tag)
+                                        break
 
                         # Apply boost if tags matched
                         if tags_matched:
