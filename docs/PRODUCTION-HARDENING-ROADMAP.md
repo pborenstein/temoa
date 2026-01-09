@@ -860,10 +860,10 @@ Document:
 - [x] All error paths tested (171/171 tests passing)
 
 ### Phase 4: Security
-- [ ] CORS properly configured
-- [ ] Rate limiting working
-- [ ] Path traversal protection verified
-- [ ] Security guide written
+- [x] CORS properly configured (restrictive by default, env/config overrides)
+- [x] Rate limiting working (4 endpoints protected, configurable limits)
+- [x] Path traversal protection verified (existing validation in time_scoring.py)
+- [x] Security guide written (DEPLOYMENT.md updated with comprehensive section)
 
 ### Phase 5: Architecture (Optional)
 - [ ] User approval for each task

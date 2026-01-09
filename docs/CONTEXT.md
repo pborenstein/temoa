@@ -1,8 +1,8 @@
 ---
 phase: "Production Hardening"
-phase_name: "Phase 3 Complete"
-updated: 2026-01-06
-last_commit: 5b18d5a
+phase_name: "Phase 4 Complete"
+updated: 2026-01-09
+last_commit: edb58a3
 last_entry: 46
 branch: engineering-review
 ---
@@ -11,7 +11,7 @@ branch: engineering-review
 
 ## Current Focus
 
-Completed Phase 0 (Testing), Phase 1 (Simplifications), Phase 2 (Performance), and Phase 3 (Error Handling) of production hardening roadmap. Improved observability, debugging, and error handling with zero regressions.
+Completed Phase 4 (Security Hardening) of production hardening roadmap. Implemented CORS protection, rate limiting, and verified path traversal validation. Ready for production deployment.
 
 ## Active Tasks
 
@@ -19,7 +19,8 @@ Completed Phase 0 (Testing), Phase 1 (Simplifications), Phase 2 (Performance), a
 - [x] Phase 1: Low-Risk Simplifications (config docs, frontmatter helper, history limit)
 - [x] Phase 2: Performance Optimizations (file I/O, tag matching, memory leak)
 - [x] Phase 3: Error Handling & Observability (specific exception types, fail-open/closed philosophy)
-- [ ] Choose next phase: Security (Phase 4), Architecture (Phase 5), or Documentation (Phase 6)
+- [x] Phase 4: Security Hardening (CORS config, rate limiting, path traversal validation)
+- [ ] Choose next phase: Architecture (Phase 5), Documentation (Phase 6), or production deployment
 
 ## Blockers
 
@@ -27,24 +28,17 @@ None
 
 ## Context
 
-- **Phase 0**: Added 3 test files (test_edge_cases, test_unicode, expanded test_normalizers)
-- **Phase 1**: Documented config properties, extracted extract_frontmatter() helper, limited gleaning history to 100 entries
-- **Phase 2**: Eliminated file I/O in hot path (500-1000ms), optimized tag matching O(N²)→O(N) (200-300ms), fixed memory leak
-- **Phase 3**: Created centralized exceptions module, replaced bare exceptions in 5 high-priority locations, documented error handling philosophy
-- **Test baseline**: 171/171 passing (37 known failures from edge cases, 9 skipped, 6 errors)
-- **Branch**: engineering-review (4 commits: 72bc687 Phase 0, 60660cd Phase 1, b5bbecc Phase 2, 5b18d5a Phase 3)
-- **Roadmap**: docs/PRODUCTION-HARDENING-ROADMAP.md has 6-phase plan
-- **Key improvements**:
-  - **Performance**: 700-1300ms latency reduction per search
-  - **Error handling**: Specific exception types (TemoaError, VaultReadError, SearchError, ConfigError, etc.)
-  - **Observability**: Clear fail-open vs fail-closed patterns, proper logging levels
-  - **Safety**: No more bare exceptions that could catch KeyboardInterrupt
+- **Phase 4 Complete**: CORS restrictive by default, rate limiting on 4 endpoints (1000/20/5/10 per hour), path traversal validation verified
+- **Test baseline**: 171/171 passing (zero regressions from security changes)
+- **New files**: src/temoa/rate_limiter.py (in-memory rate limiter with sliding window)
+- **Security defaults**: localhost-only CORS, configurable via env vars or config file, logs warnings for wildcards
+- **Documentation**: Updated DEPLOYMENT.md with comprehensive security section, added examples to config.example.json
+- **Branch**: engineering-review
+- **Ready for**: Production deployment with DoS protection and secure defaults
 
 ## Next Session
 
-Continue production hardening. Choose:
-- **Phase 4**: Security Hardening (CORS config, rate limiting, path validation) - Recommended
-- **Phase 5**: Architecture Improvements (optional, larger refactors)
-- **Phase 6**: Documentation & Polish (zero risk, update docs)
-
-Phase 4 recommended next (medium-high risk, 4-6 hours, production security improvements).
+Choose next phase or deploy:
+- **Deploy to production**: Phase 4 complete, all security hardening in place
+- **Phase 5**: Architecture Improvements (optional, larger refactors like Synthesis abstraction)
+- **Phase 6**: Documentation & Polish (zero risk, comprehensive docs update)

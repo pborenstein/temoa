@@ -1,5 +1,6 @@
 """FastAPI server for Temoa semantic search"""
 import logging
+import os
 import sys
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -18,6 +19,7 @@ from .reranker import CrossEncoderReranker
 from .query_expansion import QueryExpander
 from .time_scoring import TimeAwareScorer
 from .search_profiles import get_profile, list_profiles, load_custom_profiles
+from .rate_limiter import RateLimiter
 
 # Configure logging
 logging.basicConfig(
@@ -342,6 +344,43 @@ def filter_by_type(
     return filtered, num_filtered
 
 
+# Determine CORS allowed origins
+# Priority: 1. Environment variable, 2. Config file, 3. Safe defaults
+cors_origins_env = os.getenv("TEMOA_CORS_ORIGINS", "").strip()
+if cors_origins_env:
+    # Environment variable takes precedence (comma-separated list)
+    allowed_origins = [origin.strip() for origin in cors_origins_env.split(",") if origin.strip()]
+else:
+    # Try to load config for CORS settings, but provide defaults if not available
+    try:
+        _early_config = Config()
+        allowed_origins = _early_config._config.get("server", {}).get("cors_origins", None)
+        server_port = _early_config._config.get("server", {}).get("port", 8080)
+    except ConfigError:
+        # Config not available (e.g., during testing) - use safe defaults
+        allowed_origins = None
+        server_port = 8080
+
+    if not allowed_origins:
+        # Default: localhost only with configured port
+        allowed_origins = [
+            f"http://localhost:{server_port}",
+            f"http://127.0.0.1:{server_port}",
+        ]
+
+        # Add Tailscale IP if available
+        tailscale_ip = os.getenv("TAILSCALE_IP", "").strip()
+        if tailscale_ip:
+            allowed_origins.append(f"http://{tailscale_ip}:{server_port}")
+            logger.info(f"Added Tailscale IP to CORS origins: {tailscale_ip}")
+
+# Warn if wildcard is used
+if "*" in allowed_origins:
+    logger.warning("⚠️  CORS wildcard (*) enabled - this is insecure for production!")
+    logger.warning("   Set TEMOA_CORS_ORIGINS environment variable or server.cors_origins in config")
+
+logger.info(f"CORS allowed origins: {allowed_origins}")
+
 # Create FastAPI app
 app = FastAPI(
     title="Temoa",
@@ -352,14 +391,45 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Add CORS middleware for development
+# Add CORS middleware with restrictive defaults
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # TODO: Restrict in production
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Initialize rate limiter for DoS protection
+rate_limiter = RateLimiter()
+
+
+def get_rate_limit(endpoint: str) -> int:
+    """
+    Get rate limit for an endpoint from config or use defaults.
+
+    Args:
+        endpoint: Endpoint name (search, archaeology, reindex, extract)
+
+    Returns:
+        Rate limit (requests per hour)
+    """
+    defaults = {
+        "search": 1000,
+        "archaeology": 20,
+        "reindex": 5,
+        "extract": 10
+    }
+
+    try:
+        # Try to get from _early_config if it was loaded
+        if '_early_config' in globals():
+            rate_limits = _early_config._config.get("rate_limits", {})
+            return rate_limits.get(f"{endpoint}_per_hour", defaults[endpoint])
+    except (NameError, AttributeError, KeyError):
+        pass
+
+    return defaults[endpoint]
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -679,6 +749,16 @@ async def search(
             "model": "all-MiniLM-L6-v2"
         }
     """
+    # Rate limiting
+    client_ip = request.client.host if request.client else "unknown"
+    search_limit = get_rate_limit("search")
+
+    if not rate_limiter.check_limit(client_ip, "search", max_requests=search_limit):
+        raise HTTPException(
+            status_code=429,
+            detail=f"Too many search requests. Maximum {search_limit} per hour. Try again later."
+        )
+
     config = request.app.state.config
 
     # Load search profile
@@ -944,6 +1024,16 @@ async def archaeology(
             "model": "all-mpnet-base-v2"
         }
     """
+    # Rate limiting
+    client_ip = request.client.host if request.client else "unknown"
+    archaeology_limit = get_rate_limit("archaeology")
+
+    if not rate_limiter.check_limit(client_ip, "archaeology", max_requests=archaeology_limit):
+        raise HTTPException(
+            status_code=429,
+            detail=f"Too many archaeology requests. Maximum {archaeology_limit} per hour. Try again later."
+        )
+
     try:
         # Get client for specified vault
         synthesis, vault_path, vault_name = get_client_for_vault(request, vault)
@@ -1128,6 +1218,16 @@ async def reindex(
             "message": "Successfully reindexed 516 files"
         }
     """
+    # Rate limiting
+    client_ip = request.client.host if request.client else "unknown"
+    reindex_limit = get_rate_limit("reindex")
+
+    if not rate_limiter.check_limit(client_ip, "reindex", max_requests=reindex_limit):
+        raise HTTPException(
+            status_code=429,
+            detail=f"Too many reindex requests. Maximum {reindex_limit} per hour. Try again later."
+        )
+
     config = request.app.state.config
     client_cache = request.app.state.client_cache
 
@@ -1214,6 +1314,16 @@ async def extract_gleanings(
             "reindexed": true
         }
     """
+    # Rate limiting
+    client_ip = request.client.host if request.client else "unknown"
+    extract_limit = get_rate_limit("extract")
+
+    if not rate_limiter.check_limit(client_ip, "extract", max_requests=extract_limit):
+        raise HTTPException(
+            status_code=429,
+            detail=f"Too many extract requests. Maximum {extract_limit} per hour. Try again later."
+        )
+
     config = request.app.state.config
     client_cache = request.app.state.client_cache
 

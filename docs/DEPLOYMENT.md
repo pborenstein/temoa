@@ -64,7 +64,11 @@ cat > ~/.config/temoa/config.json << 'EOF'
   "default_model": "all-mpnet-base-v2",
   "server": {
     "host": "0.0.0.0",
-    "port": 8080
+    "port": 8080,
+    "cors_origins": [
+      "http://localhost:8080",
+      "http://127.0.0.1:8080"
+    ]
   },
   "search": {
     "default_limit": 10,
@@ -82,6 +86,12 @@ cat > ~/.config/temoa/config.json << 'EOF'
     "chunk_size": 2000,
     "chunk_overlap": 400,
     "chunk_threshold": 4000
+  },
+  "rate_limits": {
+    "search_per_hour": 1000,
+    "archaeology_per_hour": 20,
+    "reindex_per_hour": 5,
+    "extract_per_hour": 10
   }
 }
 EOF
@@ -90,6 +100,10 @@ EOF
 **New in Phase 3.5:**
 - `search.default_profile`: Default search profile to use ("default", "repos", "recent", "deep", "keywords")
 - `chunking`: Adaptive chunking configuration (Phase 3.5.2 - enables 100% content searchability)
+
+**New in Phase 4:**
+- `server.cors_origins`: CORS allowed origins (restrictive by default)
+- `rate_limits`: DoS protection for expensive endpoints
 
 ### Multi-Vault Configuration
 
@@ -743,19 +757,81 @@ Machines → tap server → Ping
 
 ## Security Notes
 
-**Current setup (Phase 2.5)**:
+**Current setup (Phase 4 - Security Hardening Complete)**:
 - No authentication (anyone on Tailscale network can access)
 - No HTTPS (encrypted by Tailscale/WireGuard)
 - Single-user assumption
+- ✅ **CORS protection** (restrictive by default)
+- ✅ **Rate limiting** (DoS protection for expensive endpoints)
+- ✅ **Path traversal validation** (prevents access outside vault)
 
 **This is fine for**: Personal use, trusted Tailscale network
 
 **This is NOT suitable for**: Public internet, multi-user environments
 
+### CORS Configuration
+
+**Default behavior** (Phase 4):
+- Restricts origins to `localhost` and `127.0.0.1` with configured port
+- Automatically includes Tailscale IP if `TAILSCALE_IP` environment variable is set
+- Logs warning if wildcard (`*`) is used
+
+**To configure CORS origins**:
+
+Option 1: Environment variable (recommended for Tailscale):
+```bash
+export TAILSCALE_IP="100.x.x.x"
+export TEMOA_CORS_ORIGINS="http://localhost:8080,http://100.x.x.x:8080"
+```
+
+Option 2: Configuration file (`~/.config/temoa/config.json`):
+```json
+{
+  "server": {
+    "host": "0.0.0.0",
+    "port": 8080,
+    "cors_origins": [
+      "http://localhost:8080",
+      "http://127.0.0.1:8080",
+      "http://100.x.x.x:8080"
+    ]
+  }
+}
+```
+
+### Rate Limiting
+
+**Default limits** (Phase 4):
+- `/search`: 1,000 requests per hour per IP
+- `/archaeology`: 20 requests per hour per IP
+- `/reindex`: 5 requests per hour per IP
+- `/extract`: 10 requests per hour per IP
+
+Returns HTTP 429 (Too Many Requests) when limits are exceeded.
+
+**To configure rate limits** (`~/.config/temoa/config.json`):
+```json
+{
+  "rate_limits": {
+    "search_per_hour": 1000,
+    "archaeology_per_hour": 20,
+    "reindex_per_hour": 5,
+    "extract_per_hour": 10
+  }
+}
+```
+
+### Path Traversal Protection
+
+**Automatic validation** (Phase 4):
+- All file operations validate paths are within the vault
+- Logs warnings for detected traversal attempts
+- Silently skips results outside vault boundaries
+
 **Future enhancements** (if needed):
-- API keys (Phase 3+)
-- Rate limiting (Phase 3+)
+- API keys/authentication
 - HTTPS (if exposing beyond Tailscale)
+- User management (multi-user support)
 
 ---
 
@@ -790,5 +866,5 @@ Installing as a PWA provides one-tap access from your home screen, launches with
 ---
 
 **Created**: 2025-11-19
-**Last Updated**: 2026-01-04
+**Last Updated**: 2026-01-09 (Phase 4 - Security Hardening)
 **Version**: 0.6.0
