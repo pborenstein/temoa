@@ -224,25 +224,38 @@
             visibility: visible;
         }
 
+        /* Mix row: slider (2fr) + tags (1fr) + time (1fr) */
+        .mix-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr;
+            gap: 16px;
+            align-items: end;
+        }
+
         /* Semantic/BM25 balance slider */
         .balance-slider {
-            margin-bottom: 16px;
-            padding-bottom: 16px;
-            border-bottom: 1px solid #333333;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
         }
 
         .balance-labels {
             display: flex;
             justify-content: space-between;
+            align-items: center;
             font-size: 11px;
             color: #888888;
-            margin-bottom: 6px;
         }
 
-        .balance-labels span {
+        .balance-labels > span {
             display: flex;
             align-items: center;
             gap: 4px;
+        }
+
+        .balance-value {
+            font-size: 10px;
+            color: #666666;
         }
 
         .balance-track {
@@ -284,13 +297,6 @@
             background: #e0e0e0;
             border: 2px solid #1a1a1a;
             box-shadow: 0 1px 3px rgba(0,0,0,0.4);
-        }
-
-        .balance-value {
-            text-align: center;
-            font-size: 11px;
-            color: #666666;
-            margin-top: 6px;
         }
 
         .mixer-item input[type="number"] {
@@ -626,51 +632,54 @@
                 </span>
             </h2>
 
-            <!-- Semantic/BM25 balance slider -->
-            <div class="balance-slider">
-                <div class="balance-labels">
-                    <span>
-                        Semantic
-                        <span class="tooltip-wrapper">
-                            <span class="info-icon">?</span>
-                            <span class="tooltip">Conceptual similarity via embeddings. Finds related ideas even without exact word matches.</span>
-                        </span>
-                    </span>
-                    <span>
-                        <span class="tooltip-wrapper">
-                            <span class="info-icon">?</span>
-                            <span class="tooltip">Keyword matching. Finds exact words. Good for names, technical terms, specific phrases.</span>
-                        </span>
-                        BM25
-                    </span>
-                </div>
-                <div class="balance-track">
-                    <input type="range" id="mix-balance" class="balance-input" min="0" max="100" value="50">
-                </div>
-                <div class="balance-value" id="balance-value">50% / 50%</div>
-            </div>
-
             <!-- Hidden inputs to maintain compatibility -->
             <input type="hidden" id="mix-semantic" value="1.0">
             <input type="hidden" id="mix-bm25" value="1.0">
 
-            <div class="mixer-grid">
+            <div class="mix-row">
+                <!-- Semantic/BM25 balance slider (2fr) -->
+                <div class="balance-slider">
+                    <div class="balance-labels">
+                        <span>
+                            Sem
+                            <span class="tooltip-wrapper">
+                                <span class="info-icon">?</span>
+                                <span class="tooltip">Conceptual similarity via embeddings. Finds related ideas even without exact word matches.</span>
+                            </span>
+                        </span>
+                        <span class="balance-value" id="balance-value">50/50</span>
+                        <span>
+                            <span class="tooltip-wrapper">
+                                <span class="info-icon">?</span>
+                                <span class="tooltip">Keyword matching. Finds exact words. Good for names, technical terms, specific phrases.</span>
+                            </span>
+                            BM25
+                        </span>
+                    </div>
+                    <div class="balance-track">
+                        <input type="range" id="mix-balance" class="balance-input" min="0" max="100" value="50">
+                    </div>
+                </div>
+
+                <!-- Tag Multiplier (1fr) -->
                 <div class="mixer-item">
                     <label>
-                        Tag Multiplier
+                        Tags
                         <span class="tooltip-wrapper">
                             <span class="info-icon">?</span>
-                            <span class="tooltip">Score multiplier when query matches a document's tags. 5x means tag-matched results score 5x higher. Tags are exact keyword matches in frontmatter.</span>
+                            <span class="tooltip">Score multiplier when query matches a document's tags. 5x means tag-matched results score 5x higher.</span>
                         </span>
                     </label>
                     <input type="number" id="mix-tags" value="5.0" step="0.5" min="1">
                 </div>
+
+                <!-- Time Weight (1fr) -->
                 <div class="mixer-item">
                     <label>
-                        Time Weight
+                        Time
                         <span class="tooltip-wrapper">
                             <span class="info-icon">?</span>
-                            <span class="tooltip">How much to boost recent documents. Higher = favor newer content. The boost decays over time (90-day half-life by default).</span>
+                            <span class="tooltip">How much to boost recent documents. Higher = favor newer content. 90-day half-life decay.</span>
                         </span>
                     </label>
                     <input type="number" id="mix-time" value="1.0" step="0.1" min="0">
@@ -1012,7 +1021,7 @@
             const bm25 = balance / 50              // 0-100 -> 0.0-2.0
             mixSemantic.value = semantic.toFixed(2)
             mixBm25.value = bm25.toFixed(2)
-            balanceValue.textContent = `${100 - balance}% / ${balance}%`
+            balanceValue.textContent = `${100 - balance}/${balance}`
         }
 
         function updateSliderFromValues() {
@@ -1023,7 +1032,7 @@
             if (total > 0) {
                 const balance = Math.round((bm25 / total) * 100)
                 mixBalance.value = balance
-                balanceValue.textContent = `${100 - balance}% / ${balance}%`
+                balanceValue.textContent = `${100 - balance}/${balance}`
             }
         }
 
@@ -1228,7 +1237,7 @@
             mixTags.value = 5.0
             mixTime.value = 1.0
             mixBalance.value = 50
-            balanceValue.textContent = '50% / 50%'
+            balanceValue.textContent = '50/50'
 
             if (state.results.length > 0) {
                 remixAndRender()
