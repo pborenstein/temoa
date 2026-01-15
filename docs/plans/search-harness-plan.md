@@ -71,33 +71,53 @@ Add `?harness=true` parameter to existing `/search` endpoint (simpler than new e
 - `src/temoa/server.py` - add harness parameter, restructure score output
 - `src/temoa/synthesis.py` - ensure all raw scores preserved
 
-### Phase 2: Web UI Harness Panel
+### Phase 2: Web UI Harness Page
 
-Add collapsible "Score Mixer" section below search box.
+Create a **separate `harness.html` page** for score mixing experiments. This keeps the production search UI (`search.html`) stable while we iterate on the harness.
+
+**Why separate?**
+- Can use existing search while developing harness
+- Keeps `search.html` simple for normal use
+- Dedicated space for experimentation
+- Can merge into search.html later if desired
 
 **Layout:**
 ```
-> Score Mixer
-  ┌─────────────────────────────────────┐
-  │ Mix Weights (instant re-sort)       │
-  │ Semantic: [1.0] BM25: [1.0]         │
-  │ Tags: [5.0]     Time: [1.0]         │
-  ├─────────────────────────────────────┤
-  │ Server (re-fetch needed)            │
-  │ Hybrid: [0.5]  [x]Rerank [ ]Expand  │
-  │                       [Re-Search]   │
-  ├─────────────────────────────────────┤
-  │ [Save Profile...] [Export JSON]     │
-  └─────────────────────────────────────┘
+┌─────────────────────────────────────────────┐
+│ Score Mixer                    [← Search]   │
+├─────────────────────────────────────────────┤
+│ Query: [____________________] [Search]      │
+│ Vault: [dropdown]  Profile: [dropdown]      │
+├─────────────────────────────────────────────┤
+│ Mix Weights (instant re-sort)               │
+│ Semantic: [1.0] BM25: [1.0]                 │
+│ Tags: [5.0]     Time: [1.0]                 │
+├─────────────────────────────────────────────┤
+│ Server (re-fetch needed)                    │
+│ Hybrid: [0.5]  [x]Rerank [ ]Expand          │
+│                       [Re-Search]           │
+├─────────────────────────────────────────────┤
+│ [Save Profile...] [Export JSON]             │
+├─────────────────────────────────────────────┤
+│ Results (showing scores)                    │
+│ ┌─────────────────────────────────────────┐ │
+│ │ 1. Title                                │ │
+│ │    sem: 72% | bm25: 12.4 | tags: +5x    │ │
+│ │    time: +15% | cross: 89% | final: 3.9%│ │
+│ └─────────────────────────────────────────┘ │
+└─────────────────────────────────────────────┘
 ```
 
 **Behavior:**
 - Mix weight changes → instant client-side re-sort
 - Server param changes → enable "Re-Search" button
 - Number inputs (not sliders)
+- Results always show all score components
+- Link back to main search UI
 
 **Files:**
-- `src/temoa/ui/search.html` - harness panel, client-side remix function, fix cross_encoder bug
+- `src/temoa/ui/harness.html` - new standalone harness page
+- `src/temoa/server.py` - add route for `/harness`
 
 **Client-side remix function:**
 ```javascript
@@ -170,18 +190,18 @@ class SearchProfile:
 
 | File | Changes |
 |------|---------|
-| `src/temoa/server.py` | `?harness=true` param |
+| `src/temoa/server.py` | `?harness=true` param, `/harness` route |
 | `src/temoa/synthesis.py` | Ensure raw scores preserved |
-| `src/temoa/ui/search.html` | Harness panel, remix function, fix cross_encoder bug |
+| `src/temoa/ui/harness.html` | New standalone harness page with remix function |
 | `src/temoa/cli.py` | `temoa harness` command |
 | `src/temoa/search_profiles.py` | mix_formula field, profile saving |
 | `docs/SEARCH-MECHANISMS.md` | Fix pipeline diagram (8 stages) |
 
 ## Implementation Order
 
-1. Fix bugs (cross_encoder display, pipeline diagram)
-2. API: add harness=true response format
-3. Web UI: harness panel + client-side remix
+1. Fix bugs (cross_encoder display, pipeline diagram) ✅
+2. API: add harness=true response format ✅
+3. Web UI: new harness.html page + client-side remix
 4. CLI: harness command
 5. Profile saving (all interfaces)
 
