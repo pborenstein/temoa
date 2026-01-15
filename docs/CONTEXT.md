@@ -18,7 +18,7 @@ Building a "Search Harness" - interactive score mixer to experiment with search 
 - [x] Fix cross_encoder_score display bug (search.html:2407 looks for wrong field)
 - [x] Fix pipeline diagram in SEARCH-MECHANISMS.md (shows 7 stages, should be 8)
 - [x] Add `?harness=true` API parameter for structured score output
-- [ ] Build harness.html page with client-side re-mixing (separate from search.html)
+- [x] Build harness.html page with client-side re-mixing (separate from search.html)
 - [ ] Add `temoa harness` CLI command
 - [ ] Profile saving (localStorage for UI, config.json for CLI)
 
@@ -31,9 +31,10 @@ None
 - **Plan**: `docs/plans/search-harness-plan.md` - full implementation plan
 - **API done**: `?harness=true` returns `result.scores` object + `harness.mix`/`harness.server` metadata
 - **Pipeline fixed**: Now shows 8 stages with chunk deduplication (Stage 2) and correct order
-- **Tests added**: `test_search_harness_parameter` and `test_search_without_harness` (12/12 pass)
+- **Tests added**: `test_search_harness_parameter`, `test_search_without_harness`, `test_harness_page` (13/13 pass)
 - **No sliders**: Use number inputs for weight adjustments
+- **UI done**: `/harness` serves standalone harness.html with client-side remix
 
 ## Next Session
 
-Build the harness.html page (separate from search.html) with client-side re-mixing. See Phase 2 in `docs/plans/search-harness-plan.md`.
+Phase 3: Add `temoa harness` CLI command. See Phase 3 in `docs/plans/search-harness-plan.md`.

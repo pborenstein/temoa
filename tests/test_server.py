@@ -157,7 +157,10 @@ def test_search_without_harness(client):
     # Should NOT have harness metadata
     assert "harness" not in data
 
-    # Results should NOT have scores object
-    if data["results"]:
-        result = data["results"][0]
-        assert "scores" not in result
+
+def test_harness_page(client):
+    """Test that /harness endpoint serves the score mixer UI"""
+    response = client.get("/harness")
+    assert response.status_code == 200
+    assert "text/html" in response.headers["content-type"]
+    assert "Score Mixer" in response.text

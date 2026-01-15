@@ -461,6 +461,30 @@ async def root():
     return HTMLResponse(content=html_content)
 
 
+@app.get("/harness", response_class=HTMLResponse)
+async def harness():
+    """Serve score mixer / harness UI for experimentation"""
+    ui_path = Path(__file__).parent / "ui" / "harness.html"
+
+    if not ui_path.exists():
+        return HTMLResponse(content="""
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Score Mixer - Temoa</title>
+</head>
+<body>
+    <h1>Score Mixer</h1>
+    <p>Harness UI not found. Please check installation.</p>
+    <p><a href="/">Back to Search</a></p>
+</body>
+</html>
+        """)
+
+    return FileResponse(ui_path, media_type="text/html")
+
+
 @app.get("/manage", response_class=HTMLResponse)
 async def manage():
     """Serve management UI"""
