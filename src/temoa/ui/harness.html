@@ -141,6 +141,9 @@
             margin-bottom: 12px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .mixer-grid {
@@ -158,6 +161,66 @@
         .mixer-item label {
             font-size: 12px;
             color: #888888;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Tooltips */
+        .info-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #3a3a3a;
+            color: #888888;
+            font-size: 10px;
+            font-weight: 600;
+            cursor: help;
+            flex-shrink: 0;
+        }
+
+        .tooltip-wrapper {
+            position: relative;
+            display: inline-flex;
+        }
+
+        .tooltip {
+            position: absolute;
+            bottom: calc(100% + 8px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333333;
+            border: 1px solid #4a4a4a;
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 12px;
+            color: #d0d0d0;
+            white-space: normal;
+            width: 220px;
+            z-index: 100;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.15s, visibility 0.15s;
+            line-height: 1.4;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        }
+
+        .tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+            border-top-color: #4a4a4a;
+        }
+
+        .tooltip-wrapper:hover .tooltip {
+            opacity: 1;
+            visibility: visible;
         }
 
         .mixer-item input[type="number"] {
@@ -485,22 +548,52 @@
 
         <!-- Mix weights (client-side, instant re-sort) -->
         <div class="mixer-section" id="mix-section">
-            <h2>Mix Weights (instant re-sort)</h2>
+            <h2>
+                Mix Weights (instant re-sort)
+                <span class="tooltip-wrapper">
+                    <span class="info-icon">?</span>
+                    <span class="tooltip">These control how scores are combined AFTER retrieval. Changes apply instantly in the browser - no server call needed. Great for quick experimentation.</span>
+                </span>
+            </h2>
             <div class="mixer-grid">
                 <div class="mixer-item">
-                    <label>Semantic</label>
+                    <label>
+                        Semantic
+                        <span class="tooltip-wrapper">
+                            <span class="info-icon">?</span>
+                            <span class="tooltip">How much the embedding similarity matters. Higher = favor results that are conceptually similar to your query, even without exact word matches.</span>
+                        </span>
+                    </label>
                     <input type="number" id="mix-semantic" value="1.0" step="0.1" min="0">
                 </div>
                 <div class="mixer-item">
-                    <label>BM25</label>
+                    <label>
+                        BM25
+                        <span class="tooltip-wrapper">
+                            <span class="info-icon">?</span>
+                            <span class="tooltip">How much keyword matching matters. Higher = favor results with exact word matches. Good for specific terms, names, or technical jargon.</span>
+                        </span>
+                    </label>
                     <input type="number" id="mix-bm25" value="1.0" step="0.1" min="0">
                 </div>
                 <div class="mixer-item">
-                    <label>Tag Multiplier</label>
+                    <label>
+                        Tag Multiplier
+                        <span class="tooltip-wrapper">
+                            <span class="info-icon">?</span>
+                            <span class="tooltip">Score multiplier when query matches a document's tags. 5x means tag-matched results score 5x higher. Tags are exact keyword matches in frontmatter.</span>
+                        </span>
+                    </label>
                     <input type="number" id="mix-tags" value="5.0" step="0.5" min="1">
                 </div>
                 <div class="mixer-item">
-                    <label>Time Weight</label>
+                    <label>
+                        Time Weight
+                        <span class="tooltip-wrapper">
+                            <span class="info-icon">?</span>
+                            <span class="tooltip">How much to boost recent documents. Higher = favor newer content. The boost decays over time (90-day half-life by default).</span>
+                        </span>
+                    </label>
                     <input type="number" id="mix-time" value="1.0" step="0.1" min="0">
                 </div>
             </div>
@@ -508,25 +601,55 @@
 
         <!-- Server params (requires re-fetch) -->
         <div class="mixer-section server-section" id="server-section">
-            <h2>Server Parameters (re-fetch needed)</h2>
+            <h2>
+                Server Parameters (re-fetch needed)
+                <span class="tooltip-wrapper">
+                    <span class="info-icon">?</span>
+                    <span class="tooltip">These affect WHICH documents are retrieved. Changes require a new server search. The retrieved set determines what the mix weights can re-order.</span>
+                </span>
+            </h2>
             <div class="mixer-grid">
                 <div class="mixer-item">
-                    <label>Hybrid Weight</label>
+                    <label>
+                        Hybrid Weight
+                        <span class="tooltip-wrapper">
+                            <span class="info-icon">?</span>
+                            <span class="tooltip">Balance between semantic (0) and BM25 (1) during retrieval. 0.5 = equal weight. This affects WHICH docs are retrieved, not just ranking.</span>
+                        </span>
+                    </label>
                     <input type="number" id="server-hybrid" value="0.5" step="0.1" min="0" max="1">
                 </div>
                 <div class="mixer-item">
-                    <label>Result Limit</label>
+                    <label>
+                        Result Limit
+                        <span class="tooltip-wrapper">
+                            <span class="info-icon">?</span>
+                            <span class="tooltip">Maximum number of results to return. More results = slower but more thorough. Cross-encoder re-ranking is applied to all returned results.</span>
+                        </span>
+                    </label>
                     <input type="number" id="server-limit" value="20" step="5" min="5" max="100">
                 </div>
             </div>
             <div class="checkbox-grid" style="margin-top: 12px;">
                 <div class="checkbox-item">
                     <input type="checkbox" id="server-rerank" checked>
-                    <label for="server-rerank">Re-rank (cross-encoder)</label>
+                    <label for="server-rerank">
+                        Re-rank (cross-encoder)
+                        <span class="tooltip-wrapper">
+                            <span class="info-icon">?</span>
+                            <span class="tooltip">Run a second model that looks at query + document together. Slower (~200ms) but much better at putting the best match first. Highly recommended.</span>
+                        </span>
+                    </label>
                 </div>
                 <div class="checkbox-item">
                     <input type="checkbox" id="server-expand">
-                    <label for="server-expand">Expand query</label>
+                    <label for="server-expand">
+                        Expand query
+                        <span class="tooltip-wrapper">
+                            <span class="info-icon">?</span>
+                            <span class="tooltip">Add related terms to short queries using TF-IDF. Helps with 1-2 word queries by finding synonyms and related concepts from your vault.</span>
+                        </span>
+                    </label>
                 </div>
             </div>
             <div class="refetch-notice">
