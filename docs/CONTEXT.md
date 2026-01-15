@@ -2,8 +2,7 @@
 phase: "Experimentation"
 phase_name: "Search Harness"
 updated: 2026-01-15
-last_commit: 9e6d219
-last_entry: 50
+last_commit: e73b2c6
 branch: knobs-and-dials
 ---
 
@@ -15,10 +14,10 @@ Building a "Search Harness" - interactive score mixer to experiment with search 
 
 ## Active Tasks
 
-- [x] Fix cross_encoder_score display bug (search.html:2407 looks for wrong field)
-- [x] Fix pipeline diagram in SEARCH-MECHANISMS.md (shows 7 stages, should be 8)
+- [x] Fix cross_encoder_score display bug
+- [x] Fix pipeline diagram in SEARCH-MECHANISMS.md
 - [x] Add `?harness=true` API parameter for structured score output
-- [x] Build harness.html page with client-side re-mixing (separate from search.html)
+- [x] Build harness.html page with client-side re-mixing
 - [ ] Add `temoa harness` CLI command
 - [ ] Profile saving (localStorage for UI, config.json for CLI)
 
@@ -29,11 +28,10 @@ None
 ## Context
 
 - **Plan**: `docs/plans/search-harness-plan.md` - full implementation plan
-- **API done**: `?harness=true` returns `result.scores` object + `harness.mix`/`harness.server` metadata
-- **Pipeline fixed**: Now shows 8 stages with chunk deduplication (Stage 2) and correct order
-- **Tests added**: `test_search_harness_parameter`, `test_search_without_harness`, `test_harness_page` (13/13 pass)
-- **No sliders**: Use number inputs for weight adjustments
-- **UI done**: `/harness` serves standalone harness.html with client-side remix
+- **Phase 2 complete**: `/harness` page with client-side remix, tooltips, semantic/BM25 balance slider
+- **Tests**: 13/13 passing (includes `test_harness_page`)
+- **UI features**: Info tooltips on all params, compact 2:1:1 layout (slider:tags:time)
+- **Slider**: Single semantic/BM25 balance slider replaces two separate inputs
 
 ## Next Session
 
