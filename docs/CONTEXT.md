@@ -1,24 +1,26 @@
 ---
 phase: "Experimentation"
-phase_name: "Knobs & Dials - Search Tuning"
+phase_name: "Search Harness"
 updated: 2026-01-14
-last_commit: 2182b5a
+last_commit: 60d6dc3
 last_entry: 46
-branch: main
+branch: knobs-and-dials
 ---
 
 # Current Context
 
 ## Current Focus
 
-**NEW PHASE**: Experimentation with search parameters. The production hardening is complete - now we experiment with different combinations of knobs and dials to optimize search quality for real-world usage patterns.
+Building a "Search Harness" - interactive score mixer to experiment with search parameter weights and see how they affect result ordering in real-time.
 
 ## Active Tasks
 
-- [ ] Define experimentation framework (what to measure, how to compare)
-- [ ] Identify key tunable parameters (weights, thresholds, boosts)
-- [ ] Create reproducible test queries with expected results
-- [ ] Document baseline performance before tuning
+- [ ] Fix cross_encoder_score display bug (search.html:2407 looks for wrong field)
+- [ ] Fix pipeline diagram in SEARCH-MECHANISMS.md (shows 7 stages, should be 8)
+- [ ] Add `?harness=true` API parameter for structured score output
+- [ ] Build Web UI harness panel with client-side re-mixing
+- [ ] Add `temoa harness` CLI command
+- [ ] Profile saving (localStorage for UI, config.json for CLI)
 
 ## Blockers
 
@@ -26,18 +28,12 @@ None
 
 ## Context
 
-- **Production hardening complete**: Phases 0-4 + 6 done, system is stable
-- **Phase 4 (LLM)**: Moved to backburner (`docs/archive/backburner/phase-4-llm.md`)
-- **Edge case test failures**: 37 known failures, not blocking - can revisit later
-- **Current knobs available**:
-  - Hybrid weight (BM25 vs semantic ratio)
-  - Tag boost multiplier (currently 5x)
-  - RRF fusion parameters
-  - Time decay half-life (currently 90 days)
-  - Cross-encoder re-ranking toggle
-  - Query expansion threshold
-  - Search profiles (repos, recent, deep, keywords, default)
+- **Plan created**: `docs/plans/search-harness-plan.md` - full implementation plan
+- **Key insight**: Two-tier params - client-mixable (instant) vs server-side (re-fetch)
+- **All raw scores preserved**: semantic, bm25, rrf, cross_encoder, time_boost survive pipeline
+- **Profile saving**: localStorage for Web UI (simple), config.json for CLI
+- **No sliders**: Use number inputs for weight adjustments
 
 ## Next Session
 
-User has notes to develop for experimentation direction. Review notes and plan approach.
+Implement the harness starting with bug fixes, then API changes. See `docs/plans/search-harness-plan.md`.
