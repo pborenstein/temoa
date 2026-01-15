@@ -1,27 +1,24 @@
 ---
-phase: "Production Hardening"
-phase_name: "Complete - Ready for Production"
-updated: 2026-01-09
-last_commit: 0d3a69c
+phase: "Experimentation"
+phase_name: "Knobs & Dials - Search Tuning"
+updated: 2026-01-14
+last_commit: af989dd
 last_entry: 46
-branch: engineering-review
+branch: main
 ---
 
 # Current Context
 
 ## Current Focus
 
-Production Hardening COMPLETE! Phases 0-4 and 6 finished. System ready for production deployment with security hardening, performance optimizations, robust error handling, and comprehensive documentation.
+**NEW PHASE**: Experimentation with search parameters. The production hardening is complete - now we experiment with different combinations of knobs and dials to optimize search quality for real-world usage patterns.
 
 ## Active Tasks
 
-- [x] Phase 0: Testing Infrastructure (223 tests, 171 passing baseline, docs/TESTING.md created)
-- [x] Phase 1: Low-Risk Simplifications (config docs, frontmatter helper, history limits)
-- [x] Phase 2: Performance Optimizations (700-1300ms latency reduction per search)
-- [x] Phase 3: Error Handling (specific exception types, fail-open/closed philosophy)
-- [x] Phase 4: Security Hardening (CORS protection, rate limiting, path validation)
-- [x] Phase 5: Architecture Improvements (SKIPPED - optional, working well as-is)
-- [x] Phase 6: Documentation & Polish (all docs updated: ARCHITECTURE.md, CLAUDE.md, IMPLEMENTATION.md)
+- [ ] Define experimentation framework (what to measure, how to compare)
+- [ ] Identify key tunable parameters (weights, thresholds, boosts)
+- [ ] Create reproducible test queries with expected results
+- [ ] Document baseline performance before tuning
 
 ## Blockers
 
@@ -29,17 +26,23 @@ None
 
 ## Context
 
-- **All phases complete**: 0-4 + 6 done (Phase 5 skipped as optional)
-- **Security**: CORS restrictive defaults, rate limiting (4 endpoints), path validation
-- **Performance**: 700-1300ms improvement (file I/O elimination, tag matching O(N), memory leak fix)
-- **Documentation**: Comprehensive security section in ARCHITECTURE.md + DEPLOYMENT.md, TESTING.md created
-- **Test baseline**: 171/171 passing (37 known edge case failures documented)
-- **Files created**: src/temoa/rate_limiter.py, docs/TESTING.md
-- **Branch**: engineering-review (3 commits: f8c18aa Phase 4, d85c8dc TESTING.md, 0d3a69c Phase 6 docs)
+- **Production hardening complete**: Phases 0-4 + 6 done, system is stable
+- **Phase 4 (LLM)**: Moved to backburner (`docs/archive/backburner/phase-4-llm.md`)
+- **Edge case test failures**: 37 known failures, not blocking - can revisit later
+- **Current knobs available**:
+  - Hybrid weight (BM25 vs semantic ratio)
+  - Tag boost multiplier (currently 5x)
+  - RRF fusion parameters
+  - Time decay half-life (currently 90 days)
+  - Cross-encoder re-ranking toggle
+  - Query expansion threshold
+  - Search profiles (repos, recent, deep, keywords, default)
 
 ## Next Session
 
-Production deployment recommended! All hardening complete:
-- **Deploy to production**: Use launchd service, update config with security settings
-- **Phase 4 (LLM)**: Vault-first LLM integration (future work)
-- **Edge case fixes**: Address 37 known test failures (optional refinements)
+Start experimentation:
+
+1. Document all tunable parameters and their current values
+2. Define test queries that represent real usage patterns
+3. Establish baseline metrics
+4. Begin systematic tuning experiments

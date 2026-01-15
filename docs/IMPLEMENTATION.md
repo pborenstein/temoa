@@ -6,8 +6,8 @@
 
 **Project**: Temoa - Local Semantic Search Server for Obsidian Vault
 **Created**: 2025-11-18
-**Status**: Phase 3.5 (Profiles & Chunking) ✅ COMPLETE → Ready for Next Phase
-**Last Updated**: 2026-01-04
+**Status**: Experimentation Phase 🔵 ACTIVE - Knobs & Dials Tuning
+**Last Updated**: 2026-01-14
 **Current Version**: 0.7.0
 **Current Branch**: `main`
 **Estimated Timeline**: 4-6 weeks for Phases 0-2, ongoing for Phases 3-4
@@ -34,7 +34,8 @@
 | Phase 2: Gleanings Integration | ✅ **COMPLETE** | 1 day | Phase 1 ✅ |
 | Phase 2.5: Mobile Validation + UI | ✅ **COMPLETE** | 1 week | Phase 2 ✅ |
 | Phase 3: Enhanced Features | ✅ **COMPLETE** | 2 weeks | Phase 2.5 ✅ |
-| [Phase 4: Vault-First LLM](archive/original-planning/phase-4-llm.md) | ⚪ Future | 7-10 days | Phase 3 ✅ |
+| **Experimentation: Knobs & Dials** | 🔵 **ACTIVE** | ongoing | Phase 3 ✅ |
+| [Phase 4: Vault-First LLM](archive/backburner/phase-4-llm.md) | ⚪ Backburner | TBD | Experimentation |
 
 ---
 
@@ -276,66 +277,67 @@ See: chronicles/production-hardening.md (Entries 33-46), docs/PRODUCTION-HARDENI
 4. ✅ **Phase 4-5**: Integration & testing (mobile-first) - COMPLETE
 5. Squash merged to phase-3.5-search-modes (commit 12d2e64)
 
-**Next**: Resume Phase 3.5.3 - Metadata Boosting (with web UI from day 1)
+---
+
+## Experimentation: Knobs & Dials 🔵
+
+**Status**: ACTIVE
+**Goal**: Systematically tune search parameters for optimal real-world performance
+**Duration**: Ongoing
+
+### Overview
+
+The production hardening is complete. Now we experiment with different combinations of search parameters to find the sweet spot for actual usage patterns.
+
+### Tunable Parameters
+
+| Parameter | Location | Current Value | Range |
+|-----------|----------|---------------|-------|
+| Hybrid weight | `synthesis.py` | 0.5 | 0.0-1.0 (0=BM25, 1=semantic) |
+| Tag boost multiplier | `bm25_index.py` | 5x | 1x-10x |
+| RRF k parameter | `synthesis.py` | 60 | 1-100 |
+| Time decay half-life | `time_scoring.py` | 90 days | 7-365 days |
+| Query expansion threshold | `query_expansion.py` | <3 words | 1-5 words |
+| Cross-encoder re-rank | `server.py` | enabled | on/off |
+| Score threshold | `server.py` | 0.3 | 0.1-0.8 |
+| Top-k retrieval | `server.py` | 50 | 10-200 |
+
+### Search Profiles (Pre-configured combinations)
+
+| Profile | Hybrid Weight | BM25 Boost | Time Decay | Use Case |
+|---------|--------------|------------|------------|----------|
+| `default` | 0.5 | 1.0x | 90d | General search |
+| `repos` | 0.3 | 1.5x | off | GitHub repos, tech |
+| `recent` | 0.5 | 1.0x | 7d | Recent work |
+| `deep` | 0.8 | 0.5x | off | Long-form content |
+| `keywords` | 0.2 | 2.0x | off | Exact matching |
+
+### Tasks
+
+- [ ] Document baseline performance (latency, relevance)
+- [ ] Define test query suite with expected results
+- [ ] Create A/B comparison framework
+- [ ] Experiment with parameter combinations
+- [ ] Document winning configurations
+
+### Methodology
+
+1. **Baseline**: Record current performance on standard queries
+2. **Isolate**: Change one parameter at a time
+3. **Measure**: Compare relevance (top-3 hit rate) and latency
+4. **Document**: Record what works and why
 
 ---
 
 ## Phase 4: Vault-First LLM ⚪
 
-**Status**: Future
+**Status**: Backburner
 **Goal**: LLMs check vault before internet
-**Duration**: 7-10 days
 
-### Tasks Overview
-
-- [ ] 4.1: Chat Endpoint with Context
-- [ ] 4.2: Citation System
-- [ ] 4.3: Smart Query Suggestions (Phase 4+)
-
-### Deliverables
-
-- [ ] `/chat` endpoint
-- [ ] Apantli integration
-- [ ] Citation system
-- [ ] Vault-first chat UI
-- [ ] Smart query-aware search mode suggestions
-
-### Success Criteria
-
-- [ ] Vault-first becomes default research mode
-- [ ] LLM responses build on existing knowledge
-- [ ] Citations work reliably
-
-### Future Enhancement: Smart Query Suggestions
-
-**Context**: Real-world usage (Phase 3 production hardening) revealed that query expansion is often unhelpful for person names. Short queries < 3 words are frequently names, not topics needing expansion.
-
-**Examples**:
-- `"Philip Borenstein"` → Query expansion OFF, Hybrid search ON (BM25 helps with exact name matching)
-- `"AI"` → Query expansion ON (becomes "AI machine learning neural networks")
-- `"React hooks"` → Semantic search (concept-based understanding)
-
-**Proposed Feature** (Phase 4+):
-- Analyze query content before search
-- Suggest optimal search modes based on query patterns
-- Detection heuristics:
-  - **Person name**: Capitalized words, 2-3 tokens, not in technical vocabulary
-  - **Technical term**: Known framework/library names, acronyms
-  - **Topic**: General vocabulary, benefit from expansion
-- UI: Show suggestion chips (e.g., "This looks like a name. Try hybrid search?")
-- Smart defaults: Auto-apply suggested modes with user override
-
-**Implementation Notes**:
-- Use NLP patterns or simple heuristics (capitalization, length, vocabulary lists)
-- Store user preferences (learn from overrides)
-- Keep it lightweight (<50ms analysis time)
-
-### Detailed Plan
-
-See [phases/phase-4-llm.md](phases/phase-4-llm.md)
+Moved to backburner. See [archive/backburner/phase-4-llm.md](archive/backburner/phase-4-llm.md) for full plan.
 
 ---
 
-**Last Updated**: 2026-01-01
-**Current Phase**: 3.5 (Specialized Search Modes)
+**Last Updated**: 2026-01-14
+**Current Phase**: Experimentation (Knobs & Dials)
 **Next**: See CONTEXT.md for current session state
