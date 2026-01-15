@@ -2404,8 +2404,8 @@
             if (result.rrf_score !== undefined) {
                 scoreParts.push(`RRF ${result.rrf_score.toFixed(4)}`)
             }
-            if (result.rerank_score !== undefined) {
-                scoreParts.push(`cross-enc ${result.rerank_score.toFixed(4)}`)
+            if (result.cross_encoder_score !== undefined) {
+                scoreParts.push(`cross-enc ${result.cross_encoder_score.toFixed(4)}`)
             }
             if (result.tag_boosted) {
                 scoreParts.push('tag boosted')

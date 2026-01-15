@@ -720,6 +720,10 @@ async def search(
     time_boost: bool = Query(
         default=True,
         description="Boost recent documents with time-decay scoring"
+    ),
+    harness: bool = Query(
+        default=False,
+        description="Return structured score data for harness/mixer experiments"
     )
 ):
     """
@@ -962,6 +966,38 @@ async def search(
             "name": vault_name,
             "path": str(vault_path)
         }
+
+        # Add harness data when requested
+        if harness:
+            # Restructure each result to have a "scores" object
+            for result in data["results"]:
+                scores = {
+                    "semantic": result.get("similarity_score"),
+                    "bm25": result.get("bm25_score"),
+                    "rrf": result.get("rrf_score"),
+                    "cross_encoder": result.get("cross_encoder_score"),
+                    "time_boost": result.get("time_boost", 0),
+                    "tag_boosted": result.get("tag_boosted", False),
+                }
+                # Remove None values
+                scores = {k: v for k, v in scores.items() if v is not None}
+                result["scores"] = scores
+
+            # Add harness metadata
+            data["harness"] = {
+                "mix": {
+                    "semantic_weight": 1.0,
+                    "bm25_weight": 1.0,
+                    "tag_multiplier": 5.0,
+                    "time_weight": 1.0,
+                },
+                "server": {
+                    "hybrid": use_hybrid,
+                    "rerank": rerank,
+                    "expand_query": expand_query,
+                    "profile": profile,
+                },
+            }
 
         # Sanitize Unicode surrogates before JSON encoding
         data = sanitize_unicode(data)

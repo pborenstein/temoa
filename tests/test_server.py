@@ -110,3 +110,54 @@ def test_openapi_docs(client):
     response = client.get("/openapi.json")
     assert response.status_code == 200
     assert "openapi" in response.json()
+
+
+def test_search_harness_parameter(client):
+    """Test that harness=true returns structured score data"""
+    response = client.get("/search?q=test&harness=true&limit=5")
+    assert response.status_code == 200
+
+    data = response.json()
+
+    # Should have harness metadata
+    assert "harness" in data
+    assert "mix" in data["harness"]
+    assert "server" in data["harness"]
+
+    # Verify mix weights structure
+    mix = data["harness"]["mix"]
+    assert "semantic_weight" in mix
+    assert "bm25_weight" in mix
+    assert "tag_multiplier" in mix
+    assert "time_weight" in mix
+
+    # Verify server params structure
+    server = data["harness"]["server"]
+    assert "hybrid" in server
+    assert "rerank" in server
+    assert "expand_query" in server
+    assert "profile" in server
+
+    # If results found, verify scores object
+    if data["results"]:
+        result = data["results"][0]
+        assert "scores" in result
+        scores = result["scores"]
+        # Should have at least tag_boosted (always present)
+        assert "tag_boosted" in scores
+
+
+def test_search_without_harness(client):
+    """Test that harness=false (default) does not add harness data"""
+    response = client.get("/search?q=test&limit=5")
+    assert response.status_code == 200
+
+    data = response.json()
+
+    # Should NOT have harness metadata
+    assert "harness" not in data
+
+    # Results should NOT have scores object
+    if data["results"]:
+        result = data["results"][0]
+        assert "scores" not in result

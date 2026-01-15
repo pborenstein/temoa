@@ -1,9 +1,9 @@
 ---
 phase: "Experimentation"
 phase_name: "Search Harness"
-updated: 2026-01-14
-last_commit: 60d6dc3
-last_entry: 46
+updated: 2026-01-15
+last_commit: 9e6d219
+last_entry: 50
 branch: knobs-and-dials
 ---
 
@@ -15,9 +15,9 @@ Building a "Search Harness" - interactive score mixer to experiment with search 
 
 ## Active Tasks
 
-- [ ] Fix cross_encoder_score display bug (search.html:2407 looks for wrong field)
-- [ ] Fix pipeline diagram in SEARCH-MECHANISMS.md (shows 7 stages, should be 8)
-- [ ] Add `?harness=true` API parameter for structured score output
+- [x] Fix cross_encoder_score display bug (search.html:2407 looks for wrong field)
+- [x] Fix pipeline diagram in SEARCH-MECHANISMS.md (shows 7 stages, should be 8)
+- [x] Add `?harness=true` API parameter for structured score output
 - [ ] Build Web UI harness panel with client-side re-mixing
 - [ ] Add `temoa harness` CLI command
 - [ ] Profile saving (localStorage for UI, config.json for CLI)
@@ -28,12 +28,12 @@ None
 
 ## Context
 
-- **Plan created**: `docs/plans/search-harness-plan.md` - full implementation plan
-- **Key insight**: Two-tier params - client-mixable (instant) vs server-side (re-fetch)
-- **All raw scores preserved**: semantic, bm25, rrf, cross_encoder, time_boost survive pipeline
-- **Profile saving**: localStorage for Web UI (simple), config.json for CLI
+- **Plan**: `docs/plans/search-harness-plan.md` - full implementation plan
+- **API done**: `?harness=true` returns `result.scores` object + `harness.mix`/`harness.server` metadata
+- **Pipeline fixed**: Now shows 8 stages with chunk deduplication (Stage 2) and correct order
+- **Tests added**: `test_search_harness_parameter` and `test_search_without_harness` (12/12 pass)
 - **No sliders**: Use number inputs for weight adjustments
 
 ## Next Session
 
-Implement the harness starting with bug fixes, then API changes. See `docs/plans/search-harness-plan.md`.
+Build the Web UI harness panel with client-side re-mixing. See Phase 2 in `docs/plans/search-harness-plan.md`.

@@ -970,27 +970,27 @@ User Query: "AI" (short query)
 └─────────────────────────────────────────────────────┘
     ↓
 ┌─────────────────────────────────────────────────────┐
-│ Stage 2: Score Filtering (semantic mode only)       │
+│ Stage 2: Chunk Deduplication                        │
+│ - Group results by source file                      │
+│ - Keep best-scoring chunk per file                  │
+│ - Preserves diverse file coverage                   │
+└─────────────────────────────────────────────────────┘
+    ↓
+┌─────────────────────────────────────────────────────┐
+│ Stage 3: Score Filtering (semantic mode only)       │
 │ - Remove results with similarity < min_score (0.3)  │
 └─────────────────────────────────────────────────────┘
     ↓
 ┌─────────────────────────────────────────────────────┐
-│ Stage 3: Status Filtering                           │
+│ Stage 4: Status Filtering                           │
 │ - Remove inactive/hidden gleanings                  │
 │ - Check frontmatter status field                    │
 └─────────────────────────────────────────────────────┘
     ↓
 ┌─────────────────────────────────────────────────────┐
-│ Stage 4: Type Filtering                             │
+│ Stage 5: Type Filtering                             │
 │ - Apply include_types (allowlist)                   │
 │ - Apply exclude_types (blocklist, default: daily)   │
-└─────────────────────────────────────────────────────┘
-    ↓
-┌─────────────────────────────────────────────────────┐
-│ Stage 5: Time-Aware Boost (if enabled)              │
-│ - Get file modification times                       │
-│ - Apply exponential decay boost                     │
-│ - Re-sort by boosted scores                         │
 └─────────────────────────────────────────────────────┘
     ↓
 ┌─────────────────────────────────────────────────────┐
@@ -998,6 +998,13 @@ User Query: "AI" (short query)
 │ - Take top 100 candidates                           │
 │ - Score each (query, doc) pair with cross-encoder   │
 │ - Re-sort by cross-encoder scores                   │
+└─────────────────────────────────────────────────────┘
+    ↓
+┌─────────────────────────────────────────────────────┐
+│ Stage 7: Time-Aware Boost (if enabled)              │
+│ - Get file modification times                       │
+│ - Apply exponential decay boost                     │
+│ - Re-sort by boosted scores                         │
 │ - Return top N results                              │
 └─────────────────────────────────────────────────────┘
     ↓
