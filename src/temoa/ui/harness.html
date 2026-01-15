@@ -224,6 +224,75 @@
             visibility: visible;
         }
 
+        /* Semantic/BM25 balance slider */
+        .balance-slider {
+            margin-bottom: 16px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #333333;
+        }
+
+        .balance-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: #888888;
+            margin-bottom: 6px;
+        }
+
+        .balance-labels span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .balance-track {
+            position: relative;
+            height: 6px;
+            background: linear-gradient(to right, #4a6a8a, #8a6a4a);
+            border-radius: 3px;
+        }
+
+        .balance-input {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            transform: translateY(-50%);
+            width: 100%;
+            height: 20px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: transparent;
+            cursor: pointer;
+            margin: 0;
+        }
+
+        .balance-input::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #e0e0e0;
+            border: 2px solid #1a1a1a;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+        }
+
+        .balance-input::-moz-range-thumb {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #e0e0e0;
+            border: 2px solid #1a1a1a;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+        }
+
+        .balance-value {
+            text-align: center;
+            font-size: 11px;
+            color: #666666;
+            margin-top: 6px;
+        }
+
         .mixer-item input[type="number"] {
             padding: 8px 10px;
             font-size: 14px;
@@ -556,27 +625,36 @@
                     <span class="tooltip">These control how scores are combined AFTER retrieval. Changes apply instantly in the browser - no server call needed. Great for quick experimentation.</span>
                 </span>
             </h2>
-            <div class="mixer-grid">
-                <div class="mixer-item">
-                    <label>
+
+            <!-- Semantic/BM25 balance slider -->
+            <div class="balance-slider">
+                <div class="balance-labels">
+                    <span>
                         Semantic
                         <span class="tooltip-wrapper">
                             <span class="info-icon">?</span>
-                            <span class="tooltip">How much the embedding similarity matters. Higher = favor results that are conceptually similar to your query, even without exact word matches.</span>
+                            <span class="tooltip">Conceptual similarity via embeddings. Finds related ideas even without exact word matches.</span>
                         </span>
-                    </label>
-                    <input type="number" id="mix-semantic" value="1.0" step="0.1" min="0">
-                </div>
-                <div class="mixer-item">
-                    <label>
-                        BM25
+                    </span>
+                    <span>
                         <span class="tooltip-wrapper">
                             <span class="info-icon">?</span>
-                            <span class="tooltip">How much keyword matching matters. Higher = favor results with exact word matches. Good for specific terms, names, or technical jargon.</span>
+                            <span class="tooltip">Keyword matching. Finds exact words. Good for names, technical terms, specific phrases.</span>
                         </span>
-                    </label>
-                    <input type="number" id="mix-bm25" value="1.0" step="0.1" min="0">
+                        BM25
+                    </span>
                 </div>
+                <div class="balance-track">
+                    <input type="range" id="mix-balance" class="balance-input" min="0" max="100" value="50">
+                </div>
+                <div class="balance-value" id="balance-value">50% / 50%</div>
+            </div>
+
+            <!-- Hidden inputs to maintain compatibility -->
+            <input type="hidden" id="mix-semantic" value="1.0">
+            <input type="hidden" id="mix-bm25" value="1.0">
+
+            <div class="mixer-grid">
                 <div class="mixer-item">
                     <label>
                         Tag Multiplier
@@ -720,6 +798,8 @@
         const serverSection = document.getElementById('server-section')
 
         // Mix inputs
+        const mixBalance = document.getElementById('mix-balance')
+        const balanceValue = document.getElementById('balance-value')
         const mixSemantic = document.getElementById('mix-semantic')
         const mixBm25 = document.getElementById('mix-bm25')
         const mixTags = document.getElementById('mix-tags')
@@ -786,8 +866,16 @@
                 state.currentVault = vaultSelect.value
             })
 
-            // Mix inputs - instant remix
-            ;[mixSemantic, mixBm25, mixTags, mixTime].forEach(input => {
+            // Balance slider - updates hidden semantic/bm25 inputs
+            mixBalance.addEventListener('input', () => {
+                updateBalanceFromSlider()
+                if (state.results.length > 0) {
+                    remixAndRender()
+                }
+            })
+
+            // Other mix inputs - instant remix
+            ;[mixTags, mixTime].forEach(input => {
                 input.addEventListener('input', () => {
                     if (state.results.length > 0) {
                         remixAndRender()
@@ -824,6 +912,7 @@
                         mixBm25.value = data.mix.bm25 ?? 1.0
                         mixTags.value = data.mix.tags ?? 5.0
                         mixTime.value = data.mix.time ?? 1.0
+                        updateSliderFromValues()
                     }
                     if (data.server) {
                         serverHybrid.value = data.server.hybrid ?? 0.5
@@ -897,6 +986,7 @@
                     mixBm25.value = state.harness.mix.bm25_weight ?? 1.0
                     mixTags.value = state.harness.mix.tag_multiplier ?? 5.0
                     mixTime.value = state.harness.mix.time_weight ?? 1.0
+                    updateSliderFromValues()
                 }
 
                 remixAndRender()
@@ -909,6 +999,31 @@
             } finally {
                 searchBtn.disabled = false
                 searchBtn.textContent = 'Search'
+            }
+        }
+
+        // ========================================
+        // Balance slider
+        // ========================================
+
+        function updateBalanceFromSlider() {
+            const balance = parseInt(mixBalance.value)
+            const semantic = (100 - balance) / 50  // 0-100 -> 2.0-0.0
+            const bm25 = balance / 50              // 0-100 -> 0.0-2.0
+            mixSemantic.value = semantic.toFixed(2)
+            mixBm25.value = bm25.toFixed(2)
+            balanceValue.textContent = `${100 - balance}% / ${balance}%`
+        }
+
+        function updateSliderFromValues() {
+            const semantic = parseFloat(mixSemantic.value) || 1.0
+            const bm25 = parseFloat(mixBm25.value) || 1.0
+            // Convert back to 0-100 scale
+            const total = semantic + bm25
+            if (total > 0) {
+                const balance = Math.round((bm25 / total) * 100)
+                mixBalance.value = balance
+                balanceValue.textContent = `${100 - balance}% / ${balance}%`
             }
         }
 
@@ -1112,6 +1227,8 @@
             mixBm25.value = 1.0
             mixTags.value = 5.0
             mixTime.value = 1.0
+            mixBalance.value = 50
+            balanceValue.textContent = '50% / 50%'
 
             if (state.results.length > 0) {
                 remixAndRender()
