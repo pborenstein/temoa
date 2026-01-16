@@ -44,3 +44,21 @@ Chronicle entries for the Search Harness implementation - an interactive score m
 **Files**: src/temoa/ui/harness.html, src/temoa/server.py (route), tests/test_server.py
 
 **Commits**: cfaf048, 49e813a, 2a1a7df, 83faefb, e73b2c6
+
+---
+
+## Entry 52: Harness UI Refinements (2026-01-15)
+
+**What**: Improved harness clarity with Fetch/Live terminology, visual feedback, and slider fixes.
+
+**Why**: User testing revealed confusion about which params affect retrieval vs ranking, and score indicators weren't visually distinct.
+
+**Changes**:
+1. **Fetch/Live split** - Swapped section order (Fetch first, Live second); renamed "Server Parameters" to "Fetch", "Mix Weights" to "Live"
+2. **Fetch balance slider** - Converted from number input to slider matching Live slider style
+3. **Visual feedback** - Time-boosted dates glow purple; matched tags glow green (passed `tags_matched` through from BM25)
+4. **Tags=0 behavior** - Disables tag boosting (1x multiplier) instead of zeroing scores
+5. **Slider persistence** - Fixed bug where Live slider reset to 50/50 after search (was overwriting from server response)
+6. **Removed redundant "tags: boosted"** - Green tag glow shows same info
+
+**Files**: src/temoa/ui/harness.html, src/temoa/synthesis.py (added tags_matched to results)

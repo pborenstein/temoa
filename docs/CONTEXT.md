@@ -2,7 +2,7 @@
 phase: "Experimentation"
 phase_name: "Search Harness"
 updated: 2026-01-15
-last_commit: e73b2c6
+last_commit: 8a7e717
 branch: knobs-and-dials
 ---
 
@@ -10,7 +10,7 @@ branch: knobs-and-dials
 
 ## Current Focus
 
-Building a "Search Harness" - interactive score mixer to experiment with search parameter weights and see how they affect result ordering in real-time.
+Refining harness UI - improving clarity of Fetch vs Live parameters and visual feedback for score components.
 
 ## Active Tasks
 
@@ -18,6 +18,7 @@ Building a "Search Harness" - interactive score mixer to experiment with search 
 - [x] Fix pipeline diagram in SEARCH-MECHANISMS.md
 - [x] Add `?harness=true` API parameter for structured score output
 - [x] Build harness.html page with client-side re-mixing
+- [x] Harness UI refinements (this session)
 - [ ] Add `temoa harness` CLI command
 - [ ] Profile saving (localStorage for UI, config.json for CLI)
 
@@ -28,10 +29,11 @@ None
 ## Context
 
 - **Plan**: `docs/plans/search-harness-plan.md` - full implementation plan
-- **Phase 2 complete**: `/harness` page with client-side remix, tooltips, semantic/BM25 balance slider
-- **Tests**: 13/13 passing (includes `test_harness_page`)
-- **UI features**: Info tooltips on all params, compact 2:1:1 layout (slider:tags:time)
-- **Slider**: Single semantic/BM25 balance slider replaces two separate inputs
+- **Fetch/Live split**: Fetch (server retrieval) now comes before Live (client remix) in UI
+- **Both sliders**: Fetch balance and Live balance now both use slider UI (0-100 scale)
+- **Visual feedback**: Time-boosted dates glow purple, matched tags glow green
+- **Tags=0**: Disables tag boosting (treats as 1x multiplier, not 0x)
+- **Slider persistence**: Fixed bug where Live slider reset after search
 
 ## Next Session
 

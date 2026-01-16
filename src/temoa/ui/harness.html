@@ -454,6 +454,15 @@
             margin-bottom: 8px;
         }
 
+        .result-path .date {
+            color: #666666;
+        }
+
+        .result-path .date.time-boosted {
+            color: #cc88cc;
+            text-shadow: 0 0 6px rgba(204, 136, 204, 0.5);
+        }
+
         .result-scores {
             display: flex;
             flex-wrap: wrap;
@@ -622,13 +631,86 @@
             </div>
         </div>
 
-        <!-- Mix weights (client-side, instant re-sort) -->
-        <div class="mixer-section" id="mix-section">
+        <!-- Fetch params (requires server round-trip) -->
+        <div class="mixer-section server-section" id="server-section">
             <h2>
-                Mix Weights (instant re-sort)
+                Fetch
                 <span class="tooltip-wrapper">
                     <span class="info-icon">?</span>
-                    <span class="tooltip">These control how scores are combined AFTER retrieval. Changes apply instantly in the browser - no server call needed. Great for quick experimentation.</span>
+                    <span class="tooltip">Controls WHICH documents are retrieved. Changes require clicking Search.</span>
+                </span>
+            </h2>
+
+            <!-- Fetch balance slider -->
+            <div class="balance-slider" style="margin-bottom: 12px;">
+                <div class="balance-labels">
+                    <span>
+                        Sem
+                        <span class="tooltip-wrapper">
+                            <span class="info-icon">?</span>
+                            <span class="tooltip">Conceptual similarity via embeddings. Finds related ideas even without exact word matches.</span>
+                        </span>
+                    </span>
+                    <span class="balance-value" id="fetch-balance-value">50/50</span>
+                    <span>
+                        <span class="tooltip-wrapper">
+                            <span class="info-icon">?</span>
+                            <span class="tooltip">Keyword matching. Finds exact words. Good for names, technical terms, specific phrases.</span>
+                        </span>
+                        BM25
+                    </span>
+                </div>
+                <div class="balance-track">
+                    <input type="range" id="server-hybrid" class="balance-input" min="0" max="100" value="50">
+                </div>
+            </div>
+
+            <div class="mixer-grid">
+                <div class="mixer-item">
+                    <label>
+                        Result Limit
+                        <span class="tooltip-wrapper">
+                            <span class="info-icon">?</span>
+                            <span class="tooltip">Maximum number of results to return.</span>
+                        </span>
+                    </label>
+                    <input type="number" id="server-limit" value="20" step="5" min="5" max="100">
+                </div>
+            </div>
+            <div class="checkbox-grid" style="margin-top: 12px;">
+                <div class="checkbox-item">
+                    <input type="checkbox" id="server-rerank" checked>
+                    <label for="server-rerank">
+                        Cross-encoder
+                        <span class="tooltip-wrapper">
+                            <span class="info-icon">?</span>
+                            <span class="tooltip">Run a second model that looks at query + document together. Slower (~200ms) but better precision.</span>
+                        </span>
+                    </label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="server-expand">
+                    <label for="server-expand">
+                        Expand query
+                        <span class="tooltip-wrapper">
+                            <span class="info-icon">?</span>
+                            <span class="tooltip">Add related terms to short queries using TF-IDF.</span>
+                        </span>
+                    </label>
+                </div>
+            </div>
+            <div class="refetch-notice">
+                Fetch parameters changed. Click "Search" to apply.
+            </div>
+        </div>
+
+        <!-- Live mix (client-side, instant) -->
+        <div class="mixer-section" id="mix-section">
+            <h2>
+                Live
+                <span class="tooltip-wrapper">
+                    <span class="info-icon">?</span>
+                    <span class="tooltip">Re-rank retrieved results instantly. No server call needed.</span>
                 </span>
             </h2>
 
@@ -644,14 +726,14 @@
                             Sem
                             <span class="tooltip-wrapper">
                                 <span class="info-icon">?</span>
-                                <span class="tooltip">Conceptual similarity via embeddings. Finds related ideas even without exact word matches.</span>
+                                <span class="tooltip">Weight semantic scores higher in ranking.</span>
                             </span>
                         </span>
                         <span class="balance-value" id="balance-value">50/50</span>
                         <span>
                             <span class="tooltip-wrapper">
                                 <span class="info-icon">?</span>
-                                <span class="tooltip">Keyword matching. Finds exact words. Good for names, technical terms, specific phrases.</span>
+                                <span class="tooltip">Weight BM25 scores higher in ranking.</span>
                             </span>
                             BM25
                         </span>
@@ -667,10 +749,10 @@
                         Tags
                         <span class="tooltip-wrapper">
                             <span class="info-icon">?</span>
-                            <span class="tooltip">Score multiplier when query matches a document's tags. 5x means tag-matched results score 5x higher.</span>
+                            <span class="tooltip">Score multiplier for tag-matched results. 0 = ignore tag boosting, 5 = 5x boost. Matched tags glow green.</span>
                         </span>
                     </label>
-                    <input type="number" id="mix-tags" value="5.0" step="0.5" min="1">
+                    <input type="number" id="mix-tags" value="5.0" step="0.5" min="0">
                 </div>
 
                 <!-- Time Weight (1fr) -->
@@ -679,69 +761,11 @@
                         Time
                         <span class="tooltip-wrapper">
                             <span class="info-icon">?</span>
-                            <span class="tooltip">How much to boost recent documents. Higher = favor newer content. 90-day half-life decay.</span>
+                            <span class="tooltip">Multiplier on time boost. 0 = ignore recency, 0.5 = half, 1 = full, 2 = double.</span>
                         </span>
                     </label>
                     <input type="number" id="mix-time" value="1.0" step="0.1" min="0">
                 </div>
-            </div>
-        </div>
-
-        <!-- Server params (requires re-fetch) -->
-        <div class="mixer-section server-section" id="server-section">
-            <h2>
-                Server Parameters (re-fetch needed)
-                <span class="tooltip-wrapper">
-                    <span class="info-icon">?</span>
-                    <span class="tooltip">These affect WHICH documents are retrieved. Changes require a new server search. The retrieved set determines what the mix weights can re-order.</span>
-                </span>
-            </h2>
-            <div class="mixer-grid">
-                <div class="mixer-item">
-                    <label>
-                        Hybrid Weight
-                        <span class="tooltip-wrapper">
-                            <span class="info-icon">?</span>
-                            <span class="tooltip">Balance between semantic (0) and BM25 (1) during retrieval. 0.5 = equal weight. This affects WHICH docs are retrieved, not just ranking.</span>
-                        </span>
-                    </label>
-                    <input type="number" id="server-hybrid" value="0.5" step="0.1" min="0" max="1">
-                </div>
-                <div class="mixer-item">
-                    <label>
-                        Result Limit
-                        <span class="tooltip-wrapper">
-                            <span class="info-icon">?</span>
-                            <span class="tooltip">Maximum number of results to return. More results = slower but more thorough. Cross-encoder re-ranking is applied to all returned results.</span>
-                        </span>
-                    </label>
-                    <input type="number" id="server-limit" value="20" step="5" min="5" max="100">
-                </div>
-            </div>
-            <div class="checkbox-grid" style="margin-top: 12px;">
-                <div class="checkbox-item">
-                    <input type="checkbox" id="server-rerank" checked>
-                    <label for="server-rerank">
-                        Re-rank (cross-encoder)
-                        <span class="tooltip-wrapper">
-                            <span class="info-icon">?</span>
-                            <span class="tooltip">Run a second model that looks at query + document together. Slower (~200ms) but much better at putting the best match first. Highly recommended.</span>
-                        </span>
-                    </label>
-                </div>
-                <div class="checkbox-item">
-                    <input type="checkbox" id="server-expand">
-                    <label for="server-expand">
-                        Expand query
-                        <span class="tooltip-wrapper">
-                            <span class="info-icon">?</span>
-                            <span class="tooltip">Add related terms to short queries using TF-IDF. Helps with 1-2 word queries by finding synonyms and related concepts from your vault.</span>
-                        </span>
-                    </label>
-                </div>
-            </div>
-            <div class="refetch-notice">
-                Server parameters changed. Click "Re-Search" to apply.
             </div>
         </div>
 
@@ -816,6 +840,7 @@
 
         // Server inputs
         const serverHybrid = document.getElementById('server-hybrid')
+        const fetchBalanceValue = document.getElementById('fetch-balance-value')
         const serverLimit = document.getElementById('server-limit')
         const serverRerank = document.getElementById('server-rerank')
         const serverExpand = document.getElementById('server-expand')
@@ -892,8 +917,14 @@
                 })
             })
 
-            // Server inputs - mark as dirty
-            ;[serverHybrid, serverLimit, serverRerank, serverExpand].forEach(input => {
+            // Fetch balance slider - update display and mark dirty
+            serverHybrid.addEventListener('input', () => {
+                updateFetchBalanceDisplay()
+                markServerDirty()
+            })
+
+            // Other server inputs - mark as dirty
+            ;[serverLimit, serverRerank, serverExpand].forEach(input => {
                 input.addEventListener('change', markServerDirty)
             })
 
@@ -924,10 +955,11 @@
                         updateSliderFromValues()
                     }
                     if (data.server) {
-                        serverHybrid.value = data.server.hybrid ?? 0.5
+                        serverHybrid.value = data.server.hybrid ?? 50  // 0-100 scale
                         serverLimit.value = data.server.limit ?? 20
                         serverRerank.checked = data.server.rerank ?? true
                         serverExpand.checked = data.server.expand ?? false
+                        updateFetchBalanceDisplay()
                     }
                     if (data.query) {
                         queryInput.value = data.query
@@ -960,12 +992,15 @@
             hideError()
 
             try {
+                // Convert fetch slider (0-100) to API hybrid_weight (0-1)
+                const hybridWeight = parseInt(serverHybrid.value) / 100
+
                 const params = new URLSearchParams({
                     q: query,
                     vault: state.currentVault,
                     harness: 'true',
                     hybrid: 'true',
-                    hybrid_weight: serverHybrid.value,
+                    hybrid_weight: hybridWeight,
                     limit: serverLimit.value,
                     rerank: serverRerank.checked,
                     expand_query: serverExpand.checked,
@@ -989,14 +1024,8 @@
                 serverSection.classList.remove('dirty')
                 state.serverParamsChanged = false
 
-                // Apply harness mix values to inputs if provided
-                if (state.harness?.mix) {
-                    mixSemantic.value = state.harness.mix.semantic_weight ?? 1.0
-                    mixBm25.value = state.harness.mix.bm25_weight ?? 1.0
-                    mixTags.value = state.harness.mix.tag_multiplier ?? 5.0
-                    mixTime.value = state.harness.mix.time_weight ?? 1.0
-                    updateSliderFromValues()
-                }
+                // Mix values are client-side only - don't overwrite from server
+                // The user's slider position should be preserved across searches
 
                 remixAndRender()
                 saveState()
@@ -1012,8 +1041,13 @@
         }
 
         // ========================================
-        // Balance slider
+        // Balance sliders
         // ========================================
+
+        function updateFetchBalanceDisplay() {
+            const balance = parseInt(serverHybrid.value)
+            fetchBalanceValue.textContent = `${100 - balance}/${balance}`
+        }
 
         function updateBalanceFromSlider() {
             const balance = parseInt(mixBalance.value)
@@ -1051,7 +1085,7 @@
 
         function getServerParams() {
             return {
-                hybrid: parseFloat(serverHybrid.value) || 0.5,
+                hybrid: parseInt(serverHybrid.value) || 50,  // 0-100 scale
                 limit: parseInt(serverLimit.value) || 20,
                 rerank: serverRerank.checked,
                 expand: serverExpand.checked,
@@ -1071,7 +1105,8 @@
 
                 // Calculate mixed score
                 const baseScore = (semantic * mix.semantic) + (normalizeBm25(bm25) * mix.bm25)
-                const tagMultiplier = tagBoosted ? mix.tags : 1
+                // tags=0 means "ignore tag boosting" (treat as 1x), not "multiply by 0"
+                const tagMultiplier = (tagBoosted && mix.tags > 0) ? mix.tags : 1
                 const timeFactor = 1 + (timeBoost * mix.time)
 
                 const mixed = baseScore * tagMultiplier * timeFactor
@@ -1130,10 +1165,26 @@
             titleDiv.appendChild(titleLink)
             card.appendChild(titleDiv)
 
-            // Path
+            // Path and date
             const pathDiv = document.createElement('div')
             pathDiv.className = 'result-path'
-            pathDiv.textContent = result.relative_path
+
+            const pathText = document.createTextNode(result.relative_path)
+            pathDiv.appendChild(pathText)
+
+            // Add date if available
+            const daysOld = result.days_old
+            if (daysOld !== undefined) {
+                const timeBoost = scores.time_boost ?? result.time_boost ?? 0
+                const separator = document.createTextNode(' · ')
+                pathDiv.appendChild(separator)
+
+                const dateSpan = document.createElement('span')
+                dateSpan.className = 'date' + (timeBoost > 0 ? ' time-boosted' : '')
+                dateSpan.textContent = formatDaysOld(daysOld)
+                pathDiv.appendChild(dateSpan)
+            }
+
             card.appendChild(pathDiv)
 
             // Scores
@@ -1171,20 +1222,16 @@
                 scoresDiv.appendChild(createScoreItem('time', '+' + (timeBoost * 100).toFixed(0) + '%'))
             }
 
-            const tagBoosted = scores.tag_boosted ?? result.tag_boosted
-            if (tagBoosted) {
-                scoresDiv.appendChild(createScoreItem('tags', 'boosted', false, true))
-            }
-
             card.appendChild(scoresDiv)
 
             // Tags (if any)
             if (result.tags && result.tags.length > 0) {
                 const tagsDiv = document.createElement('div')
                 tagsDiv.className = 'result-tags'
+                const matchedTags = new Set(result.tags_matched || [])
                 result.tags.forEach(tag => {
                     const tagSpan = document.createElement('span')
-                    tagSpan.className = 'tag'
+                    tagSpan.className = 'tag' + (matchedTags.has(tag) ? ' matched' : '')
                     tagSpan.textContent = tag
                     tagsDiv.appendChild(tagSpan)
                 })
@@ -1192,6 +1239,15 @@
             }
 
             return card
+        }
+
+        function formatDaysOld(days) {
+            if (days === 0) return 'today'
+            if (days === 1) return 'yesterday'
+            if (days < 7) return `${days} days ago`
+            if (days < 30) return `${Math.floor(days / 7)} weeks ago`
+            if (days < 365) return `${Math.floor(days / 30)} months ago`
+            return `${Math.floor(days / 365)} years ago`
         }
 
         function createScoreItem(label, value, isMixed = false, isBoosted = false) {

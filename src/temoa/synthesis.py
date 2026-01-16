@@ -624,6 +624,7 @@ class SynthesisClient:
                             artificial_rrf = max_rrf * boost_multiplier
                             merged_result['rrf_score'] = artificial_rrf
                             merged_result['tag_boosted'] = True  # Mark for reranker to preserve
+                            merged_result['tags_matched'] = tags_matched  # Which tags triggered boost
 
                             logger.debug(f"Boosting tag-matched result: {merged_result.get('title')} (BM25: {bm25_score:.3f}, ratio: {score_ratio:.2f}, old RRF: {old_rrf:.4f}, new RRF: {artificial_rrf:.4f})")
                             break
