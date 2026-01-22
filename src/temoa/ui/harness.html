@@ -54,14 +54,21 @@
 
         /* Search controls */
         .search-row {
+            position: relative;
             display: flex;
             gap: 8px;
             margin-bottom: 12px;
         }
 
-        .search-input {
+        .search-input-wrapper {
+            position: relative;
             flex: 1;
+        }
+
+        .search-input {
+            width: 100%;
             padding: 10px 14px;
+            padding-right: 80px;
             font-size: 16px;
             border: 1px solid #404040;
             border-radius: 6px;
@@ -72,6 +79,74 @@
 
         .search-input:focus {
             border-color: #666666;
+        }
+
+        .history-btn {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 32px;
+            height: 32px;
+            border: none;
+            border-radius: 6px;
+            background: #3a3a3a;
+            color: #888888;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.15s;
+            z-index: 10;
+        }
+
+        .history-btn:hover {
+            background: #4a4a4a;
+        }
+
+        .history-btn:active {
+            background: #505050;
+        }
+
+        .history-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: #2a2a2a;
+            border: 1px solid #444444;
+            border-radius: 6px;
+            margin-top: 4px;
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+        }
+
+        .history-item {
+            padding: 12px 16px;
+            color: #e0e0e0;
+            cursor: pointer;
+            transition: background 0.15s;
+            border-bottom: 1px solid #333333;
+            font-size: 14px;
+        }
+
+        .history-item:hover {
+            background: #333333;
+        }
+
+        .history-clear {
+            padding: 10px 16px;
+            color: #888888;
+            font-size: 13px;
+            cursor: pointer;
+            text-align: center;
+            transition: background 0.15s;
+        }
+
+        .history-clear:hover {
+            background: #333333;
+            color: #e0e0e0;
         }
 
         .search-btn {
@@ -611,12 +686,19 @@
     <div class="container">
         <header>
             <h1>Score Mixer</h1>
-            <a href="/" class="nav-link">&larr; Search</a>
+            <div style="display: flex; gap: 12px;">
+                <a href="/" class="nav-link">Search</a>
+                <a href="/pipeline" class="nav-link">Pipeline</a>
+            </div>
         </header>
 
         <!-- Search controls -->
         <div class="search-row">
-            <input type="text" id="query" class="search-input" placeholder="Enter search query...">
+            <div class="search-input-wrapper">
+                <input type="text" id="query" class="search-input" placeholder="Enter search query...">
+                <button class="history-btn" id="history-btn" title="Search history">🕐︎</button>
+                <div id="history-dropdown" class="history-dropdown"></div>
+            </div>
             <button id="search-btn" class="search-btn">Search</button>
         </div>
 
@@ -806,6 +888,8 @@
         // State
         // ========================================
 
+        const STORAGE_KEY = 'temoa_state'
+
         const state = {
             results: [],          // Raw results from server (with scores)
             remixed: [],          // Results after client-side remix
@@ -815,6 +899,7 @@
             currentVault: null,
             serverParamsChanged: false,
             lastServerParams: null,
+            searchHistory: [],    // Recent searches (max 10)
         }
 
         // ========================================
@@ -939,10 +1024,37 @@
 
             // Export
             document.getElementById('export-btn').addEventListener('click', exportJSON)
+
+            // History button
+            document.getElementById('history-btn').addEventListener('click', (e) => {
+                e.stopPropagation()
+                toggleHistoryDropdown()
+            })
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', () => {
+                const dropdown = document.getElementById('history-dropdown')
+                if (dropdown) {
+                    dropdown.style.display = 'none'
+                }
+            })
+
+            // Prevent dropdown from closing when clicking inside it
+            document.getElementById('history-dropdown').addEventListener('click', (e) => {
+                e.stopPropagation()
+            })
+
+            // Hide dropdown on search
+            searchBtn.addEventListener('click', () => {
+                const dropdown = document.getElementById('history-dropdown')
+                if (dropdown) {
+                    dropdown.style.display = 'none'
+                }
+            })
         }
 
         function restoreState() {
-            // Restore from localStorage if available
+            // Restore harness-specific state
             const saved = localStorage.getItem('temoa-harness-state')
             if (saved) {
                 try {
@@ -965,8 +1077,21 @@
                         queryInput.value = data.query
                     }
                 } catch (err) {
-                    console.error('Failed to restore state:', err)
+                    console.error('Failed to restore harness state:', err)
                 }
+            }
+
+            // Restore shared search history (same key as search.html)
+            try {
+                const sharedState = localStorage.getItem(STORAGE_KEY)
+                if (sharedState) {
+                    const data = JSON.parse(sharedState)
+                    if (data.searchHistory) {
+                        state.searchHistory = data.searchHistory
+                    }
+                }
+            } catch (err) {
+                console.error('Failed to restore search history:', err)
             }
         }
 
@@ -977,6 +1102,103 @@
                 query: queryInput.value,
             }
             localStorage.setItem('temoa-harness-state', JSON.stringify(data))
+        }
+
+        // ========================================
+        // Search History (shared with search.html)
+        // ========================================
+
+        function addToSearchHistory(query) {
+            if (!query || !query.trim()) return
+
+            const trimmedQuery = query.trim()
+
+            // Remove if already exists (will add to front)
+            state.searchHistory = state.searchHistory.filter(q => q !== trimmedQuery)
+
+            // Add to front
+            state.searchHistory.unshift(trimmedQuery)
+
+            // Keep only last 10
+            if (state.searchHistory.length > 10) {
+                state.searchHistory = state.searchHistory.slice(0, 10)
+            }
+
+            // Save to shared localStorage key
+            saveSearchHistory()
+        }
+
+        function saveSearchHistory() {
+            try {
+                // Read existing shared state
+                const sharedState = localStorage.getItem(STORAGE_KEY)
+                let data = sharedState ? JSON.parse(sharedState) : {}
+
+                // Update just the search history
+                data.searchHistory = state.searchHistory
+
+                // Save back
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+            } catch (err) {
+                console.error('Failed to save search history:', err)
+            }
+        }
+
+        function toggleHistoryDropdown() {
+            const dropdown = document.getElementById('history-dropdown')
+            if (!dropdown) return
+
+            if (dropdown.style.display === 'block') {
+                dropdown.style.display = 'none'
+            } else {
+                renderHistoryDropdown()
+            }
+        }
+
+        function renderHistoryDropdown() {
+            const dropdown = document.getElementById('history-dropdown')
+            if (!dropdown) return
+
+            if (state.searchHistory.length === 0) {
+                dropdown.style.display = 'none'
+                return
+            }
+
+            dropdown.innerHTML = ''
+            dropdown.style.display = 'block'
+
+            // Add history items
+            state.searchHistory.forEach(query => {
+                const item = document.createElement('div')
+                item.className = 'history-item'
+                item.textContent = query
+                item.addEventListener('click', (e) => {
+                    e.stopPropagation()
+                    queryInput.value = query
+                    dropdown.style.display = 'none'
+                    queryInput.focus()
+                })
+                dropdown.appendChild(item)
+            })
+
+            // Add clear button
+            const clearBtn = document.createElement('div')
+            clearBtn.className = 'history-clear'
+            clearBtn.textContent = 'Clear history'
+            clearBtn.addEventListener('click', (e) => {
+                e.stopPropagation()
+                clearSearchHistory()
+            })
+            dropdown.appendChild(clearBtn)
+        }
+
+        function clearSearchHistory() {
+            state.searchHistory = []
+            saveSearchHistory()
+            const dropdown = document.getElementById('history-dropdown')
+            if (dropdown) {
+                dropdown.style.display = 'none'
+            }
         }
 
         // ========================================
@@ -1023,6 +1245,9 @@
                 state.lastServerParams = getServerParams()
                 serverSection.classList.remove('dirty')
                 state.serverParamsChanged = false
+
+                // Add to search history
+                addToSearchHistory(query)
 
                 // Mix values are client-side only - don't overwrite from server
                 // The user's slider position should be preserved across searches

@@ -56,6 +56,108 @@ def sanitize_unicode(obj):
         return obj
 
 
+# Pipeline debugging helper functions
+def format_result_preview(results, max_results=20):
+    """
+    Format results for pipeline debugging (path + key scores).
+
+    Args:
+        results: List of search results
+        max_results: Maximum number of results to include
+
+    Returns:
+        List of preview dicts with path and score info
+    """
+    previews = []
+    for result in results[:max_results]:
+        preview = {
+            "relative_path": result.get("relative_path", ""),
+            "title": result.get("title", ""),
+        }
+        # Add available scores
+        if "similarity_score" in result:
+            preview["similarity_score"] = round(result["similarity_score"], 4)
+        if "bm25_score" in result:
+            preview["bm25_score"] = round(result["bm25_score"], 2)
+        if "rrf_score" in result:
+            preview["rrf_score"] = round(result["rrf_score"], 4)
+        if "cross_encoder_score" in result:
+            preview["cross_encoder_score"] = round(result["cross_encoder_score"], 4)
+        if "time_boost" in result:
+            preview["time_boost"] = round(result["time_boost"], 4)
+        if "tag_boosted" in result:
+            preview["tag_boosted"] = result["tag_boosted"]
+        if "tags_matched" in result:
+            preview["tags_matched"] = result["tags_matched"]
+
+        previews.append(preview)
+
+    return previews
+
+
+def calculate_rank_changes(before, after):
+    """
+    Calculate rank changes between two result orderings.
+
+    Args:
+        before: List of results before transformation
+        after: List of results after transformation
+
+    Returns:
+        List of dicts with rank change info
+    """
+    # Build path->rank maps
+    before_ranks = {r.get("relative_path"): idx for idx, r in enumerate(before)}
+    after_ranks = {r.get("relative_path"): idx for idx, r in enumerate(after)}
+
+    # Calculate changes for results that appear in both
+    changes = []
+    for path in after_ranks:
+        if path in before_ranks:
+            before_rank = before_ranks[path]
+            after_rank = after_ranks[path]
+            delta = before_rank - after_rank  # Positive = moved up
+
+            if delta != 0:
+                changes.append({
+                    "relative_path": path,
+                    "title": after[after_rank].get("title", ""),
+                    "before_rank": before_rank + 1,  # 1-indexed for display
+                    "after_rank": after_rank + 1,
+                    "delta": delta
+                })
+
+    # Sort by magnitude of change
+    changes.sort(key=lambda x: abs(x["delta"]), reverse=True)
+    return changes
+
+
+def capture_stage_state(stage_num, stage_name, results, metadata, start_time):
+    """
+    Capture state snapshot for a pipeline stage.
+
+    Args:
+        stage_num: Stage number (0-7)
+        stage_name: Human-readable stage name
+        results: Current result list
+        metadata: Stage-specific metadata (counts, settings, etc.)
+        start_time: Time when stage started (from time.time())
+
+    Returns:
+        Dict with stage state
+    """
+    import time
+
+    return {
+        "stage_num": stage_num,
+        "stage_name": stage_name,
+        "result_count": len(results),
+        "results_preview": format_result_preview(results, max_results=20),
+        "metadata": metadata,
+        "timing_ms": round((time.time() - start_time) * 1000, 1)
+    }
+
+
 # Lifespan context manager for startup/shutdown
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -485,6 +587,30 @@ async def harness():
     return FileResponse(ui_path, media_type="text/html")
 
 
+@app.get("/pipeline", response_class=HTMLResponse)
+async def pipeline_viewer():
+    """Serve pipeline step viewer UI for debugging search stages"""
+    ui_path = Path(__file__).parent / "ui" / "pipeline.html"
+
+    if not ui_path.exists():
+        return HTMLResponse(content="""
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Pipeline Viewer - Temoa</title>
+</head>
+<body>
+    <h1>Pipeline Viewer</h1>
+    <p>Pipeline viewer UI not found. Please check installation.</p>
+    <p><a href="/">Back to Search</a></p>
+</body>
+</html>
+        """)
+
+    return FileResponse(ui_path, media_type="text/html")
+
+
 @app.get("/manage", response_class=HTMLResponse)
 async def manage():
     """Serve management UI"""
@@ -748,6 +874,10 @@ async def search(
     harness: bool = Query(
         default=False,
         description="Return structured score data for harness/mixer experiments"
+    ),
+    pipeline_debug: bool = Query(
+        default=False,
+        description="Return pipeline state showing results at each search stage"
     )
 ):
     """
@@ -854,6 +984,30 @@ async def search(
 
         logger.info(f"Search: vault='{vault_name}', profile='{profile}', query='{q}', limit={limit}, min_score={min_score}, include_types={include_type_list}, exclude_types={exclude_type_list}, hybrid={use_hybrid}, expand={expand_query}, time_boost={time_boost}, rerank={rerank}, model={model or 'default'}")
 
+        # Initialize pipeline state container (if debugging enabled)
+        pipeline_state = None
+        if pipeline_debug:
+            import time
+            pipeline_state = {
+                "stages": [],
+                "query": {
+                    "original": q,
+                    "expanded": None,
+                    "vault": vault_name,
+                    "profile": profile
+                },
+                "config": {
+                    "hybrid": use_hybrid,
+                    "rerank": rerank,
+                    "expand_query": expand_query,
+                    "time_boost": time_boost,
+                    "limit": limit,
+                    "min_score": min_score,
+                    "include_types": include_type_list,
+                    "exclude_types": exclude_type_list
+                }
+            }
+
         # Note: model parameter not supported yet in current wrapper
         # Would require reinitializing Synthesis with different model
         if model and model != config.default_model:
@@ -867,8 +1021,12 @@ async def search(
             )
 
         # Stage 0: Query expansion (if enabled and query is short)
+        import time
+        stage_start = time.time()
         original_query = q
         expanded_query = None
+        expansion_terms = []
+
         if expand_query:
             query_expander = request.app.state.query_expander
             if query_expander.should_expand(q):
@@ -885,6 +1043,10 @@ async def search(
                     q = query_expander.expand(q, initial_results, top_k=5)
                     if q != original_query:
                         expanded_query = q
+                        # Extract expansion terms (terms in expanded query not in original)
+                        original_terms = set(original_query.lower().split())
+                        expanded_terms = set(q.lower().split())
+                        expansion_terms = list(expanded_terms - original_terms)
                         logger.info(f"Query expanded: '{original_query}' → '{q}'")
                     else:
                         logger.debug(f"Query expansion did not modify query: '{original_query}'")
@@ -900,7 +1062,26 @@ async def search(
                     logger.error(f"Unexpected error during query expansion: {e}", exc_info=True)
                     # Continue with original query
 
-        # Perform search (request more results to account for filtering)
+        # Capture Stage 0 state
+        if pipeline_state is not None:
+            pipeline_state["query"]["expanded"] = expanded_query
+            stage_state = capture_stage_state(
+                stage_num=0,
+                stage_name="Query Expansion",
+                results=[],  # No results yet
+                metadata={
+                    "original_query": original_query,
+                    "expanded_query": expanded_query,
+                    "expansion_terms": expansion_terms,
+                    "applied": expanded_query is not None
+                },
+                start_time=stage_start
+            )
+            pipeline_state["stages"].append(stage_state)
+
+        # Stage 1: Primary retrieval (semantic + BM25 hybrid or semantic-only)
+        # Stage 2: Chunk deduplication (happens inside hybrid_search)
+        stage_start = time.time()
         search_limit = limit * 2 if limit else 50
 
         # Choose search method
@@ -915,8 +1096,28 @@ async def search(
         else:
             data = synthesis.search(query=q, limit=search_limit)
 
-        # Filter by similarity score (but not in hybrid mode)
+        # Get results
         results = data.get("results", [])
+
+        # Capture Stage 1 & 2 state (retrieval + dedup, combined since dedup happens inside hybrid_search)
+        if pipeline_state is not None:
+            stage_state = capture_stage_state(
+                stage_num=1,
+                stage_name="Primary Retrieval & Chunk Deduplication",
+                results=results,
+                metadata={
+                    "search_mode": data.get("search_mode", "semantic" if not use_hybrid else "hybrid"),
+                    "search_limit": search_limit,
+                    "hybrid_enabled": use_hybrid,
+                    "note": "Chunk deduplication happens inside hybrid_search (best chunk per file)"
+                },
+                start_time=stage_start
+            )
+            pipeline_state["stages"].append(stage_state)
+
+        # Stage 3: Score filtering (but not in hybrid mode)
+        stage_start = time.time()
+        results_before_score_filter = results
 
         if use_hybrid:
             # In hybrid mode, RRF has already ranked results appropriately
@@ -930,7 +1131,39 @@ async def search(
             if score_removed > 0:
                 logger.info(f"Filtered {score_removed} results below min_score={min_score}")
 
-        # Filter out inactive gleanings
+        # Capture Stage 3 state
+        if pipeline_state is not None:
+            removed_items = []
+            if score_removed > 0:
+                # Get items that were filtered
+                filtered_paths = {r.get("relative_path") for r in score_filtered}
+                removed_items = [
+                    {
+                        "relative_path": r.get("relative_path"),
+                        "similarity_score": round(r.get("similarity_score", 0), 4)
+                    }
+                    for r in results_before_score_filter
+                    if r.get("relative_path") not in filtered_paths
+                ][:20]  # Limit to 20
+
+            stage_state = capture_stage_state(
+                stage_num=3,
+                stage_name="Score Filtering",
+                results=score_filtered,
+                metadata={
+                    "before_count": len(results_before_score_filter),
+                    "after_count": len(score_filtered),
+                    "removed_count": score_removed,
+                    "min_score_threshold": min_score,
+                    "applied": not use_hybrid,  # Only in semantic mode
+                    "removed_items": removed_items
+                },
+                start_time=stage_start
+            )
+            pipeline_state["stages"].append(stage_state)
+
+        # Stage 4: Status filtering (inactive gleanings)
+        stage_start = time.time()
         original_count = len(score_filtered)
         filtered_results = filter_inactive_gleanings(score_filtered)
         status_removed = original_count - len(filtered_results)
@@ -938,7 +1171,37 @@ async def search(
         if status_removed > 0:
             logger.info(f"Filtered {status_removed} inactive gleanings from results")
 
-        # Filter by type
+        # Capture Stage 4 state
+        if pipeline_state is not None:
+            removed_items = []
+            if status_removed > 0:
+                filtered_paths = {r.get("relative_path") for r in filtered_results}
+                removed_items = [
+                    {
+                        "relative_path": r.get("relative_path"),
+                        "status": r.get("status", "unknown")
+                    }
+                    for r in score_filtered
+                    if r.get("relative_path") not in filtered_paths
+                ][:20]
+
+            stage_state = capture_stage_state(
+                stage_num=4,
+                stage_name="Status Filtering",
+                results=filtered_results,
+                metadata={
+                    "before_count": original_count,
+                    "after_count": len(filtered_results),
+                    "removed_count": status_removed,
+                    "removed_items": removed_items
+                },
+                start_time=stage_start
+            )
+            pipeline_state["stages"].append(stage_state)
+
+        # Stage 5: Type filtering
+        stage_start = time.time()
+        results_before_type_filter = filtered_results
         filtered_results, type_removed = filter_by_type(
             filtered_results,
             include_types=include_type_list,
@@ -948,7 +1211,40 @@ async def search(
         if type_removed > 0:
             logger.info(f"Filtered {type_removed} results by type (include={include_type_list}, exclude={exclude_type_list})")
 
-        # Apply cross-encoder re-ranking if enabled (before time boost)
+        # Capture Stage 5 state
+        if pipeline_state is not None:
+            removed_items = []
+            if type_removed > 0:
+                filtered_paths = {r.get("relative_path") for r in filtered_results}
+                removed_items = [
+                    {
+                        "relative_path": r.get("relative_path"),
+                        "type": r.get("type", "unknown")
+                    }
+                    for r in results_before_type_filter
+                    if r.get("relative_path") not in filtered_paths
+                ][:20]
+
+            stage_state = capture_stage_state(
+                stage_num=5,
+                stage_name="Type Filtering",
+                results=filtered_results,
+                metadata={
+                    "before_count": len(results_before_type_filter),
+                    "after_count": len(filtered_results),
+                    "removed_count": type_removed,
+                    "include_types": include_type_list,
+                    "exclude_types": exclude_type_list,
+                    "removed_items": removed_items
+                },
+                start_time=stage_start
+            )
+            pipeline_state["stages"].append(stage_state)
+
+        # Stage 6: Cross-encoder re-ranking (if enabled)
+        stage_start = time.time()
+        results_before_rerank = [dict(r) for r in filtered_results[:20]]  # Shallow copy top 20 for comparison
+
         if rerank and filtered_results:
             reranker = request.app.state.reranker
             # Re-rank with more candidates than final limit for better quality
@@ -961,11 +1257,67 @@ async def search(
                 rerank_top_n=rerank_count
             )
 
-        # Apply time-aware boost (after re-ranking)
+        # Capture Stage 6 state
+        if pipeline_state is not None:
+            rank_changes = []
+            if rerank and results_before_rerank:
+                rank_changes = calculate_rank_changes(results_before_rerank, filtered_results[:20])
+
+            stage_state = capture_stage_state(
+                stage_num=6,
+                stage_name="Cross-Encoder Re-Ranking",
+                results=filtered_results,
+                metadata={
+                    "applied": rerank and len(filtered_results) > 0,
+                    "rerank_count": min(100, len(filtered_results)) if rerank else 0,
+                    "rank_changes": rank_changes[:20],  # Top 20 changes
+                    "total_rank_changes": len([c for c in rank_changes if c["delta"] != 0])
+                },
+                start_time=stage_start
+            )
+            pipeline_state["stages"].append(stage_state)
+
+        # Stage 7: Time-aware boost (after re-ranking)
+        stage_start = time.time()
+        results_before_time_boost = [dict(r) for r in filtered_results[:20]]  # Shallow copy for comparison
+
         if time_boost and filtered_results:
             time_scorer = request.app.state.time_scorer
             logger.info(f"Applying time-aware boost to {len(filtered_results)} results")
             filtered_results = time_scorer.apply_boost(filtered_results, vault_path)
+
+        # Capture Stage 7 state
+        if pipeline_state is not None:
+            boosted_items = []
+            if time_boost and results_before_time_boost:
+                # Find items with time boost applied
+                for idx, result in enumerate(filtered_results[:20]):
+                    time_boost_val = result.get("time_boost", 0)
+                    if time_boost_val > 0:
+                        boosted_items.append({
+                            "relative_path": result.get("relative_path"),
+                            "time_boost": round(time_boost_val, 4),
+                            "mtime": result.get("mtime", "")
+                        })
+
+            rank_changes = []
+            if time_boost and results_before_time_boost:
+                rank_changes = calculate_rank_changes(results_before_time_boost, filtered_results[:20])
+
+            stage_state = capture_stage_state(
+                stage_num=7,
+                stage_name="Time-Aware Boost",
+                results=filtered_results,
+                metadata={
+                    "applied": time_boost and len(filtered_results) > 0,
+                    "boosted_count": len(boosted_items),
+                    "boosted_items": boosted_items,
+                    "rank_changes": rank_changes[:20],
+                    "total_rank_changes": len([c for c in rank_changes if c["delta"] != 0])
+                },
+                start_time=stage_start
+            )
+            pipeline_state["stages"].append(stage_state)
 
         # Apply final limit (if not already applied by reranker)
         if not rerank:
@@ -1022,6 +1374,19 @@ async def search(
                     "profile": profile,
                 },
             }
+
+        # Add pipeline debug data when requested
+        if pipeline_state is not None:
+            # Calculate total pipeline time
+            total_time_ms = sum(stage["timing_ms"] for stage in pipeline_state["stages"])
+            pipeline_state["summary"] = {
+                "total_time_ms": round(total_time_ms, 1),
+                "initial_results": pipeline_state["stages"][1]["result_count"] if len(pipeline_state["stages"]) > 1 else 0,
+                "final_results": len(filtered_results),
+                "total_filtered": (pipeline_state["stages"][1]["result_count"] if len(pipeline_state["stages"]) > 1 else 0) - len(filtered_results),
+                "stages_count": len(pipeline_state["stages"])
+            }
+            data["pipeline"] = pipeline_state
 
         # Sanitize Unicode surrogates before JSON encoding
         data = sanitize_unicode(data)

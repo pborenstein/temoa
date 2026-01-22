@@ -1,8 +1,8 @@
 ---
 phase: "Experimentation"
 phase_name: "Search Harness"
-updated: 2026-01-15
-last_commit: 8a7e717
+updated: 2026-01-21
+last_commit: 2508210
 branch: knobs-and-dials
 ---
 
@@ -10,17 +10,15 @@ branch: knobs-and-dials
 
 ## Current Focus
 
-Refining harness UI - improving clarity of Fetch vs Live parameters and visual feedback for score components.
+Built pipeline step viewer (`/pipeline`) to visualize search results at each stage of the 8-stage pipeline.
 
 ## Active Tasks
 
-- [x] Fix cross_encoder_score display bug
-- [x] Fix pipeline diagram in SEARCH-MECHANISMS.md
-- [x] Add `?harness=true` API parameter for structured score output
-- [x] Build harness.html page with client-side re-mixing
-- [x] Harness UI refinements (this session)
-- [ ] Add `temoa harness` CLI command
-- [ ] Profile saving (localStorage for UI, config.json for CLI)
+- [x] Backend: Add `pipeline_debug=true` parameter and state capture
+- [x] Frontend: Create pipeline.html with stage visualization
+- [x] Integration: Add nav links between Search/Harness/Pipeline
+- [x] Documentation: Update SEARCH-MECHANISMS.md and chronicles
+- [ ] Testing: User feedback on pipeline viewer usefulness
 
 ## Blockers
 
@@ -28,13 +26,12 @@ None
 
 ## Context
 
-- **Plan**: `docs/plans/search-harness-plan.md` - full implementation plan
-- **Fetch/Live split**: Fetch (server retrieval) now comes before Live (client remix) in UI
-- **Both sliders**: Fetch balance and Live balance now both use slider UI (0-100 scale)
-- **Visual feedback**: Time-boosted dates glow purple, matched tags glow green
-- **Tags=0**: Disables tag boosting (treats as 1x multiplier, not 0x)
-- **Slider persistence**: Fixed bug where Live slider reset after search
+- **Pipeline viewer** at `/pipeline` shows results flow through 7 stages (0, 1, 3-7)
+- **State capture**: Minimal overhead (<50ms), includes timing, rank changes, filtered items
+- **Three tools**: Search (main UI) ↔ Harness (score mixer) ↔ Pipeline (stage viewer)
+- **Entry 53**: Added to `docs/chronicles/experimentation-harness.md`
+- **Stage 2 combined**: Chunk deduplication happens inside `hybrid_search()`, so Stage 1 shows "Primary Retrieval & Chunk Deduplication"
 
 ## Next Session
 
-Phase 3: Add `temoa harness` CLI command. See Phase 3 in `docs/plans/search-harness-plan.md`.
+Continue experimentation phase or move to production deployment. Pipeline viewer provides all necessary debugging tools for tuning search quality.

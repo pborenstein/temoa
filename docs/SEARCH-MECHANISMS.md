@@ -48,6 +48,12 @@ The search pipeline consists of:
   - [Built-in Profiles](#built-in-profiles)
   - [Custom Profiles](#custom-profiles)
 - [Multi-Vault Support](#multi-vault-support)
+- [Pipeline Debugging](#pipeline-debugging)
+  - [Pipeline Viewer UI](#pipeline-viewer-ui)
+  - [Pipeline Stages](#pipeline-stages)
+  - [API Usage](#api-usage)
+  - [Performance Impact](#performance-impact)
+  - [Use Cases](#use-cases)
 - [Complete Pipeline Flow](#complete-pipeline-flow)
 - [Performance Characteristics](#performance-characteristics)
 
@@ -1142,6 +1148,7 @@ GET /search?
   &time_boost=<bool>           # Optional: Boost recent docs (default: true, overridden by profile)
   &include_types=<csv>         # Optional: Whitelist types (e.g., "gleaning,article")
   &exclude_types=<csv>         # Optional: Blacklist types (default: "daily")
+  &pipeline_debug=<bool>       # Optional: Return pipeline state for debugging (default: false)
 ```
 
 **Note**: When using `profile` parameter, profile settings take precedence over individual flags (`hybrid`, `rerank`, `time_boost`, etc.). You can still override specific settings by passing explicit parameters.
@@ -1168,6 +1175,164 @@ GET /profiles                  # List all available search profiles
   "hybrid_search_enabled": true
 }
 ```
+
+---
+
+## Pipeline Debugging
+
+**Added**: 2026-01-21 (Phase 3 Complete)
+
+Temoa includes a pipeline viewer tool to visualize how results flow through the 8-stage search pipeline. This is useful for understanding why specific results appear, disappear, or change ranks during search.
+
+### Pipeline Viewer UI
+
+Access the pipeline viewer at: `http://localhost:8080/pipeline`
+
+The UI provides:
+- **Summary metrics**: Total time, initial/final result counts, filtering statistics
+- **Stage-by-stage visualization**: See results at each pipeline stage
+- **Rank change tracking**: Visualize how re-ranking and time boost affect result order
+- **Filtering details**: See which results were removed and why
+- **Export functionality**: Download full pipeline state as JSON
+
+### Pipeline Stages
+
+The search pipeline consists of 8 stages (0-7):
+
+1. **Stage 0: Query Expansion** - TF-IDF expansion for short queries (<3 words)
+   - Shows: Original query, expanded query, expansion terms added
+
+2. **Stage 1: Primary Retrieval & Chunk Deduplication** - Semantic + BM25 hybrid search
+   - Shows: Search mode (hybrid/semantic), result counts, top 20 results with scores
+   - Note: Chunk deduplication happens inside `hybrid_search()` (best chunk per file)
+
+3. **Stage 3: Score Filtering** - Remove low-scoring results (semantic-only mode)
+   - Shows: Before/after counts, min score threshold, removed items
+   - Only applied in semantic mode (not hybrid)
+
+4. **Stage 4: Status Filtering** - Remove inactive/hidden gleanings
+   - Shows: Before/after counts, removed items with status
+
+5. **Stage 5: Type Filtering** - Apply include/exclude type filters
+   - Shows: Before/after counts, include/exclude rules, removed items with types
+
+6. **Stage 6: Cross-Encoder Re-Ranking** - Precision improvement via re-scoring
+   - Shows: Rank changes (before→after), score deltas, tag-boosted preservation
+
+7. **Stage 7: Time-Aware Boost** - Recency boost with exponential decay
+   - Shows: Boosted items with boost amounts, rank changes
+
+### API Usage
+
+Enable pipeline debugging by adding `pipeline_debug=true` to the search endpoint:
+
+```bash
+GET /search?q=obsidian&pipeline_debug=true&limit=10
+```
+
+**Response Structure**:
+
+```json
+{
+  "query": "obsidian",
+  "results": [...],
+  "total": 10,
+  "pipeline": {
+    "query": {
+      "original": "obsidian",
+      "expanded": null,
+      "vault": "amoxtli",
+      "profile": "default"
+    },
+    "config": {
+      "hybrid": true,
+      "rerank": true,
+      "expand_query": false,
+      "time_boost": true,
+      "limit": 10,
+      "min_score": 0.3,
+      "include_types": null,
+      "exclude_types": ["daily"]
+    },
+    "stages": [
+      {
+        "stage_num": 0,
+        "stage_name": "Query Expansion",
+        "result_count": 0,
+        "results_preview": [],
+        "metadata": {
+          "original_query": "obsidian",
+          "expanded_query": null,
+          "expansion_terms": [],
+          "applied": false
+        },
+        "timing_ms": 0.0
+      },
+      {
+        "stage_num": 1,
+        "stage_name": "Primary Retrieval & Chunk Deduplication",
+        "result_count": 20,
+        "results_preview": [
+          {
+            "relative_path": "file.md",
+            "title": "File Title",
+            "similarity_score": 0.8234,
+            "bm25_score": 15.32,
+            "rrf_score": 0.0456,
+            "tag_boosted": true,
+            "tags_matched": ["obsidian", "plugins"]
+          }
+        ],
+        "metadata": {
+          "search_mode": "hybrid",
+          "search_limit": 20,
+          "hybrid_enabled": true,
+          "note": "Chunk deduplication happens inside hybrid_search (best chunk per file)"
+        },
+        "timing_ms": 412.3
+      }
+    ],
+    "summary": {
+      "total_time_ms": 710.5,
+      "initial_results": 150,
+      "final_results": 10,
+      "total_filtered": 140,
+      "stages_count": 7
+    }
+  }
+}
+```
+
+### Performance Impact
+
+Pipeline debugging adds minimal overhead:
+
+- **Disabled** (`pipeline_debug=false`): No overhead, normal search performance
+- **Enabled** (`pipeline_debug=true`): ~20-50ms overhead for state capture and formatting
+- **Payload size**: ~50-200KB additional JSON (top 20 results per stage)
+
+The overhead comes from:
+- Shallow copying results for before/after comparisons
+- Formatting result previews (path + scores)
+- Calculating rank changes between stages
+
+### Use Cases
+
+1. **Understanding tag boosting**: See how BM25 tag matches get 5x boost in hybrid mode
+2. **Debugging filtering**: Understand why expected results don't appear
+3. **Tuning re-ranking**: See how cross-encoder changes result order
+4. **Profile optimization**: Compare pipeline behavior across different profiles
+5. **Performance analysis**: Identify slow stages (timing per stage)
+
+### Related Tools
+
+The pipeline viewer complements existing debugging tools:
+
+- **Score Mixer (`/harness`)**: Live score weight tuning (semantic, BM25, RRF)
+- **Pipeline Viewer (`/pipeline`)**: Stage-by-stage result flow visualization (this tool)
+- **Search UI (`/`)**: Main search interface with profile selector
+
+All three tools are interconnected via navigation links in the header.
 
 ---
 

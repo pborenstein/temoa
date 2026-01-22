@@ -62,3 +62,60 @@ Chronicle entries for the Search Harness implementation - an interactive score m
 6. **Removed redundant "tags: boosted"** - Green tag glow shows same info
 
 **Files**: src/temoa/ui/harness.html, src/temoa/synthesis.py (added tags_matched to results)
+
+---
+
+## Entry 53: Pipeline Step Viewer (2026-01-21)
+
+**What**: Built `/pipeline` viewer to visualize results at each stage of the 8-stage search pipeline.
+
+**Why**: While the harness shows final scores and allows weight tuning, it doesn't show how results transform through the pipeline. Need visibility into intermediate stages to understand:
+- Why specific results appear/disappear/reorder
+- How filtering affects result counts at each stage
+- Which results get tag-boosted vs cross-encoder re-ranked
+- Performance bottlenecks (timing per stage)
+
+**How**:
+
+1. **Backend (server.py)**:
+   - Added `pipeline_debug=true` query parameter
+   - Created helper functions: `capture_stage_state()`, `format_result_preview()`, `calculate_rank_changes()`
+   - Inserted state capture after each pipeline stage (0, 1, 3-7)
+   - Stage data includes: result count, top 20 results preview, stage-specific metadata, timing
+
+2. **Frontend (pipeline.html)**:
+   - Standalone page at `/pipeline` with vault/profile selectors
+   - Collapsible stage sections (default expanded) showing:
+     - Summary metrics (total time, initial/final counts, filtering %)
+     - Stage-by-stage results with scores (semantic, BM25, RRF, cross_encoder, time_boost)
+     - Rank changes (before→after with arrows and deltas)
+     - Removed items (filtering stages show what was filtered and why)
+   - Export to JSON functionality
+   - Mobile-friendly collapsible layout
+
+3. **Integration**:
+   - Added "Pipeline" nav links to `/search` and `/harness` headers
+   - All three tools now interconnected (Search ↔ Harness ↔ Pipeline)
+
+**Pipeline Stages Captured**:
+
+- **Stage 0**: Query Expansion (original→expanded query, expansion terms)
+- **Stage 1**: Primary Retrieval & Chunk Deduplication (semantic/BM25 results, search mode)
+- **Stage 3**: Score Filtering (removed low-scoring results, threshold applied)
+- **Stage 4**: Status Filtering (removed inactive/hidden gleanings)
+- **Stage 5**: Type Filtering (removed by include/exclude rules)
+- **Stage 6**: Cross-Encoder Re-Ranking (rank changes, preserved tag-boosted)
+- **Stage 7**: Time-Aware Boost (boosted items, rank changes)
+
+**Performance**: <50ms overhead when enabled, 0ms when disabled (default)
+
+**Files**:
+- src/temoa/server.py (pipeline_debug param, helper functions, state capture)
+- src/temoa/ui/pipeline.html (new viewer page)
+- src/temoa/ui/search.html (added nav link)
+- src/temoa/ui/harness.html (added nav link)
+- docs/SEARCH-MECHANISMS.md (new Pipeline Debugging section)
+
+**Testing**: Manual verification of all 7 stages with query "test" shows correct counts, timing, rank changes, and metadata.
+
+**Commits**: [pending]
