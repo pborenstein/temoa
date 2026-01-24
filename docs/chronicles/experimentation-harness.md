@@ -118,4 +118,45 @@ Chronicle entries for the Search Harness implementation - an interactive score m
 
 **Testing**: Manual verification of all 7 stages with query "test" shows correct counts, timing, rank changes, and metadata.
 
-**Commits**: [pending]
+**Commits**: 2508210, fb8be51
+
+---
+
+## Entry 54: Unified Explorer Interface - Planning (2026-01-23)
+
+**What**: Designed comprehensive plan for consolidating Search/Harness/Pipeline into single unified interface.
+
+**Why**: Three separate tools require context switching, can't explore pipeline while tuning mixer, can't inspect result details while viewing stages. User requested ability to "explore the whole pipeline, inspect individual results, and play with the things" in one place.
+
+**How**:
+
+1. **Three-pane layout**:
+   - Left: Controls pane (Fetch/Live mixer from harness)
+   - Center: Results pane (List mode or Pipeline mode)
+   - Right: Inspector pane (new - detailed result inspection)
+
+2. **Two view modes**:
+   - List mode: Current search.html results with selection
+   - Pipeline mode: Stage-by-stage accordion from pipeline.html
+
+3. **Inspector** (new component):
+   - Scores tab: All score types with visual bars
+   - Metadata tab: Tags, type, status, file info
+   - Journey tab: Pipeline stage progression for selected result
+
+4. **Responsive design**:
+   - Desktop: Three columns (280px | 1fr | 320px)
+   - Mobile: Vertical stack with accordions + bottom drawer
+
+5. **Implementation phases**: 5 phases, 14-20h estimate
+   - Phase 1: Core layout & infrastructure
+   - Phase 2: Inspector implementation
+   - Phase 3: Pipeline mode integration
+   - Phase 4: Live remix & polish
+   - Phase 5: Migration & cleanup
+
+**Plan**: `docs/plans/unified-search-interface.md` (wireframes, API strategy, open questions, risk analysis)
+
+**Status**: Planning complete, awaiting user approval to begin implementation
+
+**Commits**: [documentation only - no code commits]

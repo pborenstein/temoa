@@ -1,8 +1,8 @@
 ---
 phase: "Experimentation"
 phase_name: "Search Harness"
-updated: 2026-01-21
-last_commit: 2508210
+updated: 2026-01-23
+last_commit: 71644ef
 branch: knobs-and-dials
 ---
 
@@ -10,28 +10,28 @@ branch: knobs-and-dials
 
 ## Current Focus
 
-Built pipeline step viewer (`/pipeline`) to visualize search results at each stage of the 8-stage pipeline.
+Designed unified Explorer interface to consolidate Search/Harness/Pipeline into single three-pane layout.
 
 ## Active Tasks
 
-- [x] Backend: Add `pipeline_debug=true` parameter and state capture
-- [x] Frontend: Create pipeline.html with stage visualization
-- [x] Integration: Add nav links between Search/Harness/Pipeline
-- [x] Documentation: Update SEARCH-MECHANISMS.md and chronicles
-- [ ] Testing: User feedback on pipeline viewer usefulness
+- [x] Plan: Design unified multi-pane interface architecture
+- [x] Plan: Document implementation phases and technical approach
+- [ ] Implement: Phase 1 - Core layout and infrastructure
+- [ ] Implement: Phase 2 - Inspector implementation
+- [ ] Implement: Phase 3 - Pipeline mode integration
 
 ## Blockers
 
-None
+None. Plan ready for user approval.
 
 ## Context
 
-- **Pipeline viewer** at `/pipeline` shows results flow through 7 stages (0, 1, 3-7)
-- **State capture**: Minimal overhead (<50ms), includes timing, rank changes, filtered items
-- **Three tools**: Search (main UI) ↔ Harness (score mixer) ↔ Pipeline (stage viewer)
-- **Entry 53**: Added to `docs/chronicles/experimentation-harness.md`
-- **Stage 2 combined**: Chunk deduplication happens inside `hybrid_search()`, so Stage 1 shows "Primary Retrieval & Chunk Deduplication"
+- **Three separate tools**: `/search` (production), `/harness` (mixer), `/pipeline` (debugger)
+- **User request**: Consolidate all tools into single interface for unified workflow
+- **Explorer design**: Three-pane layout (Controls | Results | Inspector) with List/Pipeline view modes
+- **Plan document**: `docs/plans/unified-search-interface.md` (wireframes, phases, 14-20h estimate)
+- **Next entry**: Entry 54 when implementation starts
 
 ## Next Session
 
-Continue experimentation phase or move to production deployment. Pipeline viewer provides all necessary debugging tools for tuning search quality.
+Review unified-search-interface.md plan. If approved, begin Phase 1 implementation (core layout).

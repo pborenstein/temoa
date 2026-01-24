@@ -319,6 +319,7 @@ The production hardening is complete. Now we experiment with different combinati
 - [x] Build pipeline viewer (`/pipeline`) for stage-by-stage visualization (Entry 53)
 - [x] Add `?harness=true` API parameter for structured score output
 - [x] Add `?pipeline_debug=true` API parameter for stage state capture
+- [ ] Build unified Explorer interface (`/explorer`) consolidating all tools (planned)
 
 **Experimentation**:
 - [ ] Document baseline performance (latency, relevance)
@@ -345,6 +346,6 @@ Moved to backburner. See [archive/backburner/phase-4-llm.md](archive/backburner/
 
 ---
 
-**Last Updated**: 2026-01-21
+**Last Updated**: 2026-01-23
 **Current Phase**: Experimentation (Knobs & Dials)
 **Next**: See CONTEXT.md for current session state
