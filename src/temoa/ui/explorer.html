@@ -603,6 +603,285 @@
                 display: none !important;
             }
         }
+
+        /* Results list styles */
+        .results-table {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .result-row {
+            background: #1a1a1a;
+            padding: 12px 14px;
+            border-radius: 6px;
+            border: 1px solid #333333;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .result-row:hover {
+            background: #252525;
+            border-color: #404040;
+        }
+
+        .result-row.selected {
+            border-color: #4a6a8a;
+            background: #1a2a3a;
+        }
+
+        .result-title-link {
+            font-weight: 600;
+            color: #c0c0c0;
+            text-decoration: none;
+            font-size: 14px;
+            line-height: 1.3;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .result-title-link:hover {
+            color: #e0e0e0;
+            text-decoration: underline;
+        }
+
+        .result-path {
+            font-family: 'Monaco', 'Menlo', monospace;
+            color: #666666;
+            font-size: 10px;
+            margin-bottom: 4px;
+        }
+
+        .result-dates {
+            font-family: 'Monaco', 'Menlo', monospace;
+            color: #666666;
+            font-size: 10px;
+            margin-bottom: 6px;
+        }
+
+        .result-description {
+            color: #999999;
+            font-size: 12px;
+            line-height: 1.4;
+            margin-bottom: 6px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .result-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-bottom: 6px;
+        }
+
+        .tag {
+            background: #2a2a2a;
+            color: #888888;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            border: 1px solid #333333;
+        }
+
+        .result-scores-compact {
+            font-size: 9px;
+            color: #555555;
+            font-family: 'Monaco', 'Menlo', monospace;
+        }
+
+        .type-badge,
+        .project-badge {
+            font-size: 9px;
+            padding: 2px 6px;
+            border-radius: 3px;
+            background: #2a2a2a;
+            color: #888888;
+            border: 1px solid #333333;
+            text-decoration: none;
+            white-space: nowrap;
+        }
+
+        .type-badge {
+            background: #2a3a2a;
+            color: #88aa88;
+            border-color: #3a4a3a;
+        }
+
+        .project-badge {
+            background: #2a2a3a;
+            color: #8888aa;
+            border-color: #3a3a4a;
+        }
+
+        .project-badge:hover {
+            background: #3a3a4a;
+            color: #aaaacc;
+        }
+
+        /* Inspector pane styles */
+        .inspector-section {
+            background: #1a1a1a;
+            border: 1px solid #333333;
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+
+        .inspector-section h3 {
+            font-size: 11px;
+            font-weight: 600;
+            color: #888888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .inspector-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #e0e0e0;
+            margin-bottom: 6px;
+            line-height: 1.3;
+        }
+
+        .inspector-path {
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 10px;
+            color: #666666;
+            margin-bottom: 10px;
+        }
+
+        .inspector-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 4px 0;
+            font-size: 11px;
+            border-bottom: 1px solid #252525;
+        }
+
+        .inspector-row:last-child {
+            border-bottom: none;
+        }
+
+        .inspector-label {
+            color: #777777;
+            flex-shrink: 0;
+            margin-right: 8px;
+            min-width: 80px;
+        }
+
+        .inspector-value {
+            color: #b0b0b0;
+            text-align: right;
+            word-break: break-word;
+        }
+
+        .inspector-value.mono {
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 10px;
+        }
+
+        .inspector-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+
+        .inspector-tag {
+            background: #2a2a2a;
+            color: #888888;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            border: 1px solid #333333;
+        }
+
+        .score-bar {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .score-value {
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 11px;
+            color: #c0c0c0;
+            min-width: 50px;
+            text-align: right;
+        }
+
+        .score-visual {
+            flex: 1;
+            height: 4px;
+            background: #2a2a2a;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .score-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4a6a8a, #6a8aaa);
+            transition: width 0.3s ease;
+        }
+
+        .inspector-link {
+            display: inline-block;
+            color: #6a8aaa;
+            text-decoration: none;
+            font-size: 11px;
+            padding: 4px 8px;
+            border: 1px solid #3a4a5a;
+            border-radius: 4px;
+            margin-top: 8px;
+            transition: all 0.2s;
+        }
+
+        .inspector-link:hover {
+            background: #2a3a4a;
+            border-color: #4a6a8a;
+            color: #8aaacc;
+        }
+
+        .close-inspector {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #2a2a2a;
+            border: 1px solid #333333;
+            border-radius: 4px;
+            color: #888888;
+            cursor: pointer;
+            font-size: 16px;
+            line-height: 1;
+            transition: all 0.2s;
+        }
+
+        .close-inspector:hover {
+            background: #333333;
+            color: #c0c0c0;
+        }
+
+        @media (max-width: 768px) {
+            .close-inspector {
+                display: block;
+            }
+        }
+
+        @media (min-width: 769px) {
+            .close-inspector {
+                display: none;
+            }
+        }
     </style>
 </head>
 <body>
@@ -1192,8 +1471,44 @@
         }
 
         function remixAndRender() {
-            // TODO: Implement in Task #6 (client-side remix)
-            console.log('Remix and render (stub)')
+            // Client-side remix: re-blend semantic/BM25, apply tag/time multipliers
+            if (!explorerState.rawResults || explorerState.rawResults.length === 0) return
+
+            const { mix_balance, tag_multiplier, time_weight } = explorerState.liveParams
+
+            // Clone and re-score
+            const remixed = explorerState.rawResults.map(r => {
+                const clone = { ...r }
+
+                // Re-blend semantic + BM25 scores
+                const semanticScore = clone.similarity_score || 0
+                const bm25Score = clone.bm25_score || 0
+
+                // Normalize BM25 to 0-1 range (assuming max ~10)
+                const normalizedBM25 = Math.min(bm25Score / 10, 1)
+
+                // Mix: 0 = all semantic, 1 = all BM25
+                let mixedScore = (1 - mix_balance) * semanticScore + mix_balance * normalizedBM25
+
+                // Apply tag multiplier if tag boosted
+                if (clone.tag_boosted) {
+                    mixedScore *= tag_multiplier
+                }
+
+                // Apply time boost
+                if (clone.time_boost && time_weight > 0) {
+                    mixedScore *= (1 + clone.time_boost * time_weight)
+                }
+
+                clone.final_score = mixedScore
+                return clone
+            })
+
+            // Sort by final score descending
+            remixed.sort((a, b) => b.final_score - a.final_score)
+
+            explorerState.remixedResults = remixed
+            renderResults()
         }
 
         function setupMobileAccordion() {
@@ -1206,15 +1521,568 @@
         }
 
         // ========================================
-        // Search Flow (stub - will be implemented in Task #6)
+        // Search Flow
         // ========================================
 
         async function runSearch() {
             const query = queryInput.value.trim()
             if (!query) return
 
-            console.log('Running search:', query, explorerState)
-            // TODO: Implement in Task #6
+            // Clear any previous error
+            hideError()
+
+            // Show loading state
+            resultsContent.innerHTML = '<div class="loading"><div class="spinner"></div><span>Searching...</span></div>'
+
+            // Disable run button
+            runBtn.disabled = true
+
+            try {
+                // Build search URL with fetch params
+                const params = new URLSearchParams({
+                    q: query,
+                    vault: explorerState.vault || '',
+                    limit: explorerState.fetchParams.limit,
+                    hybrid_weight: explorerState.fetchParams.hybrid_weight,
+                    rerank: explorerState.fetchParams.rerank,
+                    expand: explorerState.fetchParams.expand,
+                    harness: 'true'  // Request harness data (all pipeline stages)
+                })
+
+                if (explorerState.profile) {
+                    params.set('profile', explorerState.profile)
+                }
+
+                const response = await fetch(`/search?${params}`)
+                if (!response.ok) {
+                    throw new Error(`Search failed: ${response.statusText}`)
+                }
+
+                const data = await response.json()
+
+                // Store raw results with harness data
+                explorerState.rawResults = data.results || []
+                explorerState.pipelineData = data.pipeline_stages || null
+                explorerState.query = query
+
+                // Mark fetch params as clean
+                explorerState.lastFetchParams = { ...explorerState.fetchParams }
+                fetchSection.classList.remove('dirty')
+                explorerState.fetchParamsChanged = false
+
+                // Add to search history
+                addToSearchHistory(query)
+
+                // Initial render (applies live params)
+                remixAndRender()
+
+                // Update result count
+                resultCount.textContent = `(${explorerState.rawResults.length})`
+
+            } catch (err) {
+                console.error('Search error:', err)
+                showError(`Search failed: ${err.message}`)
+                resultsContent.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">⚠️</div>
+                        <div class="empty-state-text">Search failed<br>${err.message}</div>
+                    </div>
+                `
+            } finally {
+                runBtn.disabled = false
+            }
+        }
+
+        function renderResults() {
+            const results = explorerState.remixedResults.length > 0
+                ? explorerState.remixedResults
+                : explorerState.rawResults
+
+            if (!results || results.length === 0) {
+                resultsContent.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🔍</div>
+                        <div class="empty-state-text">
+                            No results found for<br>"${explorerState.query}"
+                        </div>
+                    </div>
+                `
+                return
+            }
+
+            // Create results table
+            const table = document.createElement('div')
+            table.className = 'results-table'
+
+            results.forEach(result => {
+                const card = createResultCard(result)
+                table.appendChild(card)
+            })
+
+            resultsContent.replaceChildren(table)
+        }
+
+        function createResultCard(result) {
+            const card = document.createElement('div')
+            card.className = 'result-row'
+            card.dataset.resultId = result.relative_path
+
+            // Click handler for inspector
+            card.addEventListener('click', () => {
+                selectResult(result)
+            })
+
+            // Title row with badges
+            const titleRow = document.createElement('div')
+            titleRow.style.display = 'flex'
+            titleRow.style.justifyContent = 'space-between'
+            titleRow.style.alignItems = 'flex-start'
+            titleRow.style.gap = '8px'
+            titleRow.style.marginBottom = '4px'
+
+            const titleLink = document.createElement('a')
+            titleLink.className = 'result-title-link'
+            titleLink.href = result.obsidian_uri
+            titleLink.textContent = result.title || result.relative_path
+            titleLink.addEventListener('click', (e) => {
+                e.stopPropagation()  // Don't trigger card click
+            })
+            titleRow.appendChild(titleLink)
+
+            // Badges
+            const badgesDiv = document.createElement('div')
+            badgesDiv.style.display = 'flex'
+            badgesDiv.style.gap = '4px'
+            badgesDiv.style.flexShrink = '0'
+
+            if (result.frontmatter?.type) {
+                const type = Array.isArray(result.frontmatter.type)
+                    ? result.frontmatter.type.join(', ')
+                    : String(result.frontmatter.type)
+                const badge = document.createElement('span')
+                badge.className = 'type-badge'
+                badge.textContent = type
+                badgesDiv.appendChild(badge)
+            }
+
+            if (result.frontmatter?.project) {
+                const vaultName = result.obsidian_uri.split('/')[3]
+                let project = result.frontmatter.project
+                if (Array.isArray(project)) project = project[0]
+                const projectName = String(project).replace(/[\[\]]/g, '')
+                const projectUri = `obsidian://vault/${vaultName}/${encodeURIComponent(projectName)}`
+                const badge = document.createElement('a')
+                badge.className = 'project-badge'
+                badge.textContent = projectName
+                badge.href = projectUri
+                badge.addEventListener('click', (e) => {
+                    e.stopPropagation()
+                })
+                badgesDiv.appendChild(badge)
+            }
+
+            if (badgesDiv.children.length > 0) {
+                titleRow.appendChild(badgesDiv)
+            }
+
+            card.appendChild(titleRow)
+
+            // Path
+            const pathDiv = document.createElement('div')
+            pathDiv.className = 'result-path'
+            pathDiv.textContent = result.relative_path
+            card.appendChild(pathDiv)
+
+            // Dates
+            if (result.frontmatter?.created || result.frontmatter?.modified) {
+                const datesDiv = document.createElement('div')
+                datesDiv.className = 'result-dates'
+                const dateParts = []
+                if (result.frontmatter.created) {
+                    dateParts.push(`Created: ${formatDate(result.frontmatter.created)}`)
+                }
+                if (result.frontmatter.modified) {
+                    dateParts.push(`Modified: ${formatDate(result.frontmatter.modified)}`)
+                }
+                datesDiv.textContent = dateParts.join('  •  ')
+                card.appendChild(datesDiv)
+            }
+
+            // Description
+            if (result.description) {
+                const desc = document.createElement('div')
+                desc.className = 'result-description'
+                desc.textContent = result.description
+                card.appendChild(desc)
+            }
+
+            // Tags
+            if (result.tags && result.tags.length > 0) {
+                const tagsDiv = document.createElement('div')
+                tagsDiv.className = 'result-tags'
+                result.tags.slice(0, 5).forEach(tag => {
+                    const tagSpan = document.createElement('span')
+                    tagSpan.className = 'tag'
+                    tagSpan.textContent = `#${tag}`
+                    tagsDiv.appendChild(tagSpan)
+                })
+                if (result.tags.length > 5) {
+                    const more = document.createElement('span')
+                    more.className = 'tag'
+                    more.textContent = `+${result.tags.length - 5} more`
+                    tagsDiv.appendChild(more)
+                }
+                card.appendChild(tagsDiv)
+            }
+
+            // Scores
+            const scoresDiv = document.createElement('div')
+            scoresDiv.className = 'result-scores-compact'
+            const scoreParts = []
+
+            if (result.similarity_score !== undefined) {
+                scoreParts.push(`${(result.similarity_score * 100).toFixed(1)}% sem`)
+            }
+            if (result.bm25_score !== undefined) {
+                scoreParts.push(`${result.bm25_score.toFixed(1)} bm25`)
+            }
+            if (result.rrf_score !== undefined) {
+                scoreParts.push(`${result.rrf_score.toFixed(4)} rrf`)
+            }
+            if (result.cross_encoder_score !== undefined) {
+                scoreParts.push(`${result.cross_encoder_score.toFixed(3)} xe`)
+            }
+            if (result.tag_boosted) {
+                scoreParts.push('tag⚡')
+            }
+            if (result.time_boost !== undefined && result.time_boost > 0) {
+                scoreParts.push(`time+${(result.time_boost * 100).toFixed(0)}%`)
+            }
+            if (result.final_score !== undefined) {
+                scoreParts.push(`final=${result.final_score.toFixed(3)}`)
+            }
+
+            scoresDiv.textContent = scoreParts.join(' | ')
+            card.appendChild(scoresDiv)
+
+            return card
+        }
+
+        function selectResult(result) {
+            // Update selected state
+            explorerState.selectedResult = result
+
+            // Visual feedback
+            const cards = document.querySelectorAll('.result-row')
+            cards.forEach(c => c.classList.remove('selected'))
+            const selectedCard = document.querySelector(`[data-result-id="${result.relative_path}"]`)
+            if (selectedCard) {
+                selectedCard.classList.add('selected')
+            }
+
+            // Update inspector (will implement in Task #5)
+            renderInspector(result)
+
+            // Mobile: show inspector drawer
+            if (window.innerWidth <= 768) {
+                inspectorPane.classList.add('visible')
+            }
+        }
+
+        function renderInspector(result) {
+            const container = document.createElement('div')
+            container.style.position = 'relative'
+
+            // Close button (mobile only)
+            const closeBtn = document.createElement('div')
+            closeBtn.className = 'close-inspector'
+            closeBtn.innerHTML = '×'
+            closeBtn.addEventListener('click', () => {
+                inspectorPane.classList.remove('visible')
+                const cards = document.querySelectorAll('.result-row')
+                cards.forEach(c => c.classList.remove('selected'))
+                explorerState.selectedResult = null
+            })
+            container.appendChild(closeBtn)
+
+            // Title section
+            const titleSection = document.createElement('div')
+            titleSection.className = 'inspector-section'
+
+            const title = document.createElement('div')
+            title.className = 'inspector-title'
+            title.textContent = result.title || result.relative_path
+            titleSection.appendChild(title)
+
+            const path = document.createElement('div')
+            path.className = 'inspector-path'
+            path.textContent = result.relative_path
+            titleSection.appendChild(path)
+
+            const link = document.createElement('a')
+            link.className = 'inspector-link'
+            link.href = result.obsidian_uri
+            link.textContent = '↗ Open in Obsidian'
+            titleSection.appendChild(link)
+
+            container.appendChild(titleSection)
+
+            // Scores section
+            const scoresSection = document.createElement('div')
+            scoresSection.className = 'inspector-section'
+
+            const scoresTitle = document.createElement('h3')
+            scoresTitle.textContent = 'Scores'
+            scoresSection.appendChild(scoresTitle)
+
+            // Semantic score
+            if (result.similarity_score !== undefined) {
+                scoresSection.appendChild(createScoreBar('Semantic', result.similarity_score, result.similarity_score))
+            }
+
+            // BM25 score (normalize to 0-1 for visual, assuming max ~10)
+            if (result.bm25_score !== undefined) {
+                const normalizedBM25 = Math.min(result.bm25_score / 10, 1)
+                scoresSection.appendChild(createScoreBar('BM25', result.bm25_score.toFixed(2), normalizedBM25))
+            }
+
+            // RRF score
+            if (result.rrf_score !== undefined) {
+                scoresSection.appendChild(createScoreBar('RRF', result.rrf_score.toFixed(4), result.rrf_score))
+            }
+
+            // Cross-encoder score
+            if (result.cross_encoder_score !== undefined) {
+                // Cross-encoder is typically -1 to 1, normalize to 0-1
+                const normalized = (result.cross_encoder_score + 1) / 2
+                scoresSection.appendChild(createScoreBar('Cross-Enc', result.cross_encoder_score.toFixed(4), normalized))
+            }
+
+            // Tag boost indicator
+            if (result.tag_boosted) {
+                const row = document.createElement('div')
+                row.className = 'inspector-row'
+                const label = document.createElement('div')
+                label.className = 'inspector-label'
+                label.textContent = 'Tag Boosted'
+                const value = document.createElement('div')
+                value.className = 'inspector-value'
+                value.textContent = '⚡ Yes'
+                value.style.color = '#cc8800'
+                row.appendChild(label)
+                row.appendChild(value)
+                scoresSection.appendChild(row)
+            }
+
+            // Time boost
+            if (result.time_boost !== undefined && result.time_boost > 0) {
+                const row = document.createElement('div')
+                row.className = 'inspector-row'
+                const label = document.createElement('div')
+                label.className = 'inspector-label'
+                label.textContent = 'Time Boost'
+                const value = document.createElement('div')
+                value.className = 'inspector-value'
+                value.textContent = `+${(result.time_boost * 100).toFixed(0)}%`
+                value.style.color = '#88aa88'
+                row.appendChild(label)
+                row.appendChild(value)
+                scoresSection.appendChild(row)
+            }
+
+            // Final score (if remixed)
+            if (result.final_score !== undefined) {
+                const maxFinal = Math.max(...explorerState.remixedResults.map(r => r.final_score || 0))
+                const normalized = maxFinal > 0 ? result.final_score / maxFinal : 0
+                scoresSection.appendChild(createScoreBar('Final', result.final_score.toFixed(4), normalized))
+            }
+
+            container.appendChild(scoresSection)
+
+            // Metadata section
+            if (result.frontmatter && Object.keys(result.frontmatter).length > 0) {
+                const metaSection = document.createElement('div')
+                metaSection.className = 'inspector-section'
+
+                const metaTitle = document.createElement('h3')
+                metaTitle.textContent = 'Metadata'
+                metaSection.appendChild(metaTitle)
+
+                // Dates
+                if (result.frontmatter.created) {
+                    metaSection.appendChild(createInspectorRow('Created', formatDate(result.frontmatter.created)))
+                }
+                if (result.frontmatter.modified) {
+                    metaSection.appendChild(createInspectorRow('Modified', formatDate(result.frontmatter.modified)))
+                }
+
+                // Type
+                if (result.frontmatter.type) {
+                    const typeVal = Array.isArray(result.frontmatter.type)
+                        ? result.frontmatter.type.join(', ')
+                        : String(result.frontmatter.type)
+                    metaSection.appendChild(createInspectorRow('Type', typeVal))
+                }
+
+                // Project
+                if (result.frontmatter.project) {
+                    let projectVal = result.frontmatter.project
+                    if (Array.isArray(projectVal)) projectVal = projectVal.join(', ')
+                    metaSection.appendChild(createInspectorRow('Project', String(projectVal)))
+                }
+
+                // Status (for gleanings)
+                if (result.frontmatter.status) {
+                    metaSection.appendChild(createInspectorRow('Status', result.frontmatter.status))
+                }
+
+                // Source/URL (for gleanings)
+                if (result.frontmatter.source) {
+                    metaSection.appendChild(createInspectorRow('Source', result.frontmatter.source))
+                }
+                if (result.frontmatter.url) {
+                    const row = document.createElement('div')
+                    row.className = 'inspector-row'
+                    const label = document.createElement('div')
+                    label.className = 'inspector-label'
+                    label.textContent = 'URL'
+                    const value = document.createElement('a')
+                    value.href = result.frontmatter.url
+                    value.target = '_blank'
+                    value.className = 'inspector-value'
+                    value.style.color = '#6a8aaa'
+                    value.style.textDecoration = 'none'
+                    value.textContent = truncateUrl(result.frontmatter.url)
+                    row.appendChild(label)
+                    row.appendChild(value)
+                    metaSection.appendChild(row)
+                }
+
+                container.appendChild(metaSection)
+            }
+
+            // Tags section
+            if (result.tags && result.tags.length > 0) {
+                const tagsSection = document.createElement('div')
+                tagsSection.className = 'inspector-section'
+
+                const tagsTitle = document.createElement('h3')
+                tagsTitle.textContent = `Tags (${result.tags.length})`
+                tagsSection.appendChild(tagsTitle)
+
+                const tagsContainer = document.createElement('div')
+                tagsContainer.className = 'inspector-tags'
+                result.tags.forEach(tag => {
+                    const tagSpan = document.createElement('span')
+                    tagSpan.className = 'inspector-tag'
+                    tagSpan.textContent = `#${tag}`
+                    tagsContainer.appendChild(tagSpan)
+                })
+                tagsSection.appendChild(tagsContainer)
+
+                container.appendChild(tagsSection)
+            }
+
+            // Description section
+            if (result.description) {
+                const descSection = document.createElement('div')
+                descSection.className = 'inspector-section'
+
+                const descTitle = document.createElement('h3')
+                descTitle.textContent = 'Description'
+                descSection.appendChild(descTitle)
+
+                const descText = document.createElement('div')
+                descText.style.fontSize = '12px'
+                descText.style.color = '#b0b0b0'
+                descText.style.lineHeight = '1.5'
+                descText.textContent = result.description
+                descSection.appendChild(descText)
+
+                container.appendChild(descSection)
+            }
+
+            inspectorContent.replaceChildren(container)
+        }
+
+        function createScoreBar(label, displayValue, normalizedValue) {
+            const row = document.createElement('div')
+            row.className = 'inspector-row'
+            row.style.borderBottom = 'none'
+            row.style.marginBottom = '6px'
+
+            const labelDiv = document.createElement('div')
+            labelDiv.className = 'inspector-label'
+            labelDiv.textContent = label
+
+            const barContainer = document.createElement('div')
+            barContainer.className = 'score-bar'
+            barContainer.style.flex = '1'
+
+            const valueDiv = document.createElement('div')
+            valueDiv.className = 'score-value'
+            valueDiv.textContent = typeof displayValue === 'number' ? displayValue.toFixed(3) : displayValue
+
+            const visualDiv = document.createElement('div')
+            visualDiv.className = 'score-visual'
+
+            const fillDiv = document.createElement('div')
+            fillDiv.className = 'score-fill'
+            fillDiv.style.width = `${Math.max(0, Math.min(100, normalizedValue * 100))}%`
+
+            visualDiv.appendChild(fillDiv)
+            barContainer.appendChild(valueDiv)
+            barContainer.appendChild(visualDiv)
+
+            row.appendChild(labelDiv)
+            row.appendChild(barContainer)
+
+            return row
+        }
+
+        function createInspectorRow(label, value) {
+            const row = document.createElement('div')
+            row.className = 'inspector-row'
+
+            const labelDiv = document.createElement('div')
+            labelDiv.className = 'inspector-label'
+            labelDiv.textContent = label
+
+            const valueDiv = document.createElement('div')
+            valueDiv.className = 'inspector-value mono'
+            valueDiv.textContent = value
+
+            row.appendChild(labelDiv)
+            row.appendChild(valueDiv)
+
+            return row
+        }
+
+        function truncateUrl(url, maxLen = 40) {
+            if (!url || url.length <= maxLen) return url
+            return url.substring(0, maxLen - 3) + '...'
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return null
+            try {
+                const date = new Date(dateStr)
+                const year = date.getFullYear()
+                const month = String(date.getMonth() + 1).padStart(2, '0')
+                const day = String(date.getDate()).padStart(2, '0')
+                return `${year}-${month}-${day}`
+            } catch {
+                return dateStr
+            }
+        }
+
+        function showError(message) {
+            // Simple error display (could enhance later)
+            console.error(message)
+        }
+
+        function hideError() {
+            // Stub for now
         }
 
         // Start the app

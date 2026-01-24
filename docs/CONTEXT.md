@@ -10,7 +10,7 @@ branch: knobs-and-dials
 
 ## Current Focus
 
-Implementing Phase 1 of Explorer interface - 4/7 tasks complete (layout, state, controls, route).
+Phase 1 of Explorer interface COMPLETE - 6/6 tasks done. Ready for testing and refinement.
 
 ## Active Tasks
 
@@ -18,9 +18,9 @@ Implementing Phase 1 of Explorer interface - 4/7 tasks complete (layout, state, 
 - [x] Phase 1: State management with localStorage persistence
 - [x] Phase 1: Controls pane (Fetch/Live mixer from harness.html)
 - [x] Phase 1: Add /explorer route to server.py
-- [ ] Phase 1: Results pane - List mode (from search.html)
-- [ ] Phase 1: Inspector pane layout (empty state)
-- [ ] Phase 1: Wire up search flow (Controls → API → Results)
+- [x] Phase 1: Results pane - List mode (from search.html)
+- [x] Phase 1: Wire up search flow (Controls → API → Results)
+- [x] Phase 1: Inspector pane - Detailed result view with scores/metadata
 
 ## Blockers
 
@@ -29,11 +29,19 @@ None.
 ## Context
 
 - **Explorer goal**: Consolidate `/search`, `/harness`, `/pipeline` into single three-pane UI
-- **Phase 1 progress**: Layout, state, controls done - 3 tasks remain
-- **What works**: Mixer controls, dirty tracking, state persistence, mobile accordion
-- **What's next**: Build Results pane (list mode), Inspector layout, wire up search API
-- **Files**: `src/temoa/ui/explorer.html`, `src/temoa/server.py` (route added)
+- **Phase 1 STATUS**: ✅ COMPLETE (6/6 tasks)
+- **What works**:
+  - Three-pane layout (Controls | Results | Inspector)
+  - Fetch params (hybrid_weight, limit, rerank, expand) → server round-trip
+  - Live params (mix_balance, tag_multiplier, time_weight) → instant client-side remix
+  - Results pane with list mode, click to select
+  - Inspector pane with detailed scores, metadata, tags, description
+  - Mobile responsive (accordion controls, drawer inspector)
+  - State persistence (localStorage)
+  - Dirty tracking (warns when fetch params changed)
+- **Files**: `src/temoa/ui/explorer.html` (single-file app), `src/temoa/server.py` (route added)
+- **Ready for**: User testing, feedback, Phase 2 planning
 
 ## Next Session
 
-Continue Phase 1: Task #4 (Results pane), Task #5 (Inspector layout), Task #6 (search flow).
+Test Explorer at http://localhost:8000/explorer. Gather feedback. Plan Phase 2 (pipeline viewer integration, profile save/load, export).
