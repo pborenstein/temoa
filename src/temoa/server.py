@@ -611,6 +611,30 @@ async def pipeline_viewer():
     return FileResponse(ui_path, media_type="text/html")
 
 
+@app.get("/explorer", response_class=HTMLResponse)
+async def explorer():
+    """Serve unified Explorer UI (search + mixer + pipeline inspector)"""
+    ui_path = Path(__file__).parent / "ui" / "explorer.html"
+
+    if not ui_path.exists():
+        return HTMLResponse(content="""
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Explorer - Temoa</title>
+</head>
+<body>
+    <h1>Explorer</h1>
+    <p>Explorer UI not found. Please check installation.</p>
+    <p><a href="/">Back to Search</a></p>
+</body>
+</html>
+        """)
+
+    return FileResponse(ui_path, media_type="text/html")
+
+
 @app.get("/manage", response_class=HTMLResponse)
 async def manage():
     """Serve management UI"""

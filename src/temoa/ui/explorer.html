@@ -1,0 +1,1224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Explorer - Temoa</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: #1a1a1a;
+            line-height: 1.5;
+            color: #e0e0e0;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Header */
+        header {
+            background: #1a1a1a;
+            border-bottom: 1px solid #333333;
+            padding: 12px 16px;
+        }
+
+        .header-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        h1 {
+            font-size: 20px;
+            font-weight: 600;
+            color: #ffffff;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 12px;
+        }
+
+        .nav-link {
+            color: #888888;
+            text-decoration: none;
+            font-size: 14px;
+            padding: 4px 8px;
+            border-radius: 6px;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .nav-link:hover {
+            background: #2a2a2a;
+            color: #e0e0e0;
+        }
+
+        /* Search controls row */
+        .search-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .search-input-wrapper {
+            flex: 1;
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 10px 14px;
+            font-size: 16px;
+            border: 1px solid #404040;
+            border-radius: 6px;
+            background: #2a2a2a;
+            color: #e0e0e0;
+            outline: none;
+        }
+
+        .search-input:focus {
+            border-color: #666666;
+        }
+
+        .vault-select,
+        .profile-select {
+            padding: 10px 14px;
+            font-size: 14px;
+            border: 1px solid #404040;
+            border-radius: 6px;
+            background: #2a2a2a;
+            color: #e0e0e0;
+            outline: none;
+            cursor: pointer;
+            min-width: 140px;
+        }
+
+        .vault-select:focus,
+        .profile-select:focus {
+            border-color: #666666;
+        }
+
+        .run-btn {
+            padding: 10px 24px;
+            font-size: 14px;
+            font-weight: 500;
+            border: none;
+            border-radius: 6px;
+            background: #4a6a8a;
+            color: #ffffff;
+            cursor: pointer;
+            transition: background 0.15s;
+            white-space: nowrap;
+        }
+
+        .run-btn:hover {
+            background: #5a7a9a;
+        }
+
+        .run-btn:active {
+            background: #3a5a7a;
+        }
+
+        .run-btn:disabled {
+            background: #333333;
+            color: #666666;
+            cursor: not-allowed;
+        }
+
+        /* Three-pane layout */
+        .explorer-container {
+            height: calc(100vh - 110px);
+            overflow: hidden;
+        }
+
+        .explorer-grid {
+            display: grid;
+            grid-template-columns: 280px 1fr 320px;
+            gap: 16px;
+            padding: 16px;
+            height: 100%;
+        }
+
+        .pane {
+            background: #222222;
+            border: 1px solid #333333;
+            border-radius: 8px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .pane-header {
+            padding: 12px 16px;
+            border-bottom: 1px solid #333333;
+            font-size: 14px;
+            font-weight: 500;
+            color: #aaaaaa;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .pane-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+        }
+
+        /* Scrollbar styles */
+        .pane-content::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .pane-content::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+
+        .pane-content::-webkit-scrollbar-thumb {
+            background: #404040;
+            border-radius: 4px;
+        }
+
+        .pane-content::-webkit-scrollbar-thumb:hover {
+            background: #4a4a4a;
+        }
+
+        /* Empty states */
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #666666;
+            text-align: center;
+            padding: 32px;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .empty-state-text {
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        /* Responsive breakpoints */
+        @media (max-width: 1024px) {
+            .explorer-grid {
+                grid-template-columns: 240px 1fr 280px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            header {
+                padding: 12px;
+            }
+
+            .header-top {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 8px;
+            }
+
+            .nav-links {
+                justify-content: flex-end;
+            }
+
+            .search-controls {
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .vault-select,
+            .profile-select {
+                width: 100%;
+            }
+
+            .explorer-container {
+                height: calc(100vh - 180px);
+            }
+
+            .explorer-grid {
+                grid-template-columns: 1fr;
+                padding: 12px;
+                gap: 12px;
+            }
+
+            .pane {
+                min-height: 300px;
+            }
+
+            /* Mobile: Controls accordion (collapsed by default) */
+            #controls-pane {
+                max-height: 48px;
+                transition: max-height 0.3s ease;
+            }
+
+            #controls-pane.expanded {
+                max-height: 600px;
+            }
+
+            .pane-header {
+                cursor: pointer;
+                user-select: none;
+            }
+
+            .pane-header::after {
+                content: '▼';
+                float: right;
+                font-size: 12px;
+                transition: transform 0.3s;
+            }
+
+            #controls-pane.expanded .pane-header::after {
+                transform: rotate(180deg);
+            }
+
+            /* Mobile: Inspector as drawer */
+            #inspector-pane {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                max-height: 70vh;
+                transform: translateY(100%);
+                transition: transform 0.3s ease;
+                z-index: 100;
+                border-radius: 12px 12px 0 0;
+            }
+
+            #inspector-pane.visible {
+                transform: translateY(0);
+            }
+        }
+
+        /* Mixer controls */
+        .mixer-section {
+            background: #1a1a1a;
+            border: 1px solid #333333;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+        }
+
+        .mixer-section h3 {
+            font-size: 12px;
+            font-weight: 500;
+            color: #aaaaaa;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .mixer-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+
+        .mixer-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .mixer-item label {
+            font-size: 11px;
+            color: #888888;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .mixer-item input[type="number"] {
+            padding: 6px 8px;
+            font-size: 13px;
+            border: 1px solid #404040;
+            border-radius: 6px;
+            background: #2a2a2a;
+            color: #e0e0e0;
+            outline: none;
+            width: 100%;
+        }
+
+        .mixer-item input[type="number"]:focus {
+            border-color: #666666;
+        }
+
+        /* Tooltips */
+        .info-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #3a3a3a;
+            color: #888888;
+            font-size: 9px;
+            font-weight: 600;
+            cursor: help;
+            flex-shrink: 0;
+        }
+
+        .tooltip-wrapper {
+            position: relative;
+            display: inline-flex;
+        }
+
+        .tooltip {
+            position: absolute;
+            bottom: calc(100% + 8px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333333;
+            border: 1px solid #4a4a4a;
+            border-radius: 6px;
+            padding: 6px 10px;
+            font-size: 11px;
+            color: #d0d0d0;
+            white-space: normal;
+            width: 200px;
+            z-index: 100;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.15s, visibility 0.15s;
+            line-height: 1.4;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            text-transform: none;
+        }
+
+        .tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 5px solid transparent;
+            border-top-color: #4a4a4a;
+        }
+
+        .tooltip-wrapper:hover .tooltip {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Balance slider */
+        .balance-slider {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .balance-labels {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 10px;
+            color: #888888;
+        }
+
+        .balance-labels > span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .balance-value {
+            font-size: 9px;
+            color: #666666;
+        }
+
+        .balance-track {
+            position: relative;
+            height: 6px;
+            background: linear-gradient(to right, #4a6a8a, #8a6a4a);
+            border-radius: 3px;
+        }
+
+        .balance-input {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            transform: translateY(-50%);
+            width: 100%;
+            height: 18px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: transparent;
+            cursor: pointer;
+            margin: 0;
+        }
+
+        .balance-input::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #e0e0e0;
+            border: 2px solid #1a1a1a;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+        }
+
+        .balance-input::-moz-range-thumb {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #e0e0e0;
+            border: 2px solid #1a1a1a;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+        }
+
+        /* Checkbox items */
+        .checkbox-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            width: 14px;
+            height: 14px;
+            cursor: pointer;
+        }
+
+        .checkbox-item label {
+            font-size: 12px;
+            color: #c0c0c0;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* Fetch dirty indicator */
+        .server-section {
+            border-color: #333333;
+        }
+
+        .server-section.dirty {
+            border-color: #665500;
+        }
+
+        .refetch-notice {
+            display: none;
+            font-size: 11px;
+            color: #cc8800;
+            margin-top: 10px;
+            padding: 6px 10px;
+            background: rgba(204, 136, 0, 0.1);
+            border-radius: 4px;
+        }
+
+        .server-section.dirty .refetch-notice {
+            display: block;
+        }
+
+        /* Action buttons */
+        .action-row {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-top: 12px;
+        }
+
+        .action-btn {
+            padding: 8px 12px;
+            font-size: 12px;
+            font-weight: 500;
+            border: 1px solid #404040;
+            border-radius: 6px;
+            background: #2a2a2a;
+            color: #c0c0c0;
+            cursor: pointer;
+            transition: all 0.15s;
+            text-align: center;
+        }
+
+        .action-btn:hover {
+            background: #333333;
+            border-color: #4a4a4a;
+        }
+
+        .action-btn:active {
+            background: #1a1a1a;
+        }
+
+        /* Loading state */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px;
+            color: #888888;
+            font-size: 14px;
+        }
+
+        .spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid #333333;
+            border-top-color: #888888;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Hide on mobile (desktop-only elements) */
+        @media (max-width: 768px) {
+            .desktop-only {
+                display: none !important;
+            }
+        }
+
+        /* Hide on desktop (mobile-only elements) */
+        @media (min-width: 769px) {
+            .mobile-only {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-top">
+            <h1>Explorer</h1>
+            <div class="nav-links">
+                <a href="/" class="nav-link">Search</a>
+                <a href="/harness" class="nav-link">Harness</a>
+                <a href="/pipeline" class="nav-link">Pipeline</a>
+                <a href="/manage" class="nav-link">Manage</a>
+            </div>
+        </div>
+        <div class="search-controls">
+            <div class="search-input-wrapper">
+                <input type="text" id="query-input" class="search-input" placeholder="Search your vault..." autocomplete="off">
+            </div>
+            <select id="vault-select" class="vault-select">
+                <option value="">Loading vaults...</option>
+            </select>
+            <select id="profile-select" class="profile-select">
+                <option value="">Default</option>
+            </select>
+            <button id="run-btn" class="run-btn">Run</button>
+        </div>
+    </header>
+
+    <div class="explorer-container">
+        <div class="explorer-grid">
+            <!-- Left Pane: Controls (Mixer) -->
+            <div id="controls-pane" class="pane">
+                <div class="pane-header">Controls</div>
+                <div class="pane-content">
+                    <!-- Fetch params (server round-trip required) -->
+                    <div class="mixer-section server-section" id="fetch-section">
+                        <h3>
+                            Fetch
+                            <span class="tooltip-wrapper">
+                                <span class="info-icon">?</span>
+                                <span class="tooltip">Controls WHICH documents are retrieved. Changes require clicking Run.</span>
+                            </span>
+                        </h3>
+
+                        <!-- Hybrid balance slider -->
+                        <div class="balance-slider" style="margin-bottom: 10px;">
+                            <div class="balance-labels">
+                                <span>
+                                    Sem
+                                    <span class="tooltip-wrapper">
+                                        <span class="info-icon">?</span>
+                                        <span class="tooltip">Conceptual similarity via embeddings.</span>
+                                    </span>
+                                </span>
+                                <span class="balance-value" id="fetch-balance-value">50/50</span>
+                                <span>
+                                    <span class="tooltip-wrapper">
+                                        <span class="info-icon">?</span>
+                                        <span class="tooltip">Keyword matching (BM25).</span>
+                                    </span>
+                                    BM25
+                                </span>
+                            </div>
+                            <div class="balance-track">
+                                <input type="range" id="fetch-hybrid" class="balance-input" min="0" max="100" value="50">
+                            </div>
+                        </div>
+
+                        <div class="mixer-grid">
+                            <div class="mixer-item">
+                                <label>
+                                    Result Limit
+                                    <span class="tooltip-wrapper">
+                                        <span class="info-icon">?</span>
+                                        <span class="tooltip">Maximum number of results to return.</span>
+                                    </span>
+                                </label>
+                                <input type="number" id="fetch-limit" value="20" step="5" min="5" max="100">
+                            </div>
+                        </div>
+
+                        <div class="checkbox-grid" style="margin-top: 10px;">
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="fetch-rerank" checked>
+                                <label for="fetch-rerank">
+                                    Cross-encoder
+                                    <span class="tooltip-wrapper">
+                                        <span class="info-icon">?</span>
+                                        <span class="tooltip">Better precision, slower (~200ms).</span>
+                                    </span>
+                                </label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="fetch-expand">
+                                <label for="fetch-expand">
+                                    Expand query
+                                    <span class="tooltip-wrapper">
+                                        <span class="info-icon">?</span>
+                                        <span class="tooltip">Add related terms to short queries.</span>
+                                    </span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="refetch-notice">
+                            Fetch parameters changed. Click "Run" to apply.
+                        </div>
+                    </div>
+
+                    <!-- Live params (client-side, instant) -->
+                    <div class="mixer-section" id="live-section">
+                        <h3>
+                            Live
+                            <span class="tooltip-wrapper">
+                                <span class="info-icon">?</span>
+                                <span class="tooltip">Re-rank retrieved results instantly. No server call needed.</span>
+                            </span>
+                        </h3>
+
+                        <!-- Semantic/BM25 balance slider -->
+                        <div class="balance-slider" style="margin-bottom: 10px;">
+                            <div class="balance-labels">
+                                <span>
+                                    Sem
+                                    <span class="tooltip-wrapper">
+                                        <span class="info-icon">?</span>
+                                        <span class="tooltip">Weight semantic scores higher.</span>
+                                    </span>
+                                </span>
+                                <span class="balance-value" id="live-balance-value">50/50</span>
+                                <span>
+                                    <span class="tooltip-wrapper">
+                                        <span class="info-icon">?</span>
+                                        <span class="tooltip">Weight BM25 scores higher.</span>
+                                    </span>
+                                    BM25
+                                </span>
+                            </div>
+                            <div class="balance-track">
+                                <input type="range" id="live-balance" class="balance-input" min="0" max="100" value="50">
+                            </div>
+                        </div>
+
+                        <div class="mixer-grid">
+                            <div class="mixer-item">
+                                <label>
+                                    Tag Multiplier
+                                    <span class="tooltip-wrapper">
+                                        <span class="info-icon">?</span>
+                                        <span class="tooltip">Score multiplier for tag-matched results (0-10).</span>
+                                    </span>
+                                </label>
+                                <input type="number" id="live-tags" value="5.0" step="0.5" min="0" max="10">
+                            </div>
+
+                            <div class="mixer-item">
+                                <label>
+                                    Time Weight
+                                    <span class="tooltip-wrapper">
+                                        <span class="info-icon">?</span>
+                                        <span class="tooltip">Multiplier on recency boost (0-2).</span>
+                                    </span>
+                                </label>
+                                <input type="number" id="live-time" value="1.0" step="0.1" min="0" max="2">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action buttons -->
+                    <div class="action-row">
+                        <button id="reset-mix-btn" class="action-btn">Reset Mix</button>
+                        <button id="save-profile-btn" class="action-btn">Save Profile...</button>
+                        <button id="export-btn" class="action-btn">Export JSON</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Center Pane: Results -->
+            <div id="results-pane" class="pane">
+                <div class="pane-header">
+                    Results
+                    <span id="result-count" style="color: #666666; font-weight: normal; text-transform: none; margin-left: 8px;"></span>
+                </div>
+                <div class="pane-content">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🔍</div>
+                        <div class="empty-state-text">
+                            Enter a query and click Run<br>to see results
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Pane: Inspector -->
+            <div id="inspector-pane" class="pane">
+                <div class="pane-header">Inspector</div>
+                <div class="pane-content">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📋</div>
+                        <div class="empty-state-text">
+                            Select a result<br>to inspect details
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ========================================
+        // State Management
+        // ========================================
+
+        const STORAGE_KEY = 'temoa_state'
+        const EXPLORER_STORAGE_KEY = 'temoa_explorer_state'
+
+        const explorerState = {
+            // Search state
+            query: '',
+            vault: null,
+            profile: null,
+            vaults: [],
+            profiles: [],
+
+            // Results
+            rawResults: [],        // From server (with harness data)
+            remixedResults: [],    // After client-side remix
+            pipelineData: null,    // Pipeline stages (if pipeline_debug=true)
+
+            // UI state
+            viewMode: 'list',      // 'list' | 'pipeline'
+            selectedResult: null,  // Currently inspected result
+            selectedStage: null,   // If viewing pipeline
+
+            // Mixer state (fetch params - trigger new search)
+            fetchParams: {
+                hybrid_weight: 0.5,    // 0=semantic, 1=BM25
+                limit: 20,
+                rerank: true,
+                expand: false
+            },
+
+            // Mixer state (live params - client-side remix)
+            liveParams: {
+                mix_balance: 0.5,      // 0=semantic, 1=BM25
+                tag_multiplier: 5.0,
+                time_weight: 1.0
+            },
+
+            // Persistence
+            searchHistory: [],
+            fetchParamsChanged: false,
+            lastFetchParams: null
+        }
+
+        // ========================================
+        // State Persistence
+        // ========================================
+
+        function saveExplorerState() {
+            try {
+                const data = {
+                    viewMode: explorerState.viewMode,
+                    fetchParams: explorerState.fetchParams,
+                    liveParams: explorerState.liveParams,
+                    vault: explorerState.vault,
+                    profile: explorerState.profile
+                }
+                localStorage.setItem(EXPLORER_STORAGE_KEY, JSON.stringify(data))
+            } catch (err) {
+                console.error('Failed to save explorer state:', err)
+            }
+        }
+
+        function restoreExplorerState() {
+            try {
+                const saved = localStorage.getItem(EXPLORER_STORAGE_KEY)
+                if (saved) {
+                    const data = JSON.parse(saved)
+
+                    // Restore view mode
+                    if (data.viewMode) {
+                        explorerState.viewMode = data.viewMode
+                    }
+
+                    // Restore fetch params
+                    if (data.fetchParams) {
+                        explorerState.fetchParams = { ...explorerState.fetchParams, ...data.fetchParams }
+                    }
+
+                    // Restore live params
+                    if (data.liveParams) {
+                        explorerState.liveParams = { ...explorerState.liveParams, ...data.liveParams }
+                    }
+
+                    // Vault and profile restored from selectors
+                }
+            } catch (err) {
+                console.error('Failed to restore explorer state:', err)
+            }
+        }
+
+        function saveSearchHistory() {
+            try {
+                const sharedState = localStorage.getItem(STORAGE_KEY)
+                let data = sharedState ? JSON.parse(sharedState) : {}
+                data.searchHistory = explorerState.searchHistory
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+            } catch (err) {
+                console.error('Failed to save search history:', err)
+            }
+        }
+
+        function restoreSearchHistory() {
+            try {
+                const sharedState = localStorage.getItem(STORAGE_KEY)
+                if (sharedState) {
+                    const data = JSON.parse(sharedState)
+                    if (data.searchHistory) {
+                        explorerState.searchHistory = data.searchHistory
+                    }
+                }
+            } catch (err) {
+                console.error('Failed to restore search history:', err)
+            }
+        }
+
+        function addToSearchHistory(query) {
+            const trimmedQuery = query.trim()
+            if (!trimmedQuery) return
+
+            // Remove if already exists
+            explorerState.searchHistory = explorerState.searchHistory.filter(q => q !== trimmedQuery)
+
+            // Add to front
+            explorerState.searchHistory.unshift(trimmedQuery)
+
+            // Keep only last 10
+            if (explorerState.searchHistory.length > 10) {
+                explorerState.searchHistory = explorerState.searchHistory.slice(0, 10)
+            }
+
+            saveSearchHistory()
+        }
+
+        // ========================================
+        // DOM Elements
+        // ========================================
+
+        const queryInput = document.getElementById('query-input')
+        const vaultSelect = document.getElementById('vault-select')
+        const profileSelect = document.getElementById('profile-select')
+        const runBtn = document.getElementById('run-btn')
+
+        const controlsPane = document.getElementById('controls-pane')
+        const resultsPane = document.getElementById('results-pane')
+        const inspectorPane = document.getElementById('inspector-pane')
+
+        const controlsContent = controlsPane.querySelector('.pane-content')
+        const resultsContent = resultsPane.querySelector('.pane-content')
+        const inspectorContent = inspectorPane.querySelector('.pane-content')
+
+        const resultCount = document.getElementById('result-count')
+
+        // Fetch controls
+        const fetchSection = document.getElementById('fetch-section')
+        const fetchHybrid = document.getElementById('fetch-hybrid')
+        const fetchBalanceValue = document.getElementById('fetch-balance-value')
+        const fetchLimit = document.getElementById('fetch-limit')
+        const fetchRerank = document.getElementById('fetch-rerank')
+        const fetchExpand = document.getElementById('fetch-expand')
+
+        // Live controls
+        const liveBalance = document.getElementById('live-balance')
+        const liveBalanceValue = document.getElementById('live-balance-value')
+        const liveTags = document.getElementById('live-tags')
+        const liveTime = document.getElementById('live-time')
+
+        // Action buttons
+        const resetMixBtn = document.getElementById('reset-mix-btn')
+        const saveProfileBtn = document.getElementById('save-profile-btn')
+        const exportBtn = document.getElementById('export-btn')
+
+        // ========================================
+        // Initialization
+        // ========================================
+
+        async function initialize() {
+            // Restore state from localStorage
+            restoreExplorerState()
+            restoreSearchHistory()
+
+            // Load vaults
+            await loadVaults()
+
+            // Load profiles
+            await loadProfiles()
+
+            // Sync UI with restored state
+            syncUIWithState()
+
+            // Wire up event handlers
+            setupEventHandlers()
+
+            // Mobile accordion
+            setupMobileAccordion()
+
+            console.log('Explorer initialized', explorerState)
+        }
+
+        function syncUIWithState() {
+            // Fetch controls
+            const fetchWeight = Math.round(explorerState.fetchParams.hybrid_weight * 100)
+            fetchHybrid.value = fetchWeight
+            fetchBalanceValue.textContent = `${100-fetchWeight}/${fetchWeight}`
+            fetchLimit.value = explorerState.fetchParams.limit
+            fetchRerank.checked = explorerState.fetchParams.rerank
+            fetchExpand.checked = explorerState.fetchParams.expand
+
+            // Live controls
+            const liveWeight = Math.round(explorerState.liveParams.mix_balance * 100)
+            liveBalance.value = liveWeight
+            liveBalanceValue.textContent = `${100-liveWeight}/${liveWeight}`
+            liveTags.value = explorerState.liveParams.tag_multiplier
+            liveTime.value = explorerState.liveParams.time_weight
+        }
+
+        async function loadVaults() {
+            try {
+                const res = await fetch('/vaults')
+                const data = await res.json()
+                explorerState.vaults = data.vaults || []
+
+                vaultSelect.innerHTML = explorerState.vaults.map(v =>
+                    `<option value="${v.name}" ${v.is_default ? 'selected' : ''}>${v.name}${v.is_default ? ' (default)' : ''}</option>`
+                ).join('')
+
+                const defaultVault = explorerState.vaults.find(v => v.is_default)
+                explorerState.vault = defaultVault?.name || explorerState.vaults[0]?.name
+            } catch (err) {
+                console.error('Failed to load vaults:', err)
+                vaultSelect.innerHTML = '<option value="">Error loading vaults</option>'
+            }
+        }
+
+        async function loadProfiles() {
+            try {
+                const res = await fetch('/profiles')
+                const data = await res.json()
+                explorerState.profiles = data.profiles || []
+
+                profileSelect.innerHTML = '<option value="">default</option>' +
+                    explorerState.profiles.map(p =>
+                        `<option value="${p.name}">${p.name}</option>`
+                    ).join('')
+            } catch (err) {
+                console.error('Failed to load profiles:', err)
+            }
+        }
+
+        function setupEventHandlers() {
+            // Vault selector
+            vaultSelect.addEventListener('change', () => {
+                explorerState.vault = vaultSelect.value
+                saveExplorerState()
+            })
+
+            // Profile selector
+            profileSelect.addEventListener('change', () => {
+                explorerState.profile = profileSelect.value || null
+                saveExplorerState()
+            })
+
+            // Run button
+            runBtn.addEventListener('click', runSearch)
+
+            // Enter key in query input
+            queryInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    runSearch()
+                }
+            })
+
+            // Fetch controls (mark as dirty when changed)
+            fetchHybrid.addEventListener('input', () => {
+                const val = parseInt(fetchHybrid.value)
+                fetchBalanceValue.textContent = `${100-val}/${val}`
+                explorerState.fetchParams.hybrid_weight = val / 100
+                markFetchDirty()
+                saveExplorerState()
+            })
+
+            fetchLimit.addEventListener('change', () => {
+                explorerState.fetchParams.limit = parseInt(fetchLimit.value)
+                markFetchDirty()
+                saveExplorerState()
+            })
+
+            fetchRerank.addEventListener('change', () => {
+                explorerState.fetchParams.rerank = fetchRerank.checked
+                markFetchDirty()
+                saveExplorerState()
+            })
+
+            fetchExpand.addEventListener('change', () => {
+                explorerState.fetchParams.expand = fetchExpand.checked
+                markFetchDirty()
+                saveExplorerState()
+            })
+
+            // Live controls (instant remix when results exist)
+            liveBalance.addEventListener('input', () => {
+                const val = parseInt(liveBalance.value)
+                liveBalanceValue.textContent = `${100-val}/${val}`
+                explorerState.liveParams.mix_balance = val / 100
+                if (explorerState.rawResults.length > 0) {
+                    remixAndRender()
+                }
+                saveExplorerState()
+            })
+
+            liveTags.addEventListener('change', () => {
+                explorerState.liveParams.tag_multiplier = parseFloat(liveTags.value)
+                if (explorerState.rawResults.length > 0) {
+                    remixAndRender()
+                }
+                saveExplorerState()
+            })
+
+            liveTime.addEventListener('change', () => {
+                explorerState.liveParams.time_weight = parseFloat(liveTime.value)
+                if (explorerState.rawResults.length > 0) {
+                    remixAndRender()
+                }
+                saveExplorerState()
+            })
+
+            // Action buttons
+            resetMixBtn.addEventListener('click', resetMix)
+            saveProfileBtn.addEventListener('click', () => {
+                alert('Profile saving not yet implemented (Phase 4)')
+            })
+            exportBtn.addEventListener('click', () => {
+                alert('Export JSON not yet implemented (Phase 4)')
+            })
+        }
+
+        function markFetchDirty() {
+            if (explorerState.lastFetchParams) {
+                const current = explorerState.fetchParams
+                const last = explorerState.lastFetchParams
+                const changed =
+                    current.hybrid_weight !== last.hybrid_weight ||
+                    current.limit !== last.limit ||
+                    current.rerank !== last.rerank ||
+                    current.expand !== last.expand
+
+                if (changed) {
+                    fetchSection.classList.add('dirty')
+                    explorerState.fetchParamsChanged = true
+                } else {
+                    fetchSection.classList.remove('dirty')
+                    explorerState.fetchParamsChanged = false
+                }
+            }
+        }
+
+        function resetMix() {
+            // Reset to defaults
+            explorerState.liveParams = {
+                mix_balance: 0.5,
+                tag_multiplier: 5.0,
+                time_weight: 1.0
+            }
+
+            // Update UI
+            liveBalance.value = 50
+            liveBalanceValue.textContent = '50/50'
+            liveTags.value = 5.0
+            liveTime.value = 1.0
+
+            // Remix if results exist
+            if (explorerState.rawResults.length > 0) {
+                remixAndRender()
+            }
+
+            saveExplorerState()
+        }
+
+        function remixAndRender() {
+            // TODO: Implement in Task #6 (client-side remix)
+            console.log('Remix and render (stub)')
+        }
+
+        function setupMobileAccordion() {
+            if (window.innerWidth <= 768) {
+                const controlsHeader = controlsPane.querySelector('.pane-header')
+                controlsHeader.addEventListener('click', () => {
+                    controlsPane.classList.toggle('expanded')
+                })
+            }
+        }
+
+        // ========================================
+        // Search Flow (stub - will be implemented in Task #6)
+        // ========================================
+
+        async function runSearch() {
+            const query = queryInput.value.trim()
+            if (!query) return
+
+            console.log('Running search:', query, explorerState)
+            // TODO: Implement in Task #6
+        }
+
+        // Start the app
+        initialize()
+    </script>
+</body>
+</html>
