@@ -242,3 +242,37 @@ Chronicle entries for the Search Harness implementation - an interactive score m
 **Files**: docs/CONTEXT.md (updated), docs/chronicles/experimentation-harness.md (this entry)
 
 **Status**: Research complete, ready to prototype
+
+---
+
+## Entry 58: Graph Exploration Implementation (2026-01-26)
+
+**What**: Implemented wikilink graph exploration in Explorer Inspector using obsidiantools.
+
+**Why**: Search treats notes as islands; wikilinks represent human-curated relationships that Temoa was ignoring. User wants to explore note neighborhoods, not just search results.
+
+**How**:
+
+1. Added `obsidiantools` dependency (v0.11.0) - parses wikilinks, builds NetworkX graph
+2. Created `src/temoa/vault_graph.py`:
+   - `VaultGraph` class with lazy loading per vault
+   - `get_neighbors(note, hops)` - returns incoming/outgoing links + N-hop neighborhood
+   - `get_hub_notes()` - finds well-connected notes
+   - `_normalize_note_name()` - handles path variations (L/foo.md -> foo)
+3. Added server endpoints:
+   - `GET /graph/neighbors?note=X&vault=Y&hops=2`
+   - `GET /graph/stats?vault=Y`
+   - `GET /graph/hubs?vault=Y`
+4. Added "Linked Notes" section to Inspector pane (after title, before Scores)
+5. Graph cached in `app.state.vault_graphs` dict
+
+**Performance**: ~90s to load 6000-note vault graph (lazy, on first request)
+
+**Files**:
+- src/temoa/vault_graph.py (new)
+- src/temoa/server.py (endpoints, imports, app.state)
+- src/temoa/ui/search.html (Inspector section)
+- tests/test_server.py (3 new tests)
+- pyproject.toml (obsidiantools dependency)
+
+**Status**: Implementation complete, needs server restart to test end-to-end

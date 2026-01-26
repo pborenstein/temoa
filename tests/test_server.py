@@ -159,8 +159,43 @@ def test_search_without_harness(client):
 
 
 def test_harness_page(client):
-    """Test that /harness endpoint serves the score mixer UI"""
-    response = client.get("/harness")
+    """Test that main search page includes Explorer/harness functionality"""
+    # /harness was merged into main search UI (Entry 56)
+    response = client.get("/")
     assert response.status_code == 200
     assert "text/html" in response.headers["content-type"]
-    assert "Score Mixer" in response.text
+    # Explorer mode includes the score mixer functionality
+    assert "Explorer" in response.text or "explorer" in response.text.lower()
+
+
+def test_graph_stats_endpoint(client):
+    """Test graph stats endpoint"""
+    response = client.get("/graph/stats")
+    assert response.status_code == 200
+
+    data = response.json()
+    assert "loaded" in data
+    assert "vault" in data
+
+
+def test_graph_neighbors_endpoint(client):
+    """Test graph neighbors endpoint with a note"""
+    # Use a note that should exist - empty string matches orphan node
+    response = client.get("/graph/neighbors?note=test")
+    assert response.status_code == 200
+
+    data = response.json()
+    assert "note" in data
+    assert "found" in data
+    assert "vault" in data
+
+
+def test_graph_hubs_endpoint(client):
+    """Test graph hubs endpoint"""
+    response = client.get("/graph/hubs?limit=10")
+    assert response.status_code == 200
+
+    data = response.json()
+    assert "hubs" in data
+    assert "vault" in data
+    assert isinstance(data["hubs"], list)

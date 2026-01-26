@@ -2449,6 +2449,22 @@
 
             container.appendChild(titleSection);
 
+            // Graph section (linked notes) - placed early for visibility
+            const graphSection = document.createElement('div');
+            graphSection.className = 'inspector-section';
+            graphSection.id = 'graph-section';
+
+            const graphTitle = document.createElement('h3');
+            graphTitle.textContent = 'Linked Notes';
+            graphSection.appendChild(graphTitle);
+
+            const graphContent = document.createElement('div');
+            graphContent.id = 'graph-content';
+            graphContent.innerHTML = '<span style="color: #888; font-size: 12px;">Loading graph...</span>';
+            graphSection.appendChild(graphContent);
+
+            container.appendChild(graphSection);
+
             // Scores section
             const scoresSection = document.createElement('div');
             scoresSection.className = 'inspector-section';
@@ -2699,7 +2715,213 @@
                 container.appendChild(descSection);
             }
 
+            // Add to DOM first, THEN fetch graph data
             inspectorContent.replaceChildren(container);
+
+            // Fetch graph data asynchronously (after DOM is ready)
+            fetchGraphNeighbors(result.relative_path);
+        }
+
+        async function fetchGraphNeighbors(relativePath) {
+            const graphContent = document.getElementById('graph-content');
+            if (!graphContent) {
+                return;
+            }
+
+            try {
+                // Extract note name from path (remove extension and directory)
+                const noteName = relativePath
+                    .replace(/\.md$/, '')
+                    .split('/')
+                    .pop();
+
+                // Show what we're looking for
+                graphContent.innerHTML = `<span style="color: #888; font-size: 11px;">Looking up: ${noteName}...</span>`;
+
+                const params = new URLSearchParams({
+                    note: noteName,
+                    vault: state.vault || '',
+                    hops: 2
+                });
+
+                const response = await fetch(`/graph/neighbors?${params}`);
+                const data = await response.json();
+
+                if (!data.found) {
+                    graphContent.innerHTML = '<span style="color: #666; font-size: 12px;">No links found (isolated note)</span>';
+                    return;
+                }
+
+                // Build the display
+                const container = document.createElement('div');
+
+                // Incoming links (notes that link TO this note)
+                if (data.incoming && data.incoming.length > 0) {
+                    const inSection = document.createElement('div');
+                    inSection.style.marginBottom = '12px';
+
+                    const inTitle = document.createElement('div');
+                    inTitle.style.fontSize = '11px';
+                    inTitle.style.color = '#888';
+                    inTitle.style.marginBottom = '4px';
+                    inTitle.textContent = `← Links here (${data.incoming.length})`;
+                    inSection.appendChild(inTitle);
+
+                    const inLinks = document.createElement('div');
+                    inLinks.style.display = 'flex';
+                    inLinks.style.flexWrap = 'wrap';
+                    inLinks.style.gap = '4px';
+
+                    // Show first 10, with expandable
+                    const showIncoming = data.incoming.slice(0, 10);
+                    showIncoming.forEach(note => {
+                        const link = createGraphLink(note, 'incoming');
+                        inLinks.appendChild(link);
+                    });
+
+                    if (data.incoming.length > 10) {
+                        const more = document.createElement('span');
+                        more.style.fontSize = '11px';
+                        more.style.color = '#666';
+                        more.style.padding = '2px 6px';
+                        more.textContent = `+${data.incoming.length - 10} more`;
+                        inLinks.appendChild(more);
+                    }
+
+                    inSection.appendChild(inLinks);
+                    container.appendChild(inSection);
+                }
+
+                // Outgoing links (notes this note links TO)
+                if (data.outgoing && data.outgoing.length > 0) {
+                    const outSection = document.createElement('div');
+                    outSection.style.marginBottom = '12px';
+
+                    const outTitle = document.createElement('div');
+                    outTitle.style.fontSize = '11px';
+                    outTitle.style.color = '#888';
+                    outTitle.style.marginBottom = '4px';
+                    outTitle.textContent = `→ Links to (${data.outgoing.length})`;
+                    outSection.appendChild(outTitle);
+
+                    const outLinks = document.createElement('div');
+                    outLinks.style.display = 'flex';
+                    outLinks.style.flexWrap = 'wrap';
+                    outLinks.style.gap = '4px';
+
+                    const showOutgoing = data.outgoing.slice(0, 10);
+                    showOutgoing.forEach(note => {
+                        const link = createGraphLink(note, 'outgoing');
+                        outLinks.appendChild(link);
+                    });
+
+                    if (data.outgoing.length > 10) {
+                        const more = document.createElement('span');
+                        more.style.fontSize = '11px';
+                        more.style.color = '#666';
+                        more.style.padding = '2px 6px';
+                        more.textContent = `+${data.outgoing.length - 10} more`;
+                        outLinks.appendChild(more);
+                    }
+
+                    outSection.appendChild(outLinks);
+                    container.appendChild(outSection);
+                }
+
+                // 2-hop neighbors (if any beyond direct links)
+                const twoHop = data.by_distance && data.by_distance['2'];
+                if (twoHop && twoHop.length > 0) {
+                    const hopSection = document.createElement('div');
+
+                    const hopTitle = document.createElement('div');
+                    hopTitle.style.fontSize = '11px';
+                    hopTitle.style.color = '#888';
+                    hopTitle.style.marginBottom = '4px';
+                    hopTitle.textContent = `2 hops away (${twoHop.length})`;
+                    hopSection.appendChild(hopTitle);
+
+                    const hopLinks = document.createElement('div');
+                    hopLinks.style.display = 'flex';
+                    hopLinks.style.flexWrap = 'wrap';
+                    hopLinks.style.gap = '4px';
+
+                    // Filter out daily notes for cleaner display, show first 8
+                    const nonDaily = twoHop.filter(n =>
+                        !n.match(/^\d{4}-\d{2}-\d{2}/) &&
+                        !n.startsWith('Daily/')
+                    );
+                    const show2Hop = nonDaily.slice(0, 8);
+
+                    if (show2Hop.length > 0) {
+                        show2Hop.forEach(note => {
+                            const link = createGraphLink(note, 'distant');
+                            hopLinks.appendChild(link);
+                        });
+
+                        if (nonDaily.length > 8) {
+                            const more = document.createElement('span');
+                            more.style.fontSize = '11px';
+                            more.style.color = '#666';
+                            more.style.padding = '2px 6px';
+                            more.textContent = `+${nonDaily.length - 8} more`;
+                            hopLinks.appendChild(more);
+                        }
+
+                        hopSection.appendChild(hopLinks);
+                        container.appendChild(hopSection);
+                    }
+                }
+
+                // No links at all
+                if (container.children.length === 0) {
+                    container.innerHTML = '<span style="color: #666; font-size: 12px;">No links found</span>';
+                }
+
+                graphContent.replaceChildren(container);
+
+            } catch (err) {
+                graphContent.innerHTML = `<span style="color: #c66; font-size: 11px;">Error: ${err.message}</span>`;
+            }
+        }
+
+        function createGraphLink(noteName, type) {
+            const link = document.createElement('span');
+            link.style.fontSize = '11px';
+            link.style.padding = '2px 6px';
+            link.style.borderRadius = '3px';
+            link.style.cursor = 'pointer';
+            link.style.maxWidth = '150px';
+            link.style.overflow = 'hidden';
+            link.style.textOverflow = 'ellipsis';
+            link.style.whiteSpace = 'nowrap';
+            link.style.display = 'inline-block';
+            link.title = noteName;
+
+            // Color by type
+            if (type === 'incoming') {
+                link.style.background = 'rgba(100, 150, 200, 0.2)';
+                link.style.color = '#8ab4d8';
+            } else if (type === 'outgoing') {
+                link.style.background = 'rgba(150, 200, 100, 0.2)';
+                link.style.color = '#a8d080';
+            } else {
+                link.style.background = 'rgba(150, 150, 150, 0.15)';
+                link.style.color = '#999';
+            }
+
+            // Truncate long names
+            const displayName = noteName.length > 25
+                ? noteName.substring(0, 22) + '...'
+                : noteName;
+            link.textContent = displayName;
+
+            // Click to search for this note
+            link.addEventListener('click', () => {
+                document.getElementById('query').value = noteName;
+                performSearch();
+            });
+
+            return link;
         }
 
         function createScoreBar(label, displayValue, normalizedValue, tooltip = null) {

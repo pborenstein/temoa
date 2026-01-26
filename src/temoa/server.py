@@ -20,6 +20,7 @@ from .query_expansion import QueryExpander
 from .time_scoring import TimeAwareScorer
 from .search_profiles import get_profile, list_profiles, load_custom_profiles
 from .rate_limiter import RateLimiter
+from .vault_graph import VaultGraph
 
 # Configure logging
 logging.basicConfig(
@@ -227,6 +228,10 @@ async def lifespan(app: FastAPI):
         )
         logger.info("  ✓ Time-aware scorer initialized")
 
+        # Initialize vault graph cache (lazy loading per vault)
+        vault_graphs = {}
+        logger.info("  ✓ Vault graph cache initialized (lazy loading)")
+
         # Store in app.state for access by endpoints
         app.state.config = config
         app.state.client_cache = client_cache
@@ -234,6 +239,7 @@ async def lifespan(app: FastAPI):
         app.state.reranker = reranker
         app.state.query_expander = query_expander
         app.state.time_scorer = time_scorer
+        app.state.vault_graphs = vault_graphs
 
         logger.info("=" * 60)
         logger.info(f"Temoa server ready")
@@ -1498,6 +1504,198 @@ async def stats(
             status_code=500,
             detail=f"Internal server error: {str(e)}"
         )
+
+
+@app.get("/graph/neighbors")
+async def graph_neighbors(
+    request: Request,
+    note: str = Query(..., description="Note name or path to explore"),
+    vault: Optional[str] = Query(default=None, description="Vault name"),
+    hops: int = Query(default=2, ge=1, le=4, description="Maximum distance (1-4)")
+):
+    """
+    Get notes linked to/from a note within N hops.
+
+    Explores the wikilink graph around a note, showing:
+    - Direct incoming links (notes that link TO this note)
+    - Direct outgoing links (notes this note links TO)
+    - Notes reachable within N hops (undirected)
+
+    Returns:
+        {
+            "note": "normalized note name",
+            "found": true/false,
+            "incoming": ["note1", "note2", ...],
+            "outgoing": ["note3", "note4", ...],
+            "by_distance": {
+                "1": ["direct neighbors"],
+                "2": ["2-hop neighbors"],
+                ...
+            }
+        }
+    """
+    config = request.app.state.config
+    vault_graphs = request.app.state.vault_graphs
+
+    try:
+        # Resolve vault
+        if vault is None:
+            vault_config = config.get_default_vault()
+        else:
+            vault_config = config.find_vault(vault)
+
+        if vault_config is None:
+            raise HTTPException(status_code=404, detail=f"Vault not found: {vault}")
+
+        vault_path = Path(vault_config["path"]).expanduser().resolve()
+        vault_name = vault_config["name"]
+
+        # Get or create graph for this vault (lazy loading)
+        if vault_name not in vault_graphs:
+            logger.info(f"Loading graph for vault: {vault_name}")
+            vault_graphs[vault_name] = VaultGraph(vault_path)
+            vault_graphs[vault_name].load()
+
+        graph = vault_graphs[vault_name]
+
+        if not graph.is_loaded:
+            raise HTTPException(
+                status_code=503,
+                detail="Vault graph not available (obsidiantools may not be installed)"
+            )
+
+        result = graph.get_neighbors(note, max_hops=hops)
+        result["vault"] = vault_name
+
+        return JSONResponse(content=result)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Graph neighbors error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/graph/stats")
+async def graph_stats(
+    request: Request,
+    vault: Optional[str] = Query(default=None, description="Vault name")
+):
+    """
+    Get vault graph statistics.
+
+    Returns:
+        {
+            "loaded": true/false,
+            "node_count": 1234,
+            "edge_count": 5678,
+            "connected_components": 42,
+            "largest_component_size": 1000,
+            "isolated_notes": 200
+        }
+    """
+    config = request.app.state.config
+    vault_graphs = request.app.state.vault_graphs
+
+    try:
+        # Resolve vault
+        if vault is None:
+            vault_config = config.get_default_vault()
+        else:
+            vault_config = config.find_vault(vault)
+
+        if vault_config is None:
+            raise HTTPException(status_code=404, detail=f"Vault not found: {vault}")
+
+        vault_path = Path(vault_config["path"]).expanduser().resolve()
+        vault_name = vault_config["name"]
+
+        # Get or create graph for this vault (lazy loading)
+        if vault_name not in vault_graphs:
+            logger.info(f"Loading graph for vault: {vault_name}")
+            vault_graphs[vault_name] = VaultGraph(vault_path)
+            vault_graphs[vault_name].load()
+
+        graph = vault_graphs[vault_name]
+        stats = graph.get_stats()
+        stats["vault"] = vault_name
+
+        return JSONResponse(content=stats)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Graph stats error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/graph/hubs")
+async def graph_hubs(
+    request: Request,
+    vault: Optional[str] = Query(default=None, description="Vault name"),
+    min_in: int = Query(default=2, ge=1, description="Minimum incoming links"),
+    min_out: int = Query(default=2, ge=1, description="Minimum outgoing links"),
+    limit: int = Query(default=50, ge=1, le=200, description="Maximum results")
+):
+    """
+    Find well-connected hub notes.
+
+    Hub notes have many incoming AND outgoing links, making them
+    important connection points in the vault.
+
+    Returns:
+        {
+            "hubs": [
+                {"note": "name", "in_degree": 10, "out_degree": 5},
+                ...
+            ]
+        }
+    """
+    config = request.app.state.config
+    vault_graphs = request.app.state.vault_graphs
+
+    try:
+        # Resolve vault
+        if vault is None:
+            vault_config = config.get_default_vault()
+        else:
+            vault_config = config.find_vault(vault)
+
+        if vault_config is None:
+            raise HTTPException(status_code=404, detail=f"Vault not found: {vault}")
+
+        vault_path = Path(vault_config["path"]).expanduser().resolve()
+        vault_name = vault_config["name"]
+
+        # Get or create graph for this vault (lazy loading)
+        if vault_name not in vault_graphs:
+            logger.info(f"Loading graph for vault: {vault_name}")
+            vault_graphs[vault_name] = VaultGraph(vault_path)
+            vault_graphs[vault_name].load()
+
+        graph = vault_graphs[vault_name]
+
+        if not graph.is_loaded:
+            raise HTTPException(
+                status_code=503,
+                detail="Vault graph not available"
+            )
+
+        hubs = graph.get_hub_notes(min_in=min_in, min_out=min_out, limit=limit)
+
+        return JSONResponse(content={
+            "vault": vault_name,
+            "hubs": [
+                {"note": name, "in_degree": in_deg, "out_degree": out_deg}
+                for name, in_deg, out_deg in hubs
+            ]
+        })
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Graph hubs error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/health")

@@ -22,6 +22,7 @@ dependencies = [
     "python-frontmatter>=1.0.0",
     "netifaces>=0.11.0",
     "nahuatl-frontmatter",
+    "obsidiantools>=0.11.0",
 ]
 
 [project.scripts]
