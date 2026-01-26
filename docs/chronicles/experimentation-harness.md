@@ -181,3 +181,26 @@ Chronicle entries for the Search Harness implementation - an interactive score m
 **Status**: 4/7 Phase 1 tasks complete (layout, state, controls, route) - 3 remaining (Results pane, Inspector layout, search flow)
 
 **Files**: `src/temoa/ui/explorer.html`, `src/temoa/server.py`
+
+---
+
+## Entry 56: Unified Search Interface Complete (2026-01-25)
+
+**What**: Consolidated search.html, explorer.html, harness.html, and pipeline.html into single unified interface with view toggle.
+
+**Why**: User requested single page for both simple search and parameter exploration without context switching. Multiple separate tools were "scaffolding" to be burned after learning what works.
+
+**How**:
+- Merged search.html (2,507 lines) + explorer.html (2,093 lines) → unified search.html (2,456 lines)
+- Added view toggle in header: List ⟷ Explorer (keyboard shortcut: `t`)
+- Single state object with shared localStorage (query, results, history, fetch/live params persist across views)
+- List view: simple result cards + search history sidebar
+- Explorer view: three-pane layout (Controls | Results | Inspector) with full mixer controls
+- Deleted obsolete files: harness.html, pipeline.html, explorer.html
+- Removed routes: /harness, /pipeline, /explorer from server.py
+
+**Testing**: Verified at http://localhost:8080/ - view toggle working, search functional in both modes, state persistence confirmed
+
+**Files**: src/temoa/ui/search.html (unified), src/temoa/server.py (routes removed)
+
+**Commits**: dd11668

@@ -1,8 +1,8 @@
 ---
 phase: "Experimentation"
 phase_name: "Search Harness"
-updated: 2026-01-23
-last_commit: 9b09585
+updated: 2026-01-25
+last_commit: dd11668
 branch: knobs-and-dials
 ---
 
@@ -10,17 +10,15 @@ branch: knobs-and-dials
 
 ## Current Focus
 
-Phase 1 of Explorer interface COMPLETE - 6/6 tasks done. Ready for testing and refinement.
+Unified search interface complete - consolidated search.html, explorer.html, harness.html, and pipeline.html into single /search page with view toggle.
 
 ## Active Tasks
 
-- [x] Phase 1: Core layout with responsive grid (desktop/mobile)
-- [x] Phase 1: State management with localStorage persistence
-- [x] Phase 1: Controls pane (Fetch/Live mixer from harness.html)
-- [x] Phase 1: Add /explorer route to server.py
-- [x] Phase 1: Results pane - List mode (from search.html)
-- [x] Phase 1: Wire up search flow (Controls → API → Results)
-- [x] Phase 1: Inspector pane - Detailed result view with scores/metadata
+- [x] Consolidate search and explorer into unified /search interface
+- [x] Remove harness.html and pipeline.html and their routes
+- [x] Add view mode toggle to unified interface
+- [x] Merge state management from both files
+- [x] Implement conditional rendering based on view mode
 
 ## Blockers
 
@@ -28,20 +26,19 @@ None.
 
 ## Context
 
-- **Explorer goal**: Consolidate `/search`, `/harness`, `/pipeline` into single three-pane UI
-- **Phase 1 STATUS**: ✅ COMPLETE (6/6 tasks)
+- **Unified Interface**: Single page at `/search` with List ⟷ Explorer view toggle (keyboard: `t`)
 - **What works**:
-  - Three-pane layout (Controls | Results | Inspector)
-  - Fetch params (hybrid_weight, limit, rerank, expand) → server round-trip
-  - Live params (mix_balance, tag_multiplier, time_weight) → instant client-side remix
-  - Results pane with list mode, click to select
-  - Inspector pane with detailed scores, metadata, tags, description
+  - View toggle in header switches between simple list and three-pane explorer
+  - Shared state via single localStorage key (query, results, history, params persist)
+  - List view: simple cards with search history sidebar
+  - Explorer view: Controls | Results | Inspector with fetch/live params
+  - Search history (last 10) shared across views
   - Mobile responsive (accordion controls, drawer inspector)
-  - State persistence (localStorage)
-  - Dirty tracking (warns when fetch params changed)
-- **Files**: `src/temoa/ui/explorer.html` (single-file app), `src/temoa/server.py` (route added)
-- **Ready for**: User testing, feedback, Phase 2 planning
+  - Keyboard shortcuts: `/` focus, `Esc` blur, `t` toggle view
+- **Files**: `src/temoa/ui/search.html` (2,456 lines, unified), deleted: harness.html, pipeline.html, explorer.html
+- **Server**: Removed `/harness`, `/pipeline`, `/explorer` routes
+- **Testing**: Verified at http://localhost:8080/, search working, both views functional
 
 ## Next Session
 
-Test Explorer at http://localhost:8000/explorer. Gather feedback. Plan Phase 2 (pipeline viewer integration, profile save/load, export).
+User testing of unified interface. Gather feedback on view toggle UX. Consider Phase 2 features (profile save/load, export, pipeline debug view).
