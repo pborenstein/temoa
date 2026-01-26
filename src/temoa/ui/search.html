@@ -112,11 +112,69 @@
             display: flex;
             gap: 8px;
             align-items: center;
+            margin-bottom: 8px;
         }
 
         .search-input-wrapper {
             flex: 1;
             position: relative;
+        }
+
+        /* Search history bar */
+        .search-history-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-height: 32px;
+            padding: 0 4px;
+        }
+
+        .history-items {
+            flex: 1;
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            overflow-x: auto;
+        }
+
+        .history-chip {
+            background: #2a2a2a;
+            border: 1px solid #404040;
+            border-radius: 12px;
+            padding: 4px 12px;
+            font-size: 12px;
+            color: #b0b0b0;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.15s;
+        }
+
+        .history-chip:hover {
+            background: #3a3a3a;
+            border-color: #4a6a8a;
+            color: #e0e0e0;
+        }
+
+        .clear-history-btn-inline {
+            background: transparent;
+            border: 1px solid #404040;
+            border-radius: 4px;
+            width: 24px;
+            height: 24px;
+            color: #666666;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: all 0.15s;
+        }
+
+        .clear-history-btn-inline:hover {
+            background: #3a3a3a;
+            border-color: #cc4444;
+            color: #cc4444;
         }
 
         .search-input {
@@ -299,6 +357,91 @@
             color: #aaaaaa;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .help-btn {
+            background: #3a3a3a;
+            color: #888888;
+            border: 1px solid #4a4a4a;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s;
+        }
+
+        .help-btn:hover {
+            background: #4a6a8a;
+            color: #ffffff;
+            border-color: #5a7a9a;
+        }
+
+        .help-panel {
+            background: #1a1a1a;
+            border: 1px solid #4a4a4a;
+            border-radius: 8px;
+            padding: 16px;
+            max-height: calc(100vh - 200px);
+            overflow-y: auto;
+        }
+
+        .help-panel h2 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #ffffff;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #333333;
+        }
+
+        .help-panel h3 {
+            font-size: 13px;
+            font-weight: 600;
+            color: #cccccc;
+            margin-top: 16px;
+            margin-bottom: 8px;
+        }
+
+        .help-panel p {
+            font-size: 12px;
+            color: #b0b0b0;
+            line-height: 1.6;
+            margin-bottom: 12px;
+        }
+
+        .help-panel ul {
+            font-size: 12px;
+            color: #b0b0b0;
+            line-height: 1.6;
+            margin-left: 20px;
+            margin-bottom: 12px;
+        }
+
+        .help-panel code {
+            background: #2a2a2a;
+            color: #88aa88;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 11px;
+        }
+
+        .help-panel .score-example {
+            background: #2a2a2a;
+            border: 1px solid #3a3a3a;
+            border-radius: 4px;
+            padding: 8px;
+            margin: 8px 0;
+            font-size: 11px;
+            color: #aaaaaa;
         }
 
         .pane-content {
@@ -531,35 +674,40 @@
         }
 
         .tooltip {
-            position: absolute;
-            bottom: calc(100% + 8px);
-            left: 50%;
-            transform: translateX(-50%);
+            position: fixed;
             background: #333333;
             border: 1px solid #4a4a4a;
             border-radius: 6px;
-            padding: 6px 10px;
+            padding: 8px 12px;
             font-size: 11px;
             color: #d0d0d0;
             white-space: normal;
-            width: 200px;
-            z-index: 100;
+            width: 240px;
+            z-index: 1000;
             opacity: 0;
             visibility: hidden;
             transition: opacity 0.15s, visibility 0.15s;
-            line-height: 1.4;
+            line-height: 1.5;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
             text-transform: none;
+            text-align: left;
+            pointer-events: none;
         }
 
-        .tooltip::after {
-            content: '';
-            position: absolute;
-            top: 100%;
-            left: 50%;
-            transform: translateX(-50%);
-            border: 5px solid transparent;
-            border-top-color: #4a4a4a;
+        /* Position tooltip dynamically via JS, but default fallback */
+        .tooltip-wrapper:hover .tooltip {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .tooltip strong {
+            color: #ffffff;
+            font-weight: 600;
+        }
+
+        .tooltip em {
+            color: #aaaaaa;
+            font-style: italic;
         }
 
         .tooltip-wrapper:hover .tooltip {
@@ -946,15 +1094,11 @@
             }
 
             .list-view-container {
-                height: calc(100vh - 180px);
-            }
-
-            .list-sidebar {
-                display: none;
+                height: calc(100vh - 200px);
             }
 
             .explorer-view-container {
-                height: calc(100vh - 180px);
+                height: calc(100vh - 200px);
             }
 
             .explorer-grid {
@@ -1048,6 +1192,10 @@
             </select>
             <button id="run-btn" class="run-btn">Run</button>
         </div>
+        <div class="search-history-bar">
+            <div class="history-items" id="history-items"></div>
+            <button class="clear-history-btn-inline" id="clear-history-btn" title="Clear history">✕</button>
+        </div>
     </header>
 
     <!-- LIST VIEW -->
@@ -1058,13 +1206,6 @@
                 <div class="empty-state-text">
                     Enter a query and click Run<br>to see results
                 </div>
-            </div>
-        </div>
-        <div class="list-sidebar">
-            <div class="sidebar-section">
-                <h3>Recent</h3>
-                <ul class="history-list" id="history-list"></ul>
-                <button class="clear-history-btn" id="clear-history-btn">Clear History</button>
             </div>
         </div>
     </div>
@@ -1093,14 +1234,14 @@
                                     Sem
                                     <span class="tooltip-wrapper">
                                         <span class="info-icon">?</span>
-                                        <span class="tooltip">Conceptual similarity via embeddings.</span>
+                                        <span class="tooltip"><strong>Fetch mode: Semantic</strong><br>Retrieves docs by conceptual similarity.<br>Good for exploratory searches.</span>
                                     </span>
                                 </span>
                                 <span class="balance-value" id="fetch-balance-value">50/50</span>
                                 <span>
                                     <span class="tooltip-wrapper">
                                         <span class="info-icon">?</span>
-                                        <span class="tooltip">Keyword matching (BM25).</span>
+                                        <span class="tooltip"><strong>Fetch mode: Keyword</strong><br>Retrieves docs with exact word matches.<br>Good for specific terms, tags, names.</span>
                                     </span>
                                     BM25
                                 </span>
@@ -1130,7 +1271,7 @@
                                     Cross-encoder
                                     <span class="tooltip-wrapper">
                                         <span class="info-icon">?</span>
-                                        <span class="tooltip">Better precision, slower (~200ms).</span>
+                                        <span class="tooltip"><strong>Re-ranks with ms-marco model</strong><br>Processes query + document together for better precision.<br><br>20-30% improvement in top-5 accuracy.<br>Adds ~200ms latency.<br><br><em>Skipped for tag-boosted results.</em></span>
                                     </span>
                                 </label>
                             </div>
@@ -1140,7 +1281,7 @@
                                     Expand query
                                     <span class="tooltip-wrapper">
                                         <span class="info-icon">?</span>
-                                        <span class="tooltip">Add related terms to short queries.</span>
+                                        <span class="tooltip"><strong>Adds related terms (TF-IDF)</strong><br>For queries &lt;3 words, extracts important terms from top results.<br><br>Helps disambiguate short queries.<br>Adds ~400ms latency.<br><br><em>Not recommended for person names.</em></span>
                                     </span>
                                 </label>
                             </div>
@@ -1168,14 +1309,14 @@
                                     Sem
                                     <span class="tooltip-wrapper">
                                         <span class="info-icon">?</span>
-                                        <span class="tooltip">Weight semantic scores higher.</span>
+                                        <span class="tooltip"><strong>Semantic (AI embeddings)</strong><br>0% = Pure conceptual matching<br>Finds "related topics" even with different words.</span>
                                     </span>
                                 </span>
                                 <span class="balance-value" id="live-balance-value">50/50</span>
                                 <span>
                                     <span class="tooltip-wrapper">
                                         <span class="info-icon">?</span>
-                                        <span class="tooltip">Weight BM25 scores higher.</span>
+                                        <span class="tooltip"><strong>BM25 (keyword matching)</strong><br>100% = Pure exact matching<br>Finds documents with your exact words (includes tag boosting).</span>
                                     </span>
                                     BM25
                                 </span>
@@ -1191,10 +1332,10 @@
                                     Tag Multiplier
                                     <span class="tooltip-wrapper">
                                         <span class="info-icon">?</span>
-                                        <span class="tooltip">Score multiplier for tag-matched results (0-10).</span>
+                                        <span class="tooltip"><strong>Amplifies tag-boosted results</strong><br>When a document's tags match your query, its Final score is multiplied by this.<br><br><strong>1.0:</strong> No extra boost<br><strong>5.0:</strong> 5x stronger (default)<br><strong>10.0:</strong> Maximum boost<br><br><em>Watch the ⚡ Yes indicator!</em></span>
                                     </span>
                                 </label>
-                                <input type="number" id="live-tags" value="5.0" step="0.5" min="0" max="10">
+                                <input type="number" id="live-tags" value="5.0" step="0.5" min="1" max="10">
                             </div>
 
                             <div class="mixer-item">
@@ -1202,7 +1343,7 @@
                                     Time Weight
                                     <span class="tooltip-wrapper">
                                         <span class="info-icon">?</span>
-                                        <span class="tooltip">Multiplier on recency boost (0-2).</span>
+                                        <span class="tooltip"><strong>Boosts recent documents</strong><br>Recent docs get: Final × (1 + Time Weight × recency)<br><br><strong>0.0:</strong> No time boost<br><strong>1.0:</strong> Standard boost (default)<br><strong>2.0:</strong> Double the boost<br><br>Recency decays with 90-day half-life.</span>
                                     </span>
                                 </label>
                                 <input type="number" id="live-time" value="1.0" step="0.1" min="0" max="2">
@@ -1237,7 +1378,10 @@
 
             <!-- Inspector Pane -->
             <div id="inspector-pane" class="pane">
-                <div class="pane-header">Inspector</div>
+                <div class="pane-header">
+                    Inspector
+                    <button id="help-btn" class="help-btn" title="Show scoring help">?</button>
+                </div>
                 <div class="pane-content">
                     <div class="empty-state">
                         <div class="empty-state-icon">📋</div>
@@ -1294,6 +1438,99 @@
             fetchParamsChanged: false,
             lastFetchParams: null
         };
+
+        // ========================================
+        // Help Panel
+        // ========================================
+
+        function showHelpPanel() {
+            const inspectorContent = document.querySelector('#inspector-pane .pane-content');
+
+            const helpPanel = document.createElement('div');
+            helpPanel.className = 'help-panel';
+            helpPanel.innerHTML = `
+                <h2>Understanding Temoa Scores</h2>
+
+                <h3>📊 Score Types</h3>
+                <p><strong>Semantic (0.0-1.0)</strong>: Conceptual similarity using AI embeddings. Finds documents about the same topic even with different words.</p>
+                <div class="score-example">
+                    0.0-0.3 = Not relevant<br>
+                    0.3-0.5 = Somewhat related<br>
+                    0.5-0.7 = Relevant<br>
+                    0.7-1.0 = Highly relevant
+                </div>
+
+                <p><strong>BM25 (0-30+)</strong>: Keyword matching score. Higher = more exact word matches. Tags get 2x weight + 5x boost when matched.</p>
+                <div class="score-example">
+                    0-5 = Weak match<br>
+                    5-15 = Good match<br>
+                    15+ = Excellent match (often tag-boosted)
+                </div>
+
+                <p><strong>RRF (0.0-0.05+)</strong>: Reciprocal Rank Fusion. Combines Semantic + BM25 rankings. Tag-boosted docs get 1.5-2.0x multiplier.</p>
+                <div class="score-example">
+                    Formula: sum(1 / (60 + rank))<br>
+                    • Docs in both lists = highest<br>
+                    • Tag matches = 1.5-2.0x boost<br>
+                    • BM25-only = conservative boost
+                </div>
+
+                <p><strong>Cross-Enc (-12 to +12)</strong>: Precision re-ranking using ms-marco model. Processes query + document together.</p>
+                <div class="score-example">
+                    Negative = Not relevant<br>
+                    -1 to 0 = Weak match<br>
+                    0 to +2 = Good match<br>
+                    +2 to +12 = Excellent match
+                </div>
+
+                <p><strong>Final (0.0-2.0+)</strong>: Client-side remixed score using LIVE controls.</p>
+                <div class="score-example">
+                    Formula: (Sem × (1-balance) + BM25 × balance)<br>
+                    • Tag-boosted: × Tag Multiplier<br>
+                    • Recent docs: × (1 + Time Weight)
+                </div>
+
+                <h3>🎛️ How Controls Affect Results</h3>
+
+                <p><strong>Sem/BM25 Balance (LIVE)</strong>:</p>
+                <ul>
+                    <li><code>0%</code> = Pure semantic (concept matching)</li>
+                    <li><code>50%</code> = Balanced (default)</li>
+                    <li><code>100%</code> = Pure BM25 (exact keywords + tags)</li>
+                </ul>
+
+                <p><strong>Tag Multiplier (LIVE)</strong>: When a document's tags match your query, its Final score is multiplied by this value. Look for the ⚡ Yes indicator!</p>
+
+                <p><strong>Time Weight (LIVE)</strong>: Recent documents get boosted. Uses 90-day half-life exponential decay. Higher weight = stronger boost for recent docs.</p>
+
+                <h3>🔍 Search Pipeline</h3>
+                <p>Temoa uses a 7-stage pipeline:</p>
+                <ul>
+                    <li><strong>Stage 0:</strong> Query Expansion (optional, for short queries)</li>
+                    <li><strong>Stage 1:</strong> Primary Retrieval (Semantic + BM25 hybrid)</li>
+                    <li><strong>Stage 2:</strong> Chunk Deduplication (best chunk per file)</li>
+                    <li><strong>Stage 3:</strong> Score Filtering (min threshold)</li>
+                    <li><strong>Stage 4:</strong> Status Filtering (remove inactive)</li>
+                    <li><strong>Stage 5:</strong> Type Filtering (include/exclude types)</li>
+                    <li><strong>Stage 6:</strong> Cross-Encoder Re-ranking (precision boost)</li>
+                </ul>
+
+                <h3>⚡ Tag Boosting</h3>
+                <p>When your query matches document tags:</p>
+                <ul>
+                    <li>BM25 score gets 5x multiplier</li>
+                    <li>RRF fusion gets 1.5-2.0x aggressive boost</li>
+                    <li>Cross-encoder re-ranking is skipped (already perfect)</li>
+                    <li>Result marked with ⚡ Yes indicator</li>
+                </ul>
+
+                <p style="margin-top: 20px; padding-top: 12px; border-top: 1px solid #333; font-size: 11px; color: #888;">
+                    <em>Hover over any score label or control to see detailed tooltips!</em>
+                </p>
+            `;
+
+            inspectorContent.replaceChildren(helpPanel);
+        }
 
         // ========================================
         // Initialization
@@ -1461,6 +1698,12 @@
                     toggleView();
                 }
             });
+
+            // Help button
+            const helpBtn = document.getElementById('help-btn');
+            if (helpBtn) {
+                helpBtn.addEventListener('click', showHelpPanel);
+            }
 
             // Explorer controls setup (only if elements exist)
             setupExplorerControls();
@@ -1643,6 +1886,15 @@
             // Show/hide containers
             document.querySelector('.list-view-container').classList.toggle('active', view === 'list');
             document.querySelector('.explorer-view-container').classList.toggle('active', view === 'explorer');
+
+            // Re-render results for the new view if we have results
+            if (state.rawResults.length > 0) {
+                if (view === 'explorer') {
+                    renderExplorerResults();
+                } else {
+                    renderListResults();
+                }
+            }
 
             if (save) {
                 saveState();
@@ -2091,23 +2343,21 @@
         }
 
         function renderSearchHistory() {
-            const historyList = document.getElementById('history-list');
+            const historyItems = document.getElementById('history-items');
 
             if (state.searchHistory.length === 0) {
-                historyList.innerHTML = '<li style="color: #666; font-size: 12px; padding: 8px;">No recent searches</li>';
+                historyItems.innerHTML = '<span style="color: #666; font-size: 11px;">No recent searches</span>';
                 return;
             }
 
-            historyList.innerHTML = state.searchHistory.map(query => `
-                <li class="history-item" data-query="${escapeHtml(query)}">
-                    ${escapeHtml(query)}
-                </li>
+            historyItems.innerHTML = state.searchHistory.map(query => `
+                <div class="history-chip" data-query="${escapeHtml(query)}">${escapeHtml(query)}</div>
             `).join('');
 
             // Add click handlers
-            historyList.querySelectorAll('.history-item').forEach(item => {
-                item.addEventListener('click', () => {
-                    const query = item.dataset.query;
+            historyItems.querySelectorAll('.history-chip').forEach(chip => {
+                chip.addEventListener('click', () => {
+                    const query = chip.dataset.query;
                     document.getElementById('query-input').value = query;
                     runSearch();
                 });
@@ -2209,25 +2459,76 @@
 
             // Semantic score
             if (result.similarity_score !== undefined) {
-                scoresSection.appendChild(createScoreBar('Semantic', result.similarity_score, result.similarity_score));
+                scoresSection.appendChild(createScoreBar(
+                    'Semantic',
+                    result.similarity_score,
+                    result.similarity_score,
+                    '<strong>Scale: 0.0 to 1.0</strong><br>' +
+                    'Measures conceptual similarity using AI embeddings. ' +
+                    'Finds documents about the same topic even if they use different words.<br><br>' +
+                    '<strong>0.0-0.3:</strong> Not relevant<br>' +
+                    '<strong>0.3-0.5:</strong> Somewhat related<br>' +
+                    '<strong>0.5-0.7:</strong> Relevant<br>' +
+                    '<strong>0.7-1.0:</strong> Highly relevant'
+                ));
             }
 
             // BM25 score (normalize to 0-1 for visual, assuming max ~10)
             if (result.bm25_score !== undefined) {
                 const normalizedBM25 = Math.min(result.bm25_score / 10, 1);
-                scoresSection.appendChild(createScoreBar('BM25', result.bm25_score.toFixed(2), normalizedBM25));
+                scoresSection.appendChild(createScoreBar(
+                    'BM25',
+                    result.bm25_score.toFixed(2),
+                    normalizedBM25,
+                    '<strong>Scale: 0 to 30+ (typical: 0-15)</strong><br>' +
+                    'Keyword matching score. Higher = more exact word matches.<br><br>' +
+                    '<strong>Factors:</strong><br>' +
+                    '• How often query words appear<br>' +
+                    '• How rare the words are (rare = higher)<br>' +
+                    '• Document length (longer = lower)<br>' +
+                    '• Tags get 2x weight + 5x boost when matched<br><br>' +
+                    '<strong>0-5:</strong> Weak match<br>' +
+                    '<strong>5-15:</strong> Good match<br>' +
+                    '<strong>15+:</strong> Excellent match (often tag-boosted)'
+                ));
             }
 
             // RRF score
             if (result.rrf_score !== undefined) {
-                scoresSection.appendChild(createScoreBar('RRF', result.rrf_score.toFixed(4), result.rrf_score));
+                scoresSection.appendChild(createScoreBar(
+                    'RRF',
+                    result.rrf_score.toFixed(4),
+                    result.rrf_score,
+                    '<strong>Scale: 0.0 to ~0.05 (typical)</strong><br>' +
+                    'Reciprocal Rank Fusion - combines Semantic + BM25 rankings.<br><br>' +
+                    '<strong>How it works:</strong><br>' +
+                    'RRF = sum(1 / (60 + rank))<br>' +
+                    '• Docs in both lists: highest scores<br>' +
+                    '• Tag-boosted docs: 1.5-2.0x multiplier<br>' +
+                    '• BM25-only docs: conservative boost<br><br>' +
+                    '<strong>0.00-0.02:</strong> Lower ranked<br>' +
+                    '<strong>0.02-0.04:</strong> Mid-tier<br>' +
+                    '<strong>0.04+:</strong> Top results'
+                ));
             }
 
             // Cross-encoder score
             if (result.cross_encoder_score !== undefined) {
                 // Cross-encoder is typically -1 to 1, normalize to 0-1
                 const normalized = (result.cross_encoder_score + 1) / 2;
-                scoresSection.appendChild(createScoreBar('Cross-Enc', result.cross_encoder_score.toFixed(4), normalized));
+                scoresSection.appendChild(createScoreBar(
+                    'Cross-Enc',
+                    result.cross_encoder_score.toFixed(4),
+                    normalized,
+                    '<strong>Scale: -12 to +12 (typical: -1 to +1)</strong><br>' +
+                    'Precision re-ranking using ms-marco-MiniLM model. ' +
+                    'Processes query + document together for accurate relevance.<br><br>' +
+                    '<strong>Negative:</strong> Not relevant<br>' +
+                    '<strong>-1 to 0:</strong> Weak match<br>' +
+                    '<strong>0 to +2:</strong> Good match<br>' +
+                    '<strong>+2 to +12:</strong> Excellent match<br><br>' +
+                    '<em>Note: Skipped for tag-boosted results (already perfect)</em>'
+                ));
             }
 
             // Tag boost indicator
@@ -2239,8 +2540,20 @@
                 label.textContent = 'Tag Boosted';
                 const value = document.createElement('div');
                 value.className = 'inspector-value';
-                value.textContent = '⚡ Yes';
-                value.style.color = '#cc8800';
+
+                // Show actual multiplier effect
+                const currentMultiplier = state.liveParams.tag_multiplier;
+                if (currentMultiplier > 1) {
+                    value.textContent = `⚡ Yes (${currentMultiplier}x)`;
+                    value.style.color = '#cc8800';
+                } else if (currentMultiplier === 1) {
+                    value.textContent = '⚡ Disabled (1x)';
+                    value.style.color = '#888888';
+                } else {
+                    value.textContent = `⚡ Reduced (${currentMultiplier}x)`;
+                    value.style.color = '#666666';
+                }
+
                 row.appendChild(label);
                 row.appendChild(value);
                 scoresSection.appendChild(row);
@@ -2267,7 +2580,18 @@
                 const results = state.remixedResults.length > 0 ? state.remixedResults : state.rawResults;
                 const maxFinal = Math.max(...results.map(r => r.final_score || 0));
                 const normalized = maxFinal > 0 ? result.final_score / maxFinal : 0;
-                scoresSection.appendChild(createScoreBar('Final', result.final_score.toFixed(4), normalized));
+                scoresSection.appendChild(createScoreBar(
+                    'Final',
+                    result.final_score.toFixed(4),
+                    normalized,
+                    '<strong>Scale: 0.0 to 2.0+ (depends on mix)</strong><br>' +
+                    'Client-side remixed score using LIVE controls.<br><br>' +
+                    '<strong>Formula:</strong><br>' +
+                    'Final = (Sem × (1-balance) + BM25 × balance)<br>' +
+                    '• Tag-boosted: × Tag Multiplier<br>' +
+                    '• Recent docs: × (1 + Time Weight)<br><br>' +
+                    '<em>Adjust sliders in Controls to see this change!</em>'
+                ));
             }
 
             container.appendChild(scoresSection);
@@ -2378,7 +2702,7 @@
             inspectorContent.replaceChildren(container);
         }
 
-        function createScoreBar(label, displayValue, normalizedValue) {
+        function createScoreBar(label, displayValue, normalizedValue, tooltip = null) {
             const row = document.createElement('div');
             row.className = 'inspector-row';
             row.style.borderBottom = 'none';
@@ -2386,7 +2710,34 @@
 
             const labelDiv = document.createElement('div');
             labelDiv.className = 'inspector-label';
-            labelDiv.textContent = label;
+            labelDiv.style.display = 'flex';
+            labelDiv.style.alignItems = 'center';
+            labelDiv.style.gap = '4px';
+
+            const labelText = document.createElement('span');
+            labelText.textContent = label;
+            labelDiv.appendChild(labelText);
+
+            // Add tooltip if provided
+            if (tooltip) {
+                const tooltipWrapper = document.createElement('span');
+                tooltipWrapper.className = 'tooltip-wrapper';
+                tooltipWrapper.style.display = 'inline-block';
+
+                const infoIcon = document.createElement('span');
+                infoIcon.className = 'info-icon';
+                infoIcon.textContent = '?';
+                infoIcon.style.fontSize = '10px';
+                infoIcon.style.cursor = 'help';
+
+                const tooltipSpan = document.createElement('span');
+                tooltipSpan.className = 'tooltip';
+                tooltipSpan.innerHTML = tooltip;
+
+                tooltipWrapper.appendChild(infoIcon);
+                tooltipWrapper.appendChild(tooltipSpan);
+                labelDiv.appendChild(tooltipWrapper);
+            }
 
             const barContainer = document.createElement('div');
             barContainer.className = 'score-bar';
@@ -2448,6 +2799,45 @@
                 return dateStr;
             }
         }
+
+        // ========================================
+        // Tooltip Positioning
+        // ========================================
+
+        // Smart tooltip positioning to prevent clipping
+        document.addEventListener('mouseover', (e) => {
+            const tooltipWrapper = e.target.closest('.tooltip-wrapper');
+            if (!tooltipWrapper) return;
+
+            const tooltip = tooltipWrapper.querySelector('.tooltip');
+            if (!tooltip) return;
+
+            const rect = tooltipWrapper.getBoundingClientRect();
+            const tooltipWidth = 240; // Match CSS width
+            const tooltipHeight = tooltip.offsetHeight || 200; // Estimate if not rendered
+
+            // Position below the icon by default
+            let top = rect.bottom + 8;
+            let left = rect.left;
+
+            // If tooltip would go off right edge, align to right
+            if (left + tooltipWidth > window.innerWidth - 10) {
+                left = rect.right - tooltipWidth;
+            }
+
+            // If tooltip would go off bottom, show above instead
+            if (top + tooltipHeight > window.innerHeight - 10) {
+                top = rect.top - tooltipHeight - 8;
+            }
+
+            // Prevent going off left edge
+            if (left < 10) {
+                left = 10;
+            }
+
+            tooltip.style.top = `${top}px`;
+            tooltip.style.left = `${left}px`;
+        });
 
         // Start the app
         initialize();
