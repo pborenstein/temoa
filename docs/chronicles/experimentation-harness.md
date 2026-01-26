@@ -204,3 +204,41 @@ Chronicle entries for the Search Harness implementation - an interactive score m
 **Files**: src/temoa/ui/search.html (unified), src/temoa/server.py (routes removed)
 
 **Commits**: dd11668
+
+---
+
+## Entry 57: Graph Exploration Research (2026-01-25)
+
+**What**: Researched libraries for parsing Obsidian wikilinks and building note relationship graphs.
+
+**Why**: Current search treats notes as isolated islands. Wikilinks represent human-curated relationships that Temoa ignores. User wants to explore note neighborhoods, not just search results.
+
+**Key Insight**: Two layers of relatedness:
+1. **Explicit links** (wikilinks) - high signal, human-curated
+2. **Implicit similarity** (embeddings) - model-inferred, works on any text
+
+**Research Findings**:
+
+| Library | Status | Notes |
+|---------|--------|-------|
+| **obsidiantools** | Recommended | v0.11.0, 502 stars, NetworkX integration, production-ready |
+| obsidianmd-parser | Alternative | Python 3.12+, modern but smaller community |
+| Obsidian-Markdown-Parser | Basic | Limited docs, link extraction only |
+
+**obsidiantools capabilities**:
+- Parse `[[wikilinks]]` and `[[link|alias]]`
+- Build NetworkX graph for traversal (shortest path, clustering, centrality)
+- Get backlinks/forward links for any note
+- Detect orphaned notes
+- Frontmatter and tag extraction
+
+**Plain text fallback**: For non-Obsidian vaults, use pure semantic similarity (current behavior) or build implicit links from embedding neighborhoods.
+
+**Potential features**:
+- "Show neighborhood" - notes 1-2 hops from selected result
+- Graph-boosted search - boost results that share link neighborhoods with top matches
+- Cluster visualization - identify connected groups around query
+
+**Files**: docs/CONTEXT.md (updated), docs/chronicles/experimentation-harness.md (this entry)
+
+**Status**: Research complete, ready to prototype

@@ -2,7 +2,7 @@
 phase: "Experimentation"
 phase_name: "Search Harness"
 updated: 2026-01-25
-last_commit: 50267fc
+last_commit: d89c34b
 branch: knobs-and-dials
 ---
 
@@ -10,17 +10,13 @@ branch: knobs-and-dials
 
 ## Current Focus
 
-Score explainers and UX improvements complete. Added comprehensive tooltips, help panel, and fixed view switching bugs.
+Researched graph exploration for note relationships. Identified `obsidiantools` as best library for parsing wikilinks and building note graphs.
 
 ## Active Tasks
 
-- [x] Add tooltips to all scores (Semantic, BM25, RRF, Cross-Enc, Final)
-- [x] Add help panel with comprehensive scoring documentation
-- [x] Improve control tooltips (Fetch/Live sliders)
-- [x] Fix view switching to preserve results across List ⟷ Explorer
-- [x] Move search history from sidebar to header (shared across views)
-- [x] Fix tooltip clipping issues (dynamic positioning)
-- [x] Fix tag multiplier minimum to 1.0 (no "death penalty" mode)
+- [x] Score explainers and UX improvements (complete)
+- [ ] Add note graph exploration (using obsidiantools + NetworkX)
+- [ ] Prototype "show neighborhood" feature for search results
 
 ## Blockers
 
@@ -28,15 +24,15 @@ None.
 
 ## Context
 
-- **Score Explainers**: All scores have detailed tooltips explaining scale, meaning, and impact
-  - Semantic (0-1), BM25 (0-30+), RRF (0-0.05), Cross-Enc (-12 to +12), Final (dynamic)
-  - Tooltips use smart positioning to avoid clipping outside panes
-- **Help Panel**: "?" button in Inspector shows comprehensive guide (scoring, controls, pipeline)
-- **View Switching**: Results now persist when toggling List ⟷ Explorer (re-renders for new view)
-- **Search History**: Moved to header as horizontal chips, visible in both views
-- **Tag Multiplier**: Range 1.0-10.0 (1.0=neutral, 5.0=default, 10.0=max boost)
-- **Files**: `src/temoa/ui/search.html` (2,750+ lines with new features)
+- **Key Insight**: Temoa ignores explicit vault structure (wikilinks). Notes are islands; embeddings rediscover connections humans already made explicit.
+- **obsidiantools** (v0.11.0, 502 stars): Production-ready library for Obsidian vault graph analysis
+  - NetworkX integration for graph traversal (shortest path, clustering, centrality)
+  - Parses wikilinks, backlinks, tags, frontmatter
+  - Python 3.9+ compatible
+- **Two layers of relatedness**: Explicit links (wikilinks) + Implicit similarity (embeddings)
+- **Plain text fallback**: Non-Obsidian folders use pure semantic similarity
+- **Use case**: "Show me notes 1-2 hops from this result" for exploration
 
 ## Next Session
 
-Consider committing changes. Test tooltip positioning on different screen sizes. Explore Phase 2 features (profile save/load, export).
+Add `obsidiantools` dependency and prototype graph exploration. Start with: parse vault graph on startup, add "show neighbors" for selected result in Explorer.
