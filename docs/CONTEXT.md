@@ -2,7 +2,7 @@
 phase: "Experimentation"
 phase_name: "Search Harness"
 updated: 2026-01-25
-last_commit: 875fed1
+last_commit: 50267fc
 branch: knobs-and-dials
 ---
 
