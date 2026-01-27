@@ -276,3 +276,148 @@ Chronicle entries for the Search Harness implementation - an interactive score m
 - pyproject.toml (obsidiantools dependency)
 
 **Status**: Implementation complete, needs server restart to test end-to-end
+
+---
+
+## Entry 59: Graph-Enhanced Discovery - Planning (2026-01-26)
+
+**What**: Planning how to use wikilink graph data to surface related/"rhyming" notes.
+
+**Context**: We now have three graph signals available in the Inspector:
+
+| Signal | Direction | What it means | Use case |
+|--------|-----------|--------------|----------|
+| **Incoming** | ← links here | Other notes reference this one | Note is a "source" or authority on a topic |
+| **Outgoing** | → links to | This note references others | Shows what author was thinking about |
+| **N-hop** | bidirectional | Notes connected through intermediaries | Thematic clusters, "cousins" |
+
+**Fix applied**: Graph chips now open notes in Obsidian (were searching for note name before).
+
+**Open Questions**:
+
+1. **What does "related" mean?** - Graph neighbors are structurally related, but are they topically related? A note might link to 20 diverse references.
+
+2. **Graph vs semantic** - When do graph connections add signal vs noise? Hypothesis: Graph is high-precision (human-curated) but sparse; semantic is high-recall but fuzzy.
+
+3. **Hops direction** - Current implementation uses undirected graph for N-hop (finds both directions). Should incoming/outgoing be separate signals for N-hop too?
+
+4. **Discovery vs confirmation** - Are graph connections for:
+   - Finding notes you didn't know were related (discovery)?
+   - Confirming notes you found via search are part of a cluster (confirmation)?
+
+**Design Options**:
+
+### Option A: Graph-Boosted Search Results
+When search returns results, boost results that are also graph neighbors of each other.
+
+```
+search("obsidian plugins")
+  → Result A (semantic match)
+  → Result B (semantic match, also links to A)  ← boost B
+  → Result C (semantic match, shares link with A)  ← smaller boost
+```
+
+**Pro**: Surfaces clusters, reduces scattered results
+**Con**: May over-weight well-linked notes, penalize orphans
+
+### Option B: "More Like This" Button
+Click a result → show notes related by graph AND semantically similar.
+
+```
+Result A selected
+  → Graph neighbors: [B, C, D, E] (5 notes)
+  → Semantic similar: [F, G, H, I, J] (5 notes)
+  → Intersection: [B, D] (appear in both!)
+```
+
+**Pro**: User-driven exploration, clear mental model
+**Con**: Extra click, may be overwhelming
+
+### Option C: Neighborhood Preview
+When selecting a result, show graph neighborhood as a secondary panel.
+
+```
+Inspector:
+  [Selected: Note A]
+  [Scores: semantic 0.8, bm25 0.3...]
+  [Linked Notes: ← B, C | → D, E | 2-hop: F, G]
+  [Similar by Topic: H, I, J]  ← NEW: semantic neighbors
+```
+
+**Pro**: Non-intrusive, shows both signals
+**Con**: Information overload? Two similarity concepts may confuse
+
+### Option D: "Why Related?" Paths
+For 2-hop neighbors, show the intermediate note that connects them.
+
+```
+A ← linked_by ← B
+A → links_to → C
+A ← linked_by ← D → links_to → E  (D is bridge)
+```
+
+**Pro**: Explains relationships, educational
+**Con**: Complex UI, may not be actionable
+
+### Option E: Graph-Informed Re-ranking
+Add graph distance as a scoring component in the search pipeline.
+
+```python
+# In server.py search pipeline
+for result in results:
+    # If result is graph neighbor of already-selected results, boost
+    if result in graph_neighbors_of(top_3_results):
+        result.score *= 1.2  # graph clustering bonus
+```
+
+**Pro**: Automatic, no UI change
+**Con**: May create feedback loops, hard to explain to users
+
+**Recommended Path**:
+
+Start with **Option C** (Neighborhood Preview) because:
+1. Already have the UI structure (Inspector pane)
+2. Low risk - doesn't change search ranking
+3. Educational - helps user understand what data exists
+4. Foundation for Options B, D, E later
+
+Then experiment with **Option A** (Graph-Boosted) in harness:
+1. Add `graph_boost` to harness parameters
+2. Test whether it improves perceived relevance
+3. If successful, add to default pipeline
+
+**Next Steps**:
+
+1. [x] Fix graph chips to open in Obsidian (done this session)
+2. [ ] Test graph display works end-to-end
+3. [ ] Consider async graph loading (90s is too long for first request)
+4. [x] Add "Similar by Topic" section to Inspector (semantic neighbors)
+5. [ ] Experiment with graph boost in harness
+6. [ ] Measure: do users click graph chips? What do they find?
+
+---
+
+## Entry 60: Option C Implementation - Similar by Topic (2026-01-26)
+
+**What**: Implemented "Similar by Topic" section in Inspector showing semantic neighbors.
+
+**Why**: Option C from Entry 59 - shows both graph connections (human-curated) and semantic similarity (AI-inferred) side by side. Low risk, educational, foundation for future enhancements.
+
+**How**:
+
+1. Added `Similar by Topic` section to Inspector (after Linked Notes, before Scores)
+2. `fetchSemanticNeighbors(result)` - uses note title as semantic search query
+3. `createSimilarChip(result)` - amber/orange chips to distinguish from graph links
+4. Pure semantic search (`hybrid_weight=1.0`), no BM25/rerank
+5. Shows top 6 neighbors (excludes current note)
+6. Chips clickable - open in Obsidian
+
+**Color Scheme**:
+- Incoming (← links here): Blue (#8ab4d8)
+- Outgoing (→ links to): Green (#a8d080)
+- 2-hop neighbors: Gray (#999)
+- Similar by Topic: Amber (#d8a87c)
+
+**Also Fixed**: Graph chips now open in Obsidian (were just searching before)
+
+**Files**: src/temoa/ui/search.html
