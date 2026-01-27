@@ -421,3 +421,37 @@ Then experiment with **Option A** (Graph-Boosted) in harness:
 **Also Fixed**: Graph chips now open in Obsidian (were just searching before)
 
 **Files**: src/temoa/ui/search.html
+
+---
+
+## Entry 61: Graph Caching & UX Improvements (2026-01-26)
+
+**What**: Added graph persistence for fast loading, replaced search history pills with dropdown, reordered Inspector sections.
+
+**Why**:
+- Graph loading took ~90s on first request (obsidiantools parses entire vault)
+- Search history pills took up vertical space and looked cluttered
+- Similar by Topic is more interesting than Linked Notes (show it first)
+
+**How**:
+
+1. **Graph caching** (vault_graph.py):
+   - `load_cached()` / `save_cache()` - pickle graph to `.temoa/vault_graph.pkl`
+   - `rebuild_and_cache()` - build from scratch and save (called during reindex)
+   - `ensure_loaded()` - try cache first, fall back to building
+   - ~700KB cache file, loads in ~0.1s vs 90s
+
+2. **Auto-rebuild on reindex**:
+   - Server `/reindex` endpoint now rebuilds graph after embedding reindex
+   - CLI `temoa index` and `temoa reindex` also rebuild graph
+   - Response includes `graph_rebuilt`, `graph_nodes`, `graph_edges`
+
+3. **Search history dropdown** (search.html):
+   - Removed pill bar below search input
+   - Dropdown appears on focus when input is empty
+   - Arrow keys navigate, Enter selects, X deletes individual items
+   - Hides when typing starts
+
+4. **Inspector section order**: Similar by Topic now before Linked Notes
+
+**Files**: src/temoa/vault_graph.py, src/temoa/server.py, src/temoa/cli.py, src/temoa/ui/search.html

@@ -1550,15 +1550,15 @@ async def graph_neighbors(
         vault_path = Path(vault_config["path"]).expanduser().resolve()
         vault_name = vault_config["name"]
 
-        # Get or create graph for this vault (lazy loading)
+        # Get or create graph for this vault (lazy loading with cache)
         if vault_name not in vault_graphs:
-            logger.info(f"Loading graph for vault: {vault_name}")
-            vault_graphs[vault_name] = VaultGraph(vault_path)
-            vault_graphs[vault_name].load()
+            storage_dir = vault_path / ".temoa"
+            vault_graphs[vault_name] = VaultGraph(vault_path, storage_dir)
 
         graph = vault_graphs[vault_name]
 
-        if not graph.is_loaded:
+        # ensure_loaded tries cache first, then builds from scratch
+        if not graph.ensure_loaded():
             raise HTTPException(
                 status_code=503,
                 detail="Vault graph not available (obsidiantools may not be installed)"
@@ -1610,13 +1610,13 @@ async def graph_stats(
         vault_path = Path(vault_config["path"]).expanduser().resolve()
         vault_name = vault_config["name"]
 
-        # Get or create graph for this vault (lazy loading)
+        # Get or create graph for this vault (lazy loading with cache)
         if vault_name not in vault_graphs:
-            logger.info(f"Loading graph for vault: {vault_name}")
-            vault_graphs[vault_name] = VaultGraph(vault_path)
-            vault_graphs[vault_name].load()
+            storage_dir = vault_path / ".temoa"
+            vault_graphs[vault_name] = VaultGraph(vault_path, storage_dir)
 
         graph = vault_graphs[vault_name]
+        graph.ensure_loaded()
         stats = graph.get_stats()
         stats["vault"] = vault_name
 
@@ -1667,15 +1667,14 @@ async def graph_hubs(
         vault_path = Path(vault_config["path"]).expanduser().resolve()
         vault_name = vault_config["name"]
 
-        # Get or create graph for this vault (lazy loading)
+        # Get or create graph for this vault (lazy loading with cache)
         if vault_name not in vault_graphs:
-            logger.info(f"Loading graph for vault: {vault_name}")
-            vault_graphs[vault_name] = VaultGraph(vault_path)
-            vault_graphs[vault_name].load()
+            storage_dir = vault_path / ".temoa"
+            vault_graphs[vault_name] = VaultGraph(vault_path, storage_dir)
 
         graph = vault_graphs[vault_name]
 
-        if not graph.is_loaded:
+        if not graph.ensure_loaded():
             raise HTTPException(
                 status_code=503,
                 detail="Vault graph not available"
@@ -1831,6 +1830,26 @@ async def reindex(
 
         # Invalidate cache after reindex to ensure fresh data on next access
         client_cache.invalidate(vault_path, config.default_model)
+
+        # Rebuild vault graph and update cache
+        vault_graphs = request.app.state.vault_graphs
+        storage_dir = vault_path / ".temoa"
+        try:
+            logger.info(f"Rebuilding vault graph for {vault_name}...")
+            graph = VaultGraph(vault_path, storage_dir)
+            if graph.rebuild_and_cache():
+                vault_graphs[vault_name] = graph
+                result["graph_rebuilt"] = True
+                result["graph_nodes"] = graph._graph.number_of_nodes()
+                result["graph_edges"] = graph._graph.number_of_edges()
+                logger.info(f"Vault graph rebuilt: {result['graph_nodes']} nodes, {result['graph_edges']} edges")
+            else:
+                result["graph_rebuilt"] = False
+                logger.warning("Vault graph rebuild failed")
+        except Exception as e:
+            logger.warning(f"Vault graph rebuild failed: {e}")
+            result["graph_rebuilt"] = False
+            result["graph_error"] = str(e)
 
         # Add vault information to response
         result["vault"] = {

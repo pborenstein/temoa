@@ -2,15 +2,24 @@
 
 Provides link graph analysis for Obsidian vaults, enabling exploration
 of note relationships beyond semantic similarity.
+
+Graph persistence:
+- Graph is cached to .temoa/vault_graph.pkl for fast loading (~1-2s vs 90s)
+- Rebuilt automatically during vault reindex
+- Load order: try cache first, fall back to building from scratch
 """
 
 import logging
+import pickle
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
 import networkx as nx
 
 logger = logging.getLogger(__name__)
+
+GRAPH_CACHE_FILENAME = "vault_graph.pkl"
 
 
 class VaultGraph:
@@ -20,18 +29,25 @@ class VaultGraph:
     Provides methods for exploring note relationships via wikilinks.
     """
 
-    def __init__(self, vault_path: Path):
+    def __init__(self, vault_path: Path, storage_dir: Optional[Path] = None):
         """
         Initialize vault graph.
 
         Args:
             vault_path: Path to Obsidian vault
+            storage_dir: Where to store cached graph (default: vault/.temoa)
         """
-        self.vault_path = vault_path
+        self.vault_path = Path(vault_path)
+        self.storage_dir = storage_dir or (self.vault_path / ".temoa")
         self._vault = None
         self._graph = None
         self._undirected = None
         self._loaded = False
+
+    @property
+    def cache_path(self) -> Path:
+        """Path to cached graph file."""
+        return self.storage_dir / GRAPH_CACHE_FILENAME
 
     def load(self) -> bool:
         """
@@ -65,6 +81,118 @@ class VaultGraph:
         except Exception as e:
             logger.error(f"Failed to load vault graph: {e}")
             return False
+
+    def load_cached(self) -> bool:
+        """
+        Load graph from cache file.
+
+        Returns:
+            True if loaded successfully, False if cache doesn't exist or is invalid
+        """
+        if self._loaded:
+            return True
+
+        if not self.cache_path.exists():
+            logger.debug(f"No cached graph at {self.cache_path}")
+            return False
+
+        try:
+            logger.info(f"Loading cached graph from {self.cache_path}...")
+            with open(self.cache_path, 'rb') as f:
+                cache_data = pickle.load(f)
+
+            self._graph = cache_data['graph']
+            self._undirected = cache_data['undirected']
+            self._loaded = True
+
+            cached_at = cache_data.get('cached_at', 'unknown')
+            logger.info(
+                f"Cached graph loaded: {self._graph.number_of_nodes()} nodes, "
+                f"{self._graph.number_of_edges()} edges (cached: {cached_at})"
+            )
+            return True
+
+        except Exception as e:
+            logger.warning(f"Failed to load cached graph: {e}")
+            return False
+
+    def save_cache(self) -> bool:
+        """
+        Save graph to cache file.
+
+        Returns:
+            True if saved successfully, False otherwise
+        """
+        if not self._loaded:
+            logger.warning("Cannot save cache: graph not loaded")
+            return False
+
+        try:
+            self.storage_dir.mkdir(parents=True, exist_ok=True)
+
+            cache_data = {
+                'graph': self._graph,
+                'undirected': self._undirected,
+                'cached_at': datetime.now().isoformat(),
+                'node_count': self._graph.number_of_nodes(),
+                'edge_count': self._graph.number_of_edges(),
+            }
+
+            with open(self.cache_path, 'wb') as f:
+                pickle.dump(cache_data, f)
+
+            logger.info(f"Graph cached to {self.cache_path}")
+            return True
+
+        except Exception as e:
+            logger.error(f"Failed to save graph cache: {e}")
+            return False
+
+    def rebuild_and_cache(self) -> bool:
+        """
+        Force rebuild graph from vault and save to cache.
+
+        Use this during reindex operations.
+
+        Returns:
+            True if rebuilt and cached successfully, False otherwise
+        """
+        # Reset state to force fresh load
+        self._loaded = False
+        self._graph = None
+        self._undirected = None
+        self._vault = None
+
+        if self.load():
+            return self.save_cache()
+        return False
+
+    def ensure_loaded(self) -> bool:
+        """
+        Ensure graph is loaded, preferring cache.
+
+        Load order:
+        1. If already loaded, return True
+        2. Try loading from cache
+        3. Fall back to building from scratch
+        4. Save to cache if built from scratch
+
+        Returns:
+            True if graph is available, False otherwise
+        """
+        if self._loaded:
+            return True
+
+        # Try cache first
+        if self.load_cached():
+            return True
+
+        # Build from scratch and cache
+        if self.load():
+            self.save_cache()
+            return True
+
+        return False
 
     @property
     def is_loaded(self) -> bool:

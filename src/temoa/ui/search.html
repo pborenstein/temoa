@@ -120,61 +120,73 @@
             position: relative;
         }
 
-        /* Search history bar */
-        .search-history-bar {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            min-height: 32px;
-            padding: 0 4px;
-        }
-
-        .history-items {
-            flex: 1;
-            display: flex;
-            gap: 6px;
-            flex-wrap: wrap;
-            overflow-x: auto;
-        }
-
-        .history-chip {
+        /* Search history dropdown */
+        .search-history-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
             background: #2a2a2a;
             border: 1px solid #404040;
-            border-radius: 12px;
-            padding: 4px 12px;
-            font-size: 12px;
-            color: #b0b0b0;
-            cursor: pointer;
-            white-space: nowrap;
-            transition: all 0.15s;
+            border-top: none;
+            border-radius: 0 0 6px 6px;
+            max-height: 240px;
+            overflow-y: auto;
+            z-index: 100;
+            display: none;
         }
 
-        .history-chip:hover {
+        .search-history-dropdown.visible {
+            display: block;
+        }
+
+        .history-dropdown-item {
+            padding: 10px 14px;
+            font-size: 14px;
+            color: #b0b0b0;
+            cursor: pointer;
+            border-bottom: 1px solid #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .history-dropdown-item:last-child {
+            border-bottom: none;
+        }
+
+        .history-dropdown-item:hover,
+        .history-dropdown-item.selected {
             background: #3a3a3a;
-            border-color: #4a6a8a;
             color: #e0e0e0;
         }
 
-        .clear-history-btn-inline {
-            background: transparent;
-            border: 1px solid #404040;
-            border-radius: 4px;
-            width: 24px;
-            height: 24px;
-            color: #666666;
-            font-size: 14px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            transition: all 0.15s;
+        .history-dropdown-item .delete-btn {
+            color: #666;
+            font-size: 16px;
+            padding: 0 4px;
+            opacity: 0;
+            transition: opacity 0.15s;
         }
 
-        .clear-history-btn-inline:hover {
-            background: #3a3a3a;
-            border-color: #cc4444;
+        .history-dropdown-item:hover .delete-btn {
+            opacity: 1;
+        }
+
+        .history-dropdown-item .delete-btn:hover {
             color: #cc4444;
+        }
+
+        .history-dropdown-empty {
+            padding: 12px 14px;
+            font-size: 13px;
+            color: #666;
+            text-align: center;
+        }
+
+        /* Adjust input border-radius when dropdown is visible */
+        .search-input-wrapper:has(.search-history-dropdown.visible) .search-input {
+            border-radius: 6px 6px 0 0;
         }
 
         .search-input {
@@ -280,44 +292,6 @@
             margin-bottom: 8px;
         }
 
-        .history-list {
-            list-style: none;
-        }
-
-        .history-item {
-            padding: 6px 8px;
-            font-size: 13px;
-            color: #aaaaaa;
-            cursor: pointer;
-            border-radius: 4px;
-            margin-bottom: 4px;
-            transition: all 0.15s;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        .history-item:hover {
-            background: #2a2a2a;
-            color: #e0e0e0;
-        }
-
-        .clear-history-btn {
-            width: 100%;
-            padding: 6px;
-            font-size: 11px;
-            background: #2a2a2a;
-            color: #888888;
-            border: 1px solid #333333;
-            border-radius: 4px;
-            cursor: pointer;
-            margin-top: 8px;
-        }
-
-        .clear-history-btn:hover {
-            background: #333333;
-            color: #aaaaaa;
-        }
 
         /* ========================================
            EXPLORER VIEW MODE
@@ -1183,6 +1157,7 @@
         <div class="search-controls">
             <div class="search-input-wrapper">
                 <input type="text" id="query-input" class="search-input" placeholder="Search your vault..." autocomplete="off">
+                <div class="search-history-dropdown" id="history-dropdown"></div>
             </div>
             <select id="vault-select" class="vault-select">
                 <option value="">Loading vaults...</option>
@@ -1191,10 +1166,6 @@
                 <option value="">default</option>
             </select>
             <button id="run-btn" class="run-btn">Run</button>
-        </div>
-        <div class="search-history-bar">
-            <div class="history-items" id="history-items"></div>
-            <button class="clear-history-btn-inline" id="clear-history-btn" title="Clear history">✕</button>
         </div>
     </header>
 
@@ -1681,8 +1652,8 @@
                 saveState();
             });
 
-            // History
-            document.getElementById('clear-history-btn').addEventListener('click', clearSearchHistory);
+            // History dropdown
+            setupHistoryDropdown();
 
             // Keyboard shortcuts
             document.addEventListener('keydown', (e) => {
@@ -2342,33 +2313,119 @@
             renderSearchHistory();
         }
 
-        function renderSearchHistory() {
-            const historyItems = document.getElementById('history-items');
+        let historySelectedIndex = -1;
+
+        function setupHistoryDropdown() {
+            const input = document.getElementById('query-input');
+            const dropdown = document.getElementById('history-dropdown');
+
+            // Show dropdown on focus (if there's history)
+            input.addEventListener('focus', () => {
+                if (state.searchHistory.length > 0) {
+                    renderHistoryDropdown();
+                    dropdown.classList.add('visible');
+                }
+            });
+
+            // Hide dropdown on blur (with delay for click handling)
+            input.addEventListener('blur', () => {
+                setTimeout(() => {
+                    dropdown.classList.remove('visible');
+                    historySelectedIndex = -1;
+                }, 150);
+            });
+
+            // Keyboard navigation
+            input.addEventListener('keydown', (e) => {
+                if (!dropdown.classList.contains('visible')) return;
+
+                const items = dropdown.querySelectorAll('.history-dropdown-item');
+                if (items.length === 0) return;
+
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    historySelectedIndex = Math.min(historySelectedIndex + 1, items.length - 1);
+                    updateHistorySelection(items);
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    historySelectedIndex = Math.max(historySelectedIndex - 1, -1);
+                    updateHistorySelection(items);
+                } else if (e.key === 'Enter' && historySelectedIndex >= 0) {
+                    e.preventDefault();
+                    const query = items[historySelectedIndex].dataset.query;
+                    input.value = query;
+                    dropdown.classList.remove('visible');
+                    historySelectedIndex = -1;
+                    runSearch();
+                } else if (e.key === 'Escape') {
+                    dropdown.classList.remove('visible');
+                    historySelectedIndex = -1;
+                }
+            });
+
+            // Hide on input (user is typing new query)
+            input.addEventListener('input', () => {
+                if (input.value.length > 0) {
+                    dropdown.classList.remove('visible');
+                } else if (state.searchHistory.length > 0) {
+                    renderHistoryDropdown();
+                    dropdown.classList.add('visible');
+                }
+            });
+        }
+
+        function updateHistorySelection(items) {
+            items.forEach((item, idx) => {
+                item.classList.toggle('selected', idx === historySelectedIndex);
+            });
+        }
+
+        function renderHistoryDropdown() {
+            const dropdown = document.getElementById('history-dropdown');
 
             if (state.searchHistory.length === 0) {
-                historyItems.innerHTML = '<span style="color: #666; font-size: 11px;">No recent searches</span>';
+                dropdown.innerHTML = '<div class="history-dropdown-empty">No recent searches</div>';
                 return;
             }
 
-            historyItems.innerHTML = state.searchHistory.map(query => `
-                <div class="history-chip" data-query="${escapeHtml(query)}">${escapeHtml(query)}</div>
+            dropdown.innerHTML = state.searchHistory.map((query, idx) => `
+                <div class="history-dropdown-item" data-query="${escapeHtml(query)}" data-index="${idx}">
+                    <span>${escapeHtml(query)}</span>
+                    <span class="delete-btn" data-index="${idx}">&times;</span>
+                </div>
             `).join('');
 
-            // Add click handlers
-            historyItems.querySelectorAll('.history-chip').forEach(chip => {
-                chip.addEventListener('click', () => {
-                    const query = chip.dataset.query;
+            // Click to select
+            dropdown.querySelectorAll('.history-dropdown-item').forEach(item => {
+                item.addEventListener('mousedown', (e) => {
+                    // Don't select if clicking delete button
+                    if (e.target.classList.contains('delete-btn')) return;
+                    e.preventDefault();
+                    const query = item.dataset.query;
                     document.getElementById('query-input').value = query;
+                    dropdown.classList.remove('visible');
                     runSearch();
+                });
+            });
+
+            // Delete individual items
+            dropdown.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.addEventListener('mousedown', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const idx = parseInt(btn.dataset.index);
+                    state.searchHistory.splice(idx, 1);
+                    saveState();
+                    renderHistoryDropdown();
+                    if (state.searchHistory.length === 0) {
+                        dropdown.classList.remove('visible');
+                    }
                 });
             });
         }
 
-        function clearSearchHistory() {
-            if (!confirm('Clear all search history?')) return;
-            state.searchHistory = [];
-            saveState();
-            renderSearchHistory();
+        function renderSearchHistory() {
+            // Called after adding to history - dropdown will show on next focus
         }
 
         function escapeHtml(text) {
@@ -2449,23 +2506,7 @@
 
             container.appendChild(titleSection);
 
-            // Graph section (linked notes) - placed early for visibility
-            const graphSection = document.createElement('div');
-            graphSection.className = 'inspector-section';
-            graphSection.id = 'graph-section';
-
-            const graphTitle = document.createElement('h3');
-            graphTitle.textContent = 'Linked Notes';
-            graphSection.appendChild(graphTitle);
-
-            const graphContent = document.createElement('div');
-            graphContent.id = 'graph-content';
-            graphContent.innerHTML = '<span style="color: #888; font-size: 12px;">Loading graph...</span>';
-            graphSection.appendChild(graphContent);
-
-            container.appendChild(graphSection);
-
-            // Similar by Topic section (semantic neighbors)
+            // Similar by Topic section (semantic neighbors) - placed first
             const similarSection = document.createElement('div');
             similarSection.className = 'inspector-section';
             similarSection.id = 'similar-section';
@@ -2480,6 +2521,22 @@
             similarSection.appendChild(similarContent);
 
             container.appendChild(similarSection);
+
+            // Graph section (linked notes)
+            const graphSection = document.createElement('div');
+            graphSection.className = 'inspector-section';
+            graphSection.id = 'graph-section';
+
+            const graphTitle = document.createElement('h3');
+            graphTitle.textContent = 'Linked Notes';
+            graphSection.appendChild(graphTitle);
+
+            const graphContent = document.createElement('div');
+            graphContent.id = 'graph-content';
+            graphContent.innerHTML = '<span style="color: #888; font-size: 12px;">Loading graph...</span>';
+            graphSection.appendChild(graphContent);
+
+            container.appendChild(graphSection);
 
             // Scores section
             const scoresSection = document.createElement('div');
