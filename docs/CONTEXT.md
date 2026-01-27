@@ -2,7 +2,7 @@
 phase: "Experimentation"
 phase_name: "Search Harness"
 updated: 2026-01-27
-last_commit: c74152a
+last_commit: d696882
 branch: main
 ---
 
@@ -10,12 +10,11 @@ branch: main
 
 ## Current Focus
 
-Version housekeeping: unified version number across pyproject.toml, __version__.py, and docs to 0.7.0.
+Removed search profiles feature entirely (DEC-095). Profiles were an unused abstraction layer; all search parameters continue to work as direct query params.
 
 ## Active Tasks
 
-- [x] Bump pyproject.toml from 0.6.0 to 0.7.0
-- [x] Update __version__.py fallback from 0.4.0-dev to 0.7.0
+- [x] Remove search profiles (search_profiles.py, tests, server, CLI, UI, docs)
 - [ ] Fix the 42 files with unparseable YAML frontmatter in vault (user task)
 
 ## Blockers
@@ -24,9 +23,9 @@ None.
 
 ## Context
 
-- **Version unified to 0.7.0**: pyproject.toml is the single source of truth; __version__.py reads it via importlib.metadata at runtime
+- **Search profiles removed**: Deleted search_profiles.py, test_search_profiles.py, /profiles endpoint, --profile CLI flag, profile dropdown in UI. All search params (hybrid, rerank, expand_query, time_boost, type filters) still work directly.
+- **Tests: 167 passing** (was 171; difference is the 4 deleted profile test functions). 37 known failures unchanged.
 - **Graph build async**: `/reindex` returns immediately; graph rebuilds in daemon thread (~90s)
-- **42 bad frontmatter files**: Listed by name in WARNING log; user can fix the YAML
 - **Experimentation Phase Active**: Search Harness, Inspector, Pipeline Viewer all functional
 
 ## Next Session

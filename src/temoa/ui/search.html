@@ -204,8 +204,7 @@
             border-color: #666666;
         }
 
-        .vault-select,
-        .profile-select {
+        .vault-select {
             padding: 10px 14px;
             font-size: 14px;
             border: 1px solid #404040;
@@ -217,8 +216,7 @@
             min-width: 140px;
         }
 
-        .vault-select:focus,
-        .profile-select:focus {
+        .vault-select:focus {
             border-color: #666666;
         }
 
@@ -1062,8 +1060,7 @@
                 gap: 8px;
             }
 
-            .vault-select,
-            .profile-select {
+            .vault-select {
                 width: 100%;
             }
 
@@ -1161,9 +1158,6 @@
             </div>
             <select id="vault-select" class="vault-select">
                 <option value="">Loading vaults...</option>
-            </select>
-            <select id="profile-select" class="profile-select">
-                <option value="">default</option>
             </select>
             <button id="run-btn" class="run-btn">Run</button>
         </div>
@@ -1325,7 +1319,6 @@
                     <!-- Action buttons -->
                     <div class="action-row">
                         <button id="reset-mix-btn" class="action-btn">Reset Mix</button>
-                        <button id="save-profile-btn" class="action-btn">Save Profile...</button>
                         <button id="export-btn" class="action-btn">Export JSON</button>
                     </div>
                 </div>
@@ -1377,9 +1370,7 @@
             // Search state
             query: '',
             vault: null,
-            profile: null,
             vaults: [],
-            profiles: [],
 
             // Results
             rawResults: [],
@@ -1510,7 +1501,6 @@
         async function initialize() {
             restoreState();
             await loadVaults();
-            await loadProfiles();
             syncUIWithState();
             setupEventHandlers();
             console.log('Temoa initialized', state);
@@ -1526,7 +1516,6 @@
                     if (data.fetchParams) state.fetchParams = { ...state.fetchParams, ...data.fetchParams };
                     if (data.liveParams) state.liveParams = { ...state.liveParams, ...data.liveParams };
                     if (data.vault) state.vault = data.vault;
-                    if (data.profile) state.profile = data.profile;
                 }
             } catch (err) {
                 console.error('Failed to restore state:', err);
@@ -1540,8 +1529,7 @@
                     searchHistory: state.searchHistory,
                     fetchParams: state.fetchParams,
                     liveParams: state.liveParams,
-                    vault: state.vault,
-                    profile: state.profile
+                    vault: state.vault
                 };
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
             } catch (err) {
@@ -1608,20 +1596,6 @@
             }
         }
 
-        async function loadProfiles() {
-            try {
-                const res = await fetch('/profiles');
-                const data = await res.json();
-                state.profiles = data.profiles || [];
-
-                const profileSelect = document.getElementById('profile-select');
-                profileSelect.innerHTML = '<option value="">default</option>' +
-                    state.profiles.map(p => `<option value="${p.name}">${p.name}</option>`).join('');
-            } catch (err) {
-                console.error('Failed to load profiles:', err);
-            }
-        }
-
         // ========================================
         // Event Handlers
         // ========================================
@@ -1641,14 +1615,9 @@
                 if (e.key === 'Enter') runSearch();
             });
 
-            // Vault/profile selectors
+            // Vault selector
             document.getElementById('vault-select').addEventListener('change', (e) => {
                 state.vault = e.target.value;
-                saveState();
-            });
-
-            document.getElementById('profile-select').addEventListener('change', (e) => {
-                state.profile = e.target.value || null;
                 saveState();
             });
 
@@ -1697,7 +1666,6 @@
             const liveTime = document.getElementById('live-time');
 
             const resetMixBtn = document.getElementById('reset-mix-btn');
-            const saveProfileBtn = document.getElementById('save-profile-btn');
             const exportBtn = document.getElementById('export-btn');
 
             if (!fetchHybrid) return; // Elements not loaded yet
@@ -1758,9 +1726,6 @@
 
             // Action buttons
             resetMixBtn.addEventListener('click', resetMix);
-            saveProfileBtn.addEventListener('click', () => {
-                alert('Profile saving not yet implemented');
-            });
             exportBtn.addEventListener('click', () => {
                 if (state.rawResults.length === 0) {
                     alert('No results to export');
@@ -1904,8 +1869,6 @@
                     expand: state.fetchParams.expand,
                     harness: 'true'
                 });
-
-                if (state.profile) params.set('profile', state.profile);
 
                 const response = await fetch(`/search?${params}`);
                 if (!response.ok) throw new Error(`Search failed: ${response.statusText}`);

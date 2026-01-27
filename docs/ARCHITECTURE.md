@@ -12,11 +12,10 @@
 
 1. [High-Level Architecture](#high-level-architecture)
 2. [How Embeddings Work](#how-embeddings-work)
-3. [Search Profiles](#search-profiles)
-4. [Adaptive Chunking](#adaptive-chunking)
-5. [Experimentation Tools](#experimentation-tools-phase-36)
-6. [Multi-Vault Support](#multi-vault-support)
-7. [Request Flow](#request-flow)
+3. [Adaptive Chunking](#adaptive-chunking)
+4. [Experimentation Tools](#experimentation-tools-phase-36)
+5. [Multi-Vault Support](#multi-vault-support)
+6. [Request Flow](#request-flow)
 8. [Storage Architecture](#storage-architecture)
 9. [Component Details](#component-details)
 10. [Error Handling Philosophy](#error-handling-philosophy)
@@ -277,61 +276,6 @@ Where:
 
 ---
 
-## Search Profiles
-
-**Added in Phase 3.5.1** (December 2025)
-
-Search profiles provide optimized search configurations for different content types and use cases. Instead of manually tuning parameters for each search, profiles automatically configure the search pipeline.
-
-**Built-in Profiles:**
-
-```
-┌─────────────┬──────────────────────────────────────────────────┐
-│ default     │ Balanced (50/50 hybrid, all features enabled)    │
-│ repos       │ Tech docs (70% BM25, metadata boost, no chunking)│
-│ recent      │ Recent work (7-day half-life, 90-day cutoff)     │
-│ deep        │ Long content (80% semantic, 3 chunks/file)       │
-│ keywords    │ Exact match (80% BM25, fast, no fuzzy matching)  │
-└─────────────┴──────────────────────────────────────────────────┘
-```
-
-**How Profiles Work:**
-
-Each profile configures multiple search parameters automatically:
-- Hybrid weight (BM25 vs semantic balance)
-- BM25 boost multiplier (tag emphasis)
-- Chunking settings (enabled/disabled, chunks per file)
-- Cross-encoder re-ranking (on/off)
-- Time decay (half-life, cutoff)
-- Type filtering (include/exclude patterns)
-
-**Usage:**
-```
-API:  GET /search?q=obsidian&profile=repos
-CLI:  temoa search "obsidian plugin" --profile repos
-List: temoa profiles  (or GET /profiles)
-```
-
-**Custom Profiles:**
-
-Add to `config.json`:
-```json
-{
-  "search_profiles": {
-    "myprofile": {
-      "description": "Custom search config",
-      "hybrid_weight": 0.6,
-      "bm25_boost": 2.5,
-      "enable_chunking": true
-    }
-  }
-}
-```
-
-**See**: [SEARCH-MECHANISMS.md](SEARCH-MECHANISMS.md#search-profiles) for detailed profile configurations and parameter reference.
-
----
-
 ## Adaptive Chunking
 
 **Status**: IMPLEMENTED (Phase 3.5.2, December 2025)
@@ -369,7 +313,6 @@ Indexing time: +2.5-3x (acceptable - indexing is infrequent)
 
 **Configuration:**
 
-Per-profile setting:
 ```json
 {
   "enable_chunking": true,
@@ -383,10 +326,6 @@ CLI flag:
 ```bash
 temoa index --enable-chunking
 ```
-
-**Profile Defaults:**
-- `default`, `deep`: Chunking enabled
-- `repos`, `keywords`, `recent`: Chunking disabled (short content)
 
 **See**: [SEARCH-MECHANISMS.md](SEARCH-MECHANISMS.md#adaptive-chunking) for technical implementation details.
 
@@ -439,7 +378,6 @@ The search harness enables real-time experimentation with search weights without
 **Key Features**:
 - **Instant feedback**: Adjust weights and see results re-sort in <50ms
 - **Visual indicators**: Tag matches glow green, time-boosted dates glow purple
-- **Profile saving**: Export configurations to JSON or localStorage
 - **Parameter tracking**: Yellow border shows when server-side params changed
 
 **API Integration**:
@@ -724,7 +662,7 @@ Temoa supports multiple vaults with independent indexes and LRU caching for effi
 1. **Independent Indexes**: Each vault has its own `.temoa/model-name/` directory
 2. **LRU Cache**: Max 3 vaults in memory (~1.5GB total)
 3. **Fast Switching**: ~400ms when cached, ~15-20s on first load
-4. **Per-Vault Configuration**: Model selection, chunking settings, profiles
+4. **Per-Vault Configuration**: Model selection, chunking settings
 5. **Vault Validation**: Prevents index corruption from wrong vault
 
 **Storage Layout:**
@@ -753,13 +691,11 @@ Global config (`~/.config/temoa/config.json`):
   "vaults": {
     "amoxtli": {
       "path": "~/Obsidian/amoxtli",
-      "model": "all-mpnet-base-v2",
-      "default_profile": "default"
+      "model": "all-mpnet-base-v2"
     },
     "1002": {
       "path": "~/Obsidian/1002",
-      "model": "all-MiniLM-L6-v2",
-      "default_profile": "deep"
+      "model": "all-MiniLM-L6-v2"
     }
   },
   "default_vault": "amoxtli"
@@ -805,23 +741,12 @@ Temoa uses a sophisticated multi-stage pipeline for high-precision search:
 ┌─────────────────────────────────────────────────────────────────┐
 │ 2. HTTP Request                                                 │
 └─────────────────────────────────────────────────────────────────┘
-    GET http://100.x.x.x:8080/search?q=AI&limit=10&profile=default
+    GET http://100.x.x.x:8080/search?q=AI&limit=10
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │ 3. FastAPI Endpoint (src/temoa/server.py)                       │
 └─────────────────────────────────────────────────────────────────┘
-    ╔═══════════════════════════════════════════════════════════╗
-    ║ STAGE -1: Profile Application (if specified)              ║
-    ╚═══════════════════════════════════════════════════════════╝
-    Profile: "default" → Configure pipeline:
-       - hybrid_weight: 0.5 (50/50 BM25/semantic)
-       - enable_chunking: true
-       - rerank: true
-       - time_boost: true
-    Time: <1ms
-                              │
-                              ▼
     Multi-stage search pipeline:
                               │
                               ▼
@@ -925,7 +850,7 @@ Total Time:
 ```
 
 **Key Improvements Over Simple Search**:
-- **Search profiles**: Automatic parameter optimization per content type
+- **Search parameters**: Configurable query parameters for tuning search behavior
 - **Adaptive chunking**: 100% content searchability (vs 35% before)
 - **Query expansion**: Handles short, ambiguous queries better
 - **Cross-encoder re-ranking**: 20-30% precision improvement
@@ -1250,9 +1175,8 @@ API Endpoints (grouped by function):
 
 Core Search & Discovery:
 ┌────────────────────┬──────────────────────────────────────┐
-│ GET  /search       │ Semantic/hybrid search with profiles │
+│ GET  /search       │ Semantic/hybrid search               │
 │ GET  /archaeology  │ Temporal analysis of topics          │
-│ GET  /profiles     │ List available search profiles       │
 └────────────────────┴──────────────────────────────────────┘
 
 Vault Management:

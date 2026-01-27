@@ -136,7 +136,6 @@ def test_search_harness_parameter(client):
     assert "hybrid" in server
     assert "rerank" in server
     assert "expand_query" in server
-    assert "profile" in server
 
     # If results found, verify scores object
     if data["results"]:

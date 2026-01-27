@@ -168,7 +168,6 @@ These tests document **nice-to-have improvements** for future phases:
 | Multi-vault | `test_multi_vault_integration.py` | ⏭️ 0/5 (all skipped) |
 | Normalizers | `test_normalizers.py` | ⚠️ 10/21 passing |
 | Reranker | `test_reranker.py` | ✅ 8/8 passing |
-| Search Profiles | `test_search_profiles.py` | ✅ 24/24 passing |
 | Server | `test_server.py` | ✅ 53/53 passing (includes harness, graph API tests) |
 | Storage | `test_storage.py` | ⚠️ 4/8 passing |
 | Synthesis | `test_synthesis.py` | ⚠️ 1/8 (6 errors, 1 fail) |

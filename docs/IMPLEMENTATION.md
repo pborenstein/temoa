@@ -160,47 +160,17 @@ See: chronicles/production-hardening.md (Entries 33-46), docs/PRODUCTION-HARDENI
 **Version**: 0.7.0 (in development)
 **Duration**: 10-14 days (estimated)
 
-**Goal**: Enable optimized search experiences for different content types through user-selectable profiles, adaptive chunking, and metadata-aware ranking.
+**Goal**: Enable optimized search experiences for different content types through adaptive chunking and metadata-aware ranking.
 
 **See**: [docs/phases/phase-3.5-specialized-search.md](phases/phase-3.5-specialized-search.md) for complete plan
 
 ### Sub-phases Overview
 
-- [x] 3.5.1: Core Profile System (3-4 days) ✅ **COMPLETE**
+- [x] 3.5.1: ~~Core Profile System~~ (REMOVED - search profiles deleted, parameters used directly)
 - [x] 3.5.2: Adaptive Chunking (4-5 days) ✅ **COMPLETE**
 - [ ] 3.5.3: Metadata Boosting (2 days)
-- [ ] 3.5.4: Profile Recommendation (1-2 days)
 - [ ] 3.5.5: UI Updates (2 days)
 - [ ] 3.5.6: Documentation & Testing (1-2 days)
-
-### Phase 3.5.1: Core Profile System ✅ COMPLETE
-
-**Completed**: 2025-12-30
-**Branch**: `phase-3.5-search-modes`
-**Commit**: `e68f724`
-
-**Deliverables**:
-- ✅ `src/temoa/search_profiles.py` - SearchProfile dataclass + 5 built-in profiles
-- ✅ Server: `/search?profile=<name>` parameter, `/profiles` API endpoint
-- ✅ CLI: `--profile` flag for search, `temoa profiles` command
-- ✅ Configuration: Custom profile loading from config
-- ✅ Tests: 10 unit tests (all passing)
-
-**Built-in Profiles**:
-1. **repos** - GitHub repos/tech (70% BM25, metadata boosting)
-2. **recent** - Recent work (7-day half-life, 90-day cutoff)
-3. **deep** - Long-form content (80% semantic, chunking support)
-4. **keywords** - Exact matching (80% BM25, fast)
-5. **default** - Balanced (current behavior)
-
-**Files Created**:
-- `src/temoa/search_profiles.py` (224 lines)
-- `tests/test_search_profiles.py` (10 tests)
-- `docs/phases/phase-3.5-specialized-search.md` (complete plan)
-
-**Files Modified**:
-- `src/temoa/server.py` - Profile parameter integration
-- `src/temoa/cli.py` - Profile flag and profiles command
 
 ### Phase 3.5.2: Adaptive Chunking ✅ COMPLETE
 
@@ -251,12 +221,12 @@ See: chronicles/production-hardening.md (Entries 33-46), docs/PRODUCTION-HARDENI
 ### Next Session Start Here
 
 **Current Branch**: `main`
-**Current Focus**: Phase 3.5 (Profiles & Chunking) complete - Ready for next phase or refinements
+**Current Focus**: Phase 3.5 (Chunking) complete - Ready for next phase or refinements
 
 **Recent Work**:
 
 *2026-01-04*: Documentation cleanup
-- ✅ Updated ARCHITECTURE.md for Phase 3.5 (profiles, chunking, multi-vault, 22 API endpoints)
+- ✅ Updated ARCHITECTURE.md for Phase 3.5 (chunking, multi-vault, 22 API endpoints)
 - ✅ Updated DEPLOYMENT.md for Phase 3.5 (config format, chunking clarification)
 - ✅ Archived QoL materials to docs/archive/QoL-improvements/
 - ✅ Updated docs navigation (README.md, archive README)
@@ -272,7 +242,7 @@ See: chronicles/production-hardening.md (Entries 33-46), docs/PRODUCTION-HARDENI
 
 **QoL Improvements**: ✅ COMPLETE (3-4 days)
 1. ✅ **Phase 1**: Search result redesign (content-first layout, dates visible) - COMPLETE
-2. ✅ **Phase 2**: Profile integration (dropdown in web UI) - COMPLETE
+2. ✅ **Phase 2**: Search UI integration (vault selector in web UI) - COMPLETE
 3. ✅ **Phase 3**: Management enhancements (gleaning management, model selection, advanced stats) - COMPLETE
 4. ✅ **Phase 4-5**: Integration & testing (mobile-first) - COMPLETE
 5. Squash merged to phase-3.5-search-modes (commit 12d2e64)
@@ -301,16 +271,6 @@ The production hardening is complete. Now we experiment with different combinati
 | Cross-encoder re-rank | `server.py` | enabled | on/off |
 | Score threshold | `server.py` | 0.3 | 0.1-0.8 |
 | Top-k retrieval | `server.py` | 50 | 10-200 |
-
-### Search Profiles (Pre-configured combinations)
-
-| Profile | Hybrid Weight | BM25 Boost | Time Decay | Use Case |
-|---------|--------------|------------|------------|----------|
-| `default` | 0.5 | 1.0x | 90d | General search |
-| `repos` | 0.3 | 1.5x | off | GitHub repos, tech |
-| `recent` | 0.5 | 1.0x | 7d | Recent work |
-| `deep` | 0.8 | 0.5x | off | Long-form content |
-| `keywords` | 0.2 | 2.0x | off | Exact matching |
 
 ### Tasks
 

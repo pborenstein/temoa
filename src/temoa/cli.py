@@ -140,7 +140,6 @@ def server(host, port, reload, log_level):
 
 @main.command()
 @click.argument('query')
-@click.option('--profile', '-p', default='default', type=click.Choice(['repos', 'recent', 'deep', 'keywords', 'default']), help='Search profile (repos, recent, deep, keywords, default)')
 @click.option('--limit', '-n', default=10, type=int, help='Number of results (default: 10)')
 @click.option('--min-score', '-s', default=0.3, type=float, help='Minimum similarity score (0.0-1.0, default: 0.3)')
 @click.option('--type', '-t', 'include_types', default=None, help='Include only these types (comma-separated, e.g., "gleaning,article")')
@@ -154,7 +153,7 @@ def server(host, port, reload, log_level):
 @click.option('--json', 'output_json', is_flag=True, help='Output as JSON')
 @click.option('--vault', default=None, type=click.Path(exists=True),
               help='Vault path (default: from config)')
-def search(query, profile, limit, min_score, include_types, exclude_types, hybrid, rerank, expand_query, time_boost, bm25_only, model, output_json, vault):
+def search(query, limit, min_score, include_types, exclude_types, hybrid, rerank, expand_query, time_boost, bm25_only, model, output_json, vault):
     """Search the vault for similar content.
 
     \b
@@ -174,39 +173,8 @@ def search(query, profile, limit, min_score, include_types, exclude_types, hybri
     from .synthesis import SynthesisClient
     from .server import filter_inactive_gleanings, filter_by_type
     from .storage import derive_storage_dir
-    from .search_profiles import get_profile
 
     config = Config()
-
-    # Load search profile and apply defaults
-    try:
-        search_profile = get_profile(profile)
-    except KeyError as e:
-        click.echo(f"Error: {e}", err=True)
-        return
-
-    # Apply profile defaults for type filters (if not explicitly set)
-    if include_types is None and search_profile.default_include_types:
-        include_types = ",".join(search_profile.default_include_types)
-    if exclude_types == 'daily' and search_profile.default_exclude_types:
-        # Only apply profile default if user didn't explicitly change exclude_types
-        exclude_types = ",".join(search_profile.default_exclude_types)
-
-    # Apply profile defaults for search flags (parameters can override)
-    if hybrid is None:
-        # Profile controls hybrid based on hybrid_weight
-        hybrid = search_profile.hybrid_weight > 0 and search_profile.hybrid_weight < 1.0
-
-    if rerank and not search_profile.cross_encoder_enabled:
-        # Profile disables cross-encoder
-        rerank = False
-
-    if not expand_query and search_profile.query_expansion_enabled:
-        expand_query = True
-
-    if time_boost and search_profile.time_decay_config is None:
-        # Profile disables time decay
-        time_boost = False
 
     # Determine vault and storage based on --vault flag
     # Also get vault-specific model if configured
@@ -579,44 +547,6 @@ def stats(output_json, vault):
                 if 'directories' in statistics:
                     click.echo(f"Directories: {statistics['directories']}")
 
-            click.echo()
-
-    except Exception as e:
-        click.echo(f"Error: {e}", err=True)
-        sys.exit(1)
-
-
-@main.command()
-@click.option('--json', 'output_json', is_flag=True, help='Output as JSON')
-def profiles(output_json):
-    """List available search profiles.
-
-    Shows all built-in and custom search profiles with their descriptions.
-    Profiles optimize search for different use cases (repos, recent work, etc).
-
-    \b
-    Examples:
-      temoa profiles
-      temoa profiles --json
-    """
-    from .search_profiles import list_profiles
-
-    try:
-        profile_list = list_profiles()
-
-        if output_json:
-            import json
-            click.echo(json.dumps({"profiles": profile_list}, indent=2))
-        else:
-            click.echo("\n📋 Available Search Profiles:\n")
-            for p in profile_list:
-                name_str = click.style(p["name"], fg='cyan', bold=True)
-                display_str = click.style(p["display_name"], fg='bright_white')
-                click.echo(f"  {name_str:15s} {display_str}")
-                click.echo(f"{'':15s} {p['description']}")
-                click.echo()
-
-            click.echo("Use with: temoa search \"query\" --profile <name>")
             click.echo()
 
     except Exception as e:

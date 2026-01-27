@@ -21,7 +21,6 @@
 - **Frontmatter-aware search**: Tag boosting (5x multiplier) + description field indexing
 - **Hybrid search**: BM25 + semantic with RRF fusion and aggressive tag boosting
 - **Search quality pipeline**: Query expansion, cross-encoder re-ranking, time-aware scoring
-- **Search Profiles**: 5 optimized modes (repos, recent, deep, keywords, default)
 - **Adaptive Chunking**: Full-content indexing for large files (4.4x content coverage)
 - **Multi-vault support**: LRU cache (max 3 vaults), independent indexes
 - **Experimental Tools**: Search Harness (score mixer), Inspector (wikilink explorer), Pipeline Viewer
@@ -296,8 +295,7 @@ uv run main.py models
 - **Example vault**: 2,006 files → 8,755 searchable chunks (4.4x content items)
 
 **Configuration**:
-- Enabled by default in `default` profile
-- Can be disabled per profile (e.g., `repos` profile for small gleanings)
+- Enabled by default
 - `--enable-chunking` flag for CLI indexing
 
 **See**: docs/SEARCH-MECHANISMS.md#adaptive-chunking for technical details
@@ -311,28 +309,6 @@ Tags are keywords, not concepts. Temoa uses multi-layer approach:
 - Description field: repeated 2x in BM25, prepended to content for semantic embeddings
 
 **See**: docs/SEARCH-MECHANISMS.md and test-vault/BM25_TAG_BOOSTING_RESULTS.md for experimental validation
-
-### Search Profiles (Phase 3.5.1)
-
-**Status**: ✅ **IMPLEMENTED** (Phase 3.5.1, 2025-12-30)
-
-**What it does**: Provides 5 optimized search modes tailored for different content types. Each profile configures search weights, boosting, and features automatically.
-
-**Built-in Profiles**:
-1. **repos** - GitHub repos/tech (70% BM25, metadata boosting, fast)
-2. **recent** - Recent work (7-day half-life, 90-day cutoff)
-3. **deep** - Long-form content (80% semantic, chunking enabled, 3 chunks/file)
-4. **keywords** - Exact matching (80% BM25, fast, no fuzzy matching)
-5. **default** - Balanced (current behavior, 50/50 hybrid)
-
-**Usage**:
-- API: `GET /search?q=obsidian&profile=repos`
-- CLI: `temoa search "obsidian plugin" --profile repos`
-- List profiles: `temoa profiles` or `GET /profiles`
-
-**Key Feature**: Automatically configures hybrid weight, BM25 boost, chunking, cross-encoder, time decay, and type filtering based on use case. No manual parameter tuning needed.
-
-**See**: docs/SEARCH-MECHANISMS.md#search-profiles for detailed profile configurations
 
 ---
 
@@ -656,9 +632,6 @@ uv run temoa config
 
 # List vaults
 uv run temoa vaults
-
-# List search profiles
-uv run temoa profiles
 ```
 
 ### Experimental Tools

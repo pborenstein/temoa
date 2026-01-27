@@ -6,8 +6,8 @@
 >
 > **For LLMs/Contributors**: Follow the governance process below when adding new decisions.
 
-**Last Updated**: 2025-12-18
-**Total Decisions**: 85 (DEC-001 through DEC-085, with historical gaps documented)
+**Last Updated**: 2026-01-27
+**Total Decisions**: 95 (DEC-001 through DEC-095, with historical gaps documented)
 
 ---
 
@@ -180,6 +180,7 @@ This checks for:
 | DEC-092: obsidiantools for graph analysis | 58 | Production-ready (502 stars), NetworkX integration, lazy loading |
 | DEC-093: Two layers of relatedness | 57-58 | Explicit links (wikilinks) + Implicit similarity (embeddings) |
 | DEC-094: Lazy graph loading per vault | 58 | ~90s load time, cache on first request not startup |
+| DEC-095: Remove search profiles feature | 64 | Unused abstraction; direct query params sufficient |
 
 ---
 

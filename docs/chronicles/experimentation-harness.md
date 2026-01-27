@@ -493,3 +493,24 @@ Then experiment with **Option A** (Graph-Boosted) in harness:
 3. **Background thread** (server.py): Graph rebuild now runs in daemon thread. `/reindex` returns immediately with `"graph_rebuild": "started in background"`. Graph swapped into `vault_graphs` dict when done. CLI still synchronous (intentional).
 
 **Files**: src/temoa/vault_graph.py, src/temoa/server.py
+
+---
+
+## Entry 64: Remove Search Profiles (2026-01-27)
+
+**What**: Deleted search profiles feature entirely -- module, tests, server endpoint, CLI command, UI dropdown, and all documentation references.
+
+**Why**: Search profiles were an unused abstraction layer. The "default" profile just mirrored existing parameter defaults. All 5 profiles (repos, recent, deep, keywords, default) set values for query parameters that users can (and do) pass directly. Removing the layer simplifies the codebase and eliminates dead code.
+
+**How**:
+
+1. **Deleted**: `src/temoa/search_profiles.py` (248 lines), `tests/test_search_profiles.py` (234 lines)
+2. **server.py**: Removed import, `load_custom_profiles()` in lifespan, `/profiles` endpoint, `profile` query param from `/search`, profile loading/defaults block, profile from log/harness/pipeline metadata
+3. **cli.py**: Removed `--profile` option, profile import/loading block, `profiles` command
+4. **search.html**: Removed profile CSS, `<select>` dropdown, "Save Profile" button, state vars, `loadProfiles()`, event listeners, search param
+5. **test_server.py**: Removed `assert "profile" in server`
+6. **Documentation**: Trimmed CLAUDE.md, README.md, SEARCH-MECHANISMS.md, ARCHITECTURE.md, IMPLEMENTATION.md, TESTING.md
+
+**Decision**: DEC-095
+
+**Verification**: 167 tests passing (4 fewer = deleted profile tests), 37 known failures unchanged, zero `profile` references in src/tests/UI.

@@ -19,7 +19,6 @@ A local semantic search server for your Obsidian vault. Search by meaning, not k
 | Query expansion | Automatically expand short queries using TF-IDF |
 | Time-aware scoring | Boost recent documents with configurable decay |
 | Type filtering | Filter by document type (gleaning, writering, daily, etc.) |
-| Search profiles | 5 optimized presets (repos, recent, deep, keywords, default) |
 | Adaptive chunking | Automatic chunking of large files (>4,000 chars) for full searchability |
 
 ### Mobile Experience
@@ -319,13 +318,6 @@ curl -X POST "http://localhost:8080/reindex?force=true"
 }
 ```
 
-### Search Profiles
-```bash
-GET /profiles
-```
-
-List all available search profiles with their configurations.
-
 ### Graph Operations
 
 ```bash
@@ -554,33 +546,6 @@ Temoa uses a multi-stage search pipeline for high precision:
 
 Expected quality improvements include Precision@5 of 80-90% (up from 60-70% without re-ranking), much better results for short queries with expansion, and improved ranking for recent topics with time boost.
 
-### Search Profiles
-
-Temoa provides 5 built-in search profiles optimized for different content types:
-
-| Profile | BM25 Weight | Use Case | Features |
-|:--------|:------------|:---------|:---------|
-| `repos` | 70% | GitHub repos, tech docs | Metadata boosting, fast |
-| `recent` | 50% | Recent work | 7-day half-life, 90-day cutoff |
-| `deep` | 20% | Long-form content | Semantic focus, chunking enabled (3 chunks/file) |
-| `keywords` | 80% | Exact matching | No fuzzy matching, fast |
-| `default` | 50% | Balanced search | Current behavior, 50/50 hybrid |
-
-Each profile automatically configures hybrid weight, BM25 boost, chunking, cross-encoder, time decay, and type filtering. No manual parameter tuning needed.
-
-**Usage:**
-```bash
-# API
-GET /search?q=obsidian&profile=repos
-
-# CLI
-temoa search "obsidian plugin" --profile repos
-
-# List all profiles
-temoa profiles
-GET /profiles
-```
-
 ### Adaptive Chunking
 
 Files larger than 4,000 characters are automatically chunked to ensure full searchability:
@@ -595,7 +560,7 @@ Files larger than 4,000 characters are automatically chunked to ensure full sear
 - After: Same book → 50 chunks, all 100,000 chars searchable (100%)
 - Example vault: 2,006 files → 8,755 searchable chunks (4.4x content items)
 
-Configuration: Enabled by default in `default` profile, can be disabled per profile (e.g., `repos` profile for small gleanings).
+Configuration: Enabled by default.
 
 See [docs/SEARCH-MECHANISMS.md](docs/SEARCH-MECHANISMS.md) for detailed technical reference.
 
