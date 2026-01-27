@@ -6,4 +6,4 @@ try:
     __version__ = importlib.metadata.version("temoa")
 except importlib.metadata.PackageNotFoundError:
     # Fallback for development/uninstalled package
-    __version__ = "0.4.0-dev"
+    __version__ = "0.7.0"

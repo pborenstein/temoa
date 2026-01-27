@@ -2,7 +2,7 @@
 phase: "Experimentation"
 phase_name: "Search Harness"
 updated: 2026-01-27
-last_commit: 58351b5
+last_commit: c74152a
 branch: main
 ---
 
@@ -10,13 +10,12 @@ branch: main
 
 ## Current Focus
 
-Vault graph build improvements: suppressed obsidiantools stdout spam, added file-level error reporting, moved graph rebuild to background thread during reindex.
+Version housekeeping: unified version number across pyproject.toml, __version__.py, and docs to 0.7.0.
 
 ## Active Tasks
 
-- [x] Suppress ugly frontmatter parse errors from obsidiantools during graph build
-- [x] Log filenames of files with bad YAML frontmatter (not just count)
-- [x] Move graph rebuild to background thread in `/reindex` endpoint
+- [x] Bump pyproject.toml from 0.6.0 to 0.7.0
+- [x] Update __version__.py fallback from 0.4.0-dev to 0.7.0
 - [ ] Fix the 42 files with unparseable YAML frontmatter in vault (user task)
 
 ## Blockers
@@ -25,11 +24,10 @@ None.
 
 ## Context
 
-- **Graph build now async**: `/reindex` returns immediately; graph rebuilds in daemon thread (~90s)
-- **CLI graph build still sync**: Intentional -- CLI users expect blocking completion
-- **obsidiantools stdout capture**: `redirect_stdout` captures `print()` spam, extracts filenames via regex
-- **42 bad frontmatter files**: Now listed by name in WARNING log; user can fix the YAML
-- **Version**: 0.7.0, Experimentation Phase Active
+- **Version unified to 0.7.0**: pyproject.toml is the single source of truth; __version__.py reads it via importlib.metadata at runtime
+- **Graph build async**: `/reindex` returns immediately; graph rebuilds in daemon thread (~90s)
+- **42 bad frontmatter files**: Listed by name in WARNING log; user can fix the YAML
+- **Experimentation Phase Active**: Search Harness, Inspector, Pipeline Viewer all functional
 
 ## Next Session
 
