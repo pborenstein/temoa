@@ -1,43 +1,41 @@
 ---
 phase: "Experimentation"
-phase_name: "Knobs & Dials - Search Tuning"
-updated: 2026-01-14
-last_commit: 2182b5a
-last_entry: 46
-branch: main
+phase_name: "Search Harness"
+updated: 2026-01-26
+last_commit: e1a8a67
+branch: knobs-and-dials
 ---
 
 # Current Context
 
 ## Current Focus
 
-**NEW PHASE**: Experimentation with search parameters. The production hardening is complete - now we experiment with different combinations of knobs and dials to optimize search quality for real-world usage patterns.
+Inspector UX improvements: graph caching for fast loading, search history dropdown, section ordering.
 
 ## Active Tasks
 
-- [ ] Define experimentation framework (what to measure, how to compare)
-- [ ] Identify key tunable parameters (weights, thresholds, boosts)
-- [ ] Create reproducible test queries with expected results
-- [ ] Document baseline performance before tuning
+- [x] Fix graph chips to open in Obsidian
+- [x] Add "Similar by Topic" section to Inspector
+- [x] Implement graph caching (90s → 0.1s load time)
+- [x] Replace search history pills with dropdown
+- [x] Swap order: Similar by Topic before Linked Notes
+- [ ] Test end-to-end: full Inspector functionality
 
 ## Blockers
 
-None
+None.
 
 ## Context
 
-- **Production hardening complete**: Phases 0-4 + 6 done, system is stable
-- **Phase 4 (LLM)**: Moved to backburner (`docs/archive/backburner/phase-4-llm.md`)
-- **Edge case test failures**: 37 known failures, not blocking - can revisit later
-- **Current knobs available**:
-  - Hybrid weight (BM25 vs semantic ratio)
-  - Tag boost multiplier (currently 5x)
-  - RRF fusion parameters
-  - Time decay half-life (currently 90 days)
-  - Cross-encoder re-ranking toggle
-  - Query expansion threshold
-  - Search profiles (repos, recent, deep, keywords, default)
+- **Graph caching**: VaultGraph now persists to `.temoa/vault_graph.pkl`
+  - First load: ~90s (builds from obsidiantools)
+  - Cached load: ~0.1s
+  - Rebuilds automatically on `temoa index` / `temoa reindex` / `/reindex`
+- **Search history**: Now a dropdown under search input instead of pills
+  - Arrow keys to navigate, Enter to select, X to delete individual items
+  - Shows on focus when input is empty
+- **Inspector order**: Similar by Topic (semantic) now appears before Linked Notes (graph)
 
 ## Next Session
 
-User has notes to develop for experimentation direction. Review notes and plan approach.
+Test the full Inspector with both sections. Commit the current changes.

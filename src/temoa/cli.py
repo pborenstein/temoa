@@ -814,6 +814,18 @@ def index(vault, force, model, enable_chunking, chunk_size, chunk_overlap, chunk
             click.echo(f"Total chunks: {result.get('total_chunks', 'Unknown')}")
         click.echo(f"Model: {result.get('model', 'Unknown')}")
 
+        # Rebuild vault graph
+        click.echo("\nRebuilding vault graph...")
+        try:
+            from .vault_graph import VaultGraph
+            graph = VaultGraph(vault_path, storage_dir)
+            if graph.rebuild_and_cache():
+                click.echo(f"{click.style('✓', fg='green')} Graph rebuilt: {graph._graph.number_of_nodes()} nodes, {graph._graph.number_of_edges()} edges")
+            else:
+                click.echo(click.style("Graph rebuild failed (obsidiantools may not be installed)", fg='yellow'))
+        except Exception as e:
+            click.echo(click.style(f"Graph rebuild failed: {e}", fg='yellow'))
+
     except Exception as e:
         click.echo(f"\nError: {e}", err=True)
         sys.exit(1)
@@ -915,6 +927,18 @@ def reindex(vault, force, model, enable_chunking, chunk_size, chunk_overlap, chu
             click.echo(f"Deleted files: {result.get('files_deleted', 0)}")
         else:
             click.echo(f"Files indexed: {result.get('files_indexed', 'Unknown')}")
+
+        # Rebuild vault graph
+        click.echo("\nRebuilding vault graph...")
+        try:
+            from .vault_graph import VaultGraph
+            graph = VaultGraph(vault_path, storage_dir)
+            if graph.rebuild_and_cache():
+                click.echo(f"{click.style('✓', fg='green')} Graph rebuilt: {graph._graph.number_of_nodes()} nodes, {graph._graph.number_of_edges()} edges")
+            else:
+                click.echo(click.style("Graph rebuild failed (obsidiantools may not be installed)", fg='yellow'))
+        except Exception as e:
+            click.echo(click.style(f"Graph rebuild failed: {e}", fg='yellow'))
 
     except Exception as e:
         click.echo(f"\nError: {e}", err=True)

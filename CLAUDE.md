@@ -116,7 +116,7 @@ temoa/
 │   ├── DECISIONS.md      # Architectural decision records
 │   ├── GLEANINGS.md      # Gleaning extraction & management
 │   └── DEPLOYMENT.md     # Launchd service setup
-├── synthesis/           # Bundled search engine (read-only)
+├── synthesis/           # Core search engine (ur-Temoa, part of project)
 ├── src/temoa/           # Temoa source code
 │   ├── server.py         # FastAPI app, endpoints, main pipeline
 │   ├── synthesis.py      # Synthesis client wrapper, hybrid search
@@ -551,12 +551,6 @@ All Claude development branches follow pattern: `claude/semantic-search-server-<
 - No state management for gleanings
 - No web frameworks beyond FastAPI
 - No client-side JS frameworks (React, Vue, etc.)
-
-### ❌ Don't Modify Synthesis Core
-- Synthesis is bundled read-only dependency
-- We import and extend it (SynthesisClient wrapper), not modify it
-- BM25, reranking, query expansion are Temoa features (not Synthesis)
-- If you need to change search behavior, do it in Temoa layers
 
 ### ❌ Don't Ignore Mobile
 - Every feature must work well on phone

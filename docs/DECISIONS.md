@@ -177,6 +177,9 @@ This checks for:
 | DEC-089: Topics as JSON array/YAML list | 44 | Structured data for filtering |
 | DEC-090: Only enrich missing data | 44 | Idempotent, skip if github_stars exists |
 | DEC-091: README excerpt max 500 chars | 44 | ~2-3 sentences, fits search preview |
+| DEC-092: obsidiantools for graph analysis | 58 | Production-ready (502 stars), NetworkX integration, lazy loading |
+| DEC-093: Two layers of relatedness | 57-58 | Explicit links (wikilinks) + Implicit similarity (embeddings) |
+| DEC-094: Lazy graph loading per vault | 58 | ~90s load time, cache on first request not startup |
 
 ---
 
