@@ -2,9 +2,9 @@
 
 > **Purpose**: This document provides context and guidance for Claude AI when working on the Temoa project across multiple sessions.
 
-**Last Updated**: 2025-12-15
-**Project Status**: Phase 3 Complete ✅
-**Current Version**: 0.6.0
+**Last Updated**: 2026-01-26
+**Project Status**: Experimentation Phase Active
+**Current Version**: 0.7.0
 **Current Branch**: `main`
 
 ---
@@ -17,16 +17,19 @@
 
 **Core Architecture**: FastAPI server → Direct Synthesis imports → Multi-stage search pipeline (semantic + BM25 + frontmatter) → Results
 
-**Current Features** (Phase 3 Complete):
+**Current Features**:
 - **Frontmatter-aware search**: Tag boosting (5x multiplier) + description field indexing
 - **Hybrid search**: BM25 + semantic with RRF fusion and aggressive tag boosting
 - **Search quality pipeline**: Query expansion, cross-encoder re-ranking, time-aware scoring
+- **Search Profiles**: 5 optimized modes (repos, recent, deep, keywords, default)
+- **Adaptive Chunking**: Full-content indexing for large files (4.4x content coverage)
 - **Multi-vault support**: LRU cache (max 3 vaults), independent indexes
+- **Experimental Tools**: Search Harness (score mixer), Inspector (wikilink explorer), Pipeline Viewer
 - **PWA support**: Installable on mobile devices
 - **Incremental reindexing**: 30x faster (5s vs 159s)
 - **Type filtering**: Exclude/include by frontmatter type field
 - **Gleaning management**: Status tracking, URL normalization, auto-restore
-- **Search history and keyboard shortcuts**: UI optimizations for mobile
+- **Production Hardening**: Complete (CORS, rate limiting, path validation, error handling)
 
 ---
 
@@ -238,6 +241,22 @@ uv run main.py models
 
 **Success Criteria**: Phase 3 complete, ready for Phase 4 or production hardening
 
+### Experimentation Phase: Search Harness (Active)
+**Goal**: Explore search UX and parameter tuning through interactive tools
+
+**Completed**:
+- **Search Harness**: Interactive score mixer with client-side remixing (no server round-trip)
+- **Pipeline Viewer**: 8-stage pipeline visualization showing results at each stage
+- **Inspector**: Wikilink graph exploration + "Similar by Topic" semantic discovery
+- **Graph Caching**: VaultGraph with pickle caching (90s → 0.1s load time)
+- **Unified Search Interface**: View toggle (cards/list/explorer) in main search UI
+- **Search history dropdown**: Replaced pills UI, more space-efficient
+- **Experimental endpoints**: `/harness`, `/inspector`, `/pipeline` for rapid iteration
+
+**Key Principle**: "Knobs and Dials" approach - make all parameters tunable to discover optimal settings through experimentation rather than theory
+
+**Success Criteria**: Tools enable rapid iteration on search quality, facilitate discovery of better ranking algorithms
+
 ### Phase 4: Vault-First LLM (Future)
 **Goal**: LLMs check vault before internet
 
@@ -353,6 +372,26 @@ Tags are keywords, not concepts. Temoa uses multi-layer approach:
 - 20-30% precision improvement
 - Only applied to non-tag-boosted results
 
+**Search Harness**: Client-side score remixing
+- Implementation: src/temoa/ui/harness.html, server.py (/harness endpoint)
+- Stores raw scores (semantic, BM25, cross-encoder) in results
+- Remixes scores in browser for instant feedback (no server round-trip)
+- Interactive sliders for hybrid weight, BM25 boost, tag boost tuning
+- Details: See CONTEXT.md "Knobs and Dials" section
+
+**Inspector**: Document exploration and discovery
+- Implementation: src/temoa/ui/inspector.html, server.py (/inspector endpoint)
+- VaultGraph class with pickle caching (.temoa/vault_graph.pkl)
+- Wikilink graph visualization (backlinks, forward links, orphans)
+- "Similar by Topic" semantic discovery (find related documents)
+- Graph load time: 90s → 0.1s with caching
+
+**Pipeline Viewer**: Stage-by-stage visualization
+- Implementation: src/temoa/ui/pipeline.html, server.py (/pipeline endpoint)
+- Shows results at each of 8 pipeline stages
+- Expansion → retrieval → filtering → boosting → re-ranking
+- Helps understand why documents appear/disappear in results
+
 ### Configuration
 
 **Multi-vault config**: See config.example.json for template
@@ -383,8 +422,10 @@ Tags are keywords, not concepts. Temoa uses multi-layer approach:
 3. **LRU caching**: Multi-vault support with memory-efficient cache eviction
 4. **Incremental indexing**: 30x speedup by detecting unchanged files
 5. **Tag-boosted marking**: Preserve tag matches through re-ranking pipeline
+6. **Client-side remixing**: Raw scores stored in results, remixed in browser (Search Harness)
+7. **Graph caching**: VaultGraph pickle cache for instant load (Inspector)
 
-## Current State Summary (Phase 3 Complete)
+## Current State Summary (Experimentation Phase Active)
 
 ### Completed Features
 
@@ -417,13 +458,22 @@ Tags are keywords, not concepts. Temoa uses multi-layer approach:
 
 **UX/UI Optimizations**:
 - ✅ **PWA support**: Installable on mobile (manifest.json, service worker ready)
-- ✅ **Search history**: Last 10 searches with click-to-rerun (localStorage)
+- ✅ **Search history dropdown**: Space-efficient dropdown (replaced pills UI)
 - ✅ **Keyboard shortcuts**: `/` focus, `Esc` clear, `t` toggle expanded
 - ✅ **Collapsible results**: Default collapsed with expandable metadata
 - ✅ **Inline search button**: Visible when keyboard shown on mobile
+- ✅ **Unified Search Interface**: View toggle (cards/list/explorer) in main UI
 - ✅ **Management page**: Reindex, extract, gleaning maintenance
 - ✅ **Dark mode**: System preference detection
 - ✅ **Responsive design**: Mobile-first, tested on iOS/Android
+
+**Experimental Tools** (NEW):
+- ✅ **Search Harness**: Interactive score mixer with real-time remixing
+- ✅ **Pipeline Viewer**: 8-stage pipeline visualization
+- ✅ **Inspector**: Wikilink graph + semantic discovery ("Similar by Topic")
+- ✅ **Graph Caching**: VaultGraph pickle cache (90s → 0.1s load)
+- ✅ **Raw Score Storage**: Semantic, BM25, cross-encoder scores in results
+- ✅ **Experimental endpoints**: `/harness`, `/inspector`, `/pipeline`
 
 **Performance Optimizations** (Phase 2):
 - ✅ **Hot path file I/O elimination**: 500-1000ms latency reduction (no file reads during filtering)
@@ -490,25 +540,25 @@ Tags are keywords, not concepts. Temoa uses multi-layer approach:
 
 ### Next Steps
 
-**Production Status**: Ready for deployment! Production Hardening (Phases 0-4) complete.
+**Current Focus**: Experimentation Phase - "Knobs and Dials" approach
 
-**Option A: Deploy to Production**
+**Active Exploration** (via experimental tools):
+- Search quality improvements through harness tuning
+- Document discovery patterns via Inspector
+- Pipeline optimization through stage visualization
+- Parameter sensitivity analysis (what matters most?)
+
+**Ready for Production**: Core features complete
 - ✅ Security hardening complete (CORS, rate limiting, path validation)
 - ✅ Performance optimized (700-1300ms latency improvement)
 - ✅ Error handling robust (specific exception types, fail-open/closed patterns)
 - ✅ Testing baseline established (171/171 passing)
-- ✅ Documentation comprehensive (TESTING.md, ARCHITECTURE.md security section, DEPLOYMENT.md)
+- ✅ Documentation comprehensive (TESTING.md, ARCHITECTURE.md, DEPLOYMENT.md)
 
-**Option B: Phase 4 - Vault-First LLM** (Future)
-- `/chat` endpoint with vault context
-- Integration with Apantli LLM proxy
-- Citation system for vault sources
-
-**Option C: Continue Refinements**
-- Address edge case test failures (37 known failures in test_edge_cases.py)
-- Enhanced concurrent operation support
-- More robust Unicode handling
-- URL normalization improvements
+**Future Options**:
+- **Phase 4: Vault-First LLM** - `/chat` endpoint with vault context, Apantli integration
+- **Continue Refinements** - Edge case handling, Unicode improvements, URL normalization
+- **Productionize Experimental Tools** - Integrate best discoveries into main search interface
 
 ---
 
@@ -606,6 +656,21 @@ uv run temoa config
 
 # List vaults
 uv run temoa vaults
+
+# List search profiles
+uv run temoa profiles
+```
+
+### Experimental Tools
+```bash
+# Search Harness (interactive score mixer)
+open http://localhost:8080/harness
+
+# Pipeline Viewer (stage-by-stage visualization)
+open http://localhost:8080/pipeline
+
+# Inspector (wikilink graph + semantic discovery)
+# Open any document in search results, click "Inspect" button
 ```
 
 ### Deployment (macOS launchd)
@@ -641,6 +706,7 @@ git push -u origin claude/feature-name-<session-id>
 ## Resources
 
 ### Documentation (Read These First!)
+- **[CONTEXT.md](CONTEXT.md)** - Current session context, experimentation phase strategy, recent changes
 - **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** - System architecture, embeddings, security, error handling, performance
 - **[docs/SEARCH-MECHANISMS.md](docs/SEARCH-MECHANISMS.md)** - All search algorithms, ranking, quality enhancements
 - **[docs/TESTING.md](docs/TESTING.md)** - Test baseline, known failures, running tests, debugging
@@ -682,7 +748,7 @@ When starting a new development session:
 ---
 
 **Created**: 2025-11-18
-**Last Major Update**: 2025-12-19 (thinned CLAUDE.md, removed duplicate content)
+**Last Major Update**: 2026-01-26 (added Experimentation Phase, updated to v0.7.0)
 **For**: Claude AI development sessions
 **Owner**: pborenstein
 **Project**: Temoa - Vault-First Research Workflow

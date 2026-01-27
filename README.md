@@ -19,6 +19,8 @@ A local semantic search server for your Obsidian vault. Search by meaning, not k
 | Query expansion | Automatically expand short queries using TF-IDF |
 | Time-aware scoring | Boost recent documents with configurable decay |
 | Type filtering | Filter by document type (gleaning, writering, daily, etc.) |
+| Search profiles | 5 optimized presets (repos, recent, deep, keywords, default) |
+| Adaptive chunking | Automatic chunking of large files (>4,000 chars) for full searchability |
 
 ### Mobile Experience
 
@@ -317,6 +319,39 @@ curl -X POST "http://localhost:8080/reindex?force=true"
 }
 ```
 
+### Search Profiles
+```bash
+GET /profiles
+```
+
+List all available search profiles with their configurations.
+
+### Graph Operations
+
+```bash
+# Get wikilinks for a file
+GET /graph/links?file=path/to/file.md
+
+# Get backlinks to a file
+GET /graph/backlinks?file=path/to/file.md
+
+# Get semantically similar documents
+GET /similar?file=path/to/file.md&limit=20
+```
+
+### Experimental Endpoints
+
+```bash
+# Search harness UI
+GET /harness
+
+# Pipeline visualization
+GET /pipeline?q=query
+
+# Document inspector
+GET /inspector?file=path/to/file.md
+```
+
 ## Available Models
 
 | Model | Dimensions | Speed | Quality | Use Case |
@@ -519,7 +554,100 @@ Temoa uses a multi-stage search pipeline for high precision:
 
 Expected quality improvements include Precision@5 of 80-90% (up from 60-70% without re-ranking), much better results for short queries with expansion, and improved ranking for recent topics with time boost.
 
+### Search Profiles
+
+Temoa provides 5 built-in search profiles optimized for different content types:
+
+| Profile | BM25 Weight | Use Case | Features |
+|:--------|:------------|:---------|:---------|
+| `repos` | 70% | GitHub repos, tech docs | Metadata boosting, fast |
+| `recent` | 50% | Recent work | 7-day half-life, 90-day cutoff |
+| `deep` | 20% | Long-form content | Semantic focus, chunking enabled (3 chunks/file) |
+| `keywords` | 80% | Exact matching | No fuzzy matching, fast |
+| `default` | 50% | Balanced search | Current behavior, 50/50 hybrid |
+
+Each profile automatically configures hybrid weight, BM25 boost, chunking, cross-encoder, time decay, and type filtering. No manual parameter tuning needed.
+
+**Usage:**
+```bash
+# API
+GET /search?q=obsidian&profile=repos
+
+# CLI
+temoa search "obsidian plugin" --profile repos
+
+# List all profiles
+temoa profiles
+GET /profiles
+```
+
+### Adaptive Chunking
+
+Files larger than 4,000 characters are automatically chunked to ensure full searchability:
+
+- Chunk size: 2,000 characters with 400-character overlap
+- Sliding window ensures complete coverage
+- Deduplication keeps best-scoring chunk per file
+- No search-time performance penalty
+
+**Impact:**
+- Before: 9MB book → only first 2,500 chars searchable (~2.5%)
+- After: Same book → 50 chunks, all 100,000 chars searchable (100%)
+- Example vault: 2,006 files → 8,755 searchable chunks (4.4x content items)
+
+Configuration: Enabled by default in `default` profile, can be disabled per profile (e.g., `repos` profile for small gleanings).
+
 See [docs/SEARCH-MECHANISMS.md](docs/SEARCH-MECHANISMS.md) for detailed technical reference.
+
+## Experimental Tools
+
+Temoa includes experimental tools for search exploration and debugging (added Jan 2026):
+
+### Search Harness (`/harness`)
+
+Interactive score mixer for real-time search experimentation. Adjust weights and parameters with instant feedback:
+
+- BM25/semantic balance slider
+- Tag boost multiplier
+- Time decay controls
+- Type filtering toggles
+- Side-by-side comparison of parameter effects
+
+**Use Case:** Fine-tune search parameters for your vault, understand how different weights affect results.
+
+### Pipeline Viewer (`/pipeline?q=query`)
+
+Visualize results at each of the 8 search stages. See how filtering, boosting, and re-ranking transform the result set:
+
+1. Query expansion (if enabled)
+2. Initial retrieval (semantic/hybrid)
+3. Score filtering
+4. Status filtering (gleanings)
+5. Type filtering
+6. Time-aware boosting
+7. Cross-encoder re-ranking
+8. Final results
+
+**Use Case:** Debug why a document appears at a certain rank, understand pipeline behavior for specific queries.
+
+### Inspector (`/inspector?file=path`)
+
+Explore a document's connections and relationships:
+
+- **Wikilinks**: Outgoing links from the document
+- **Backlinks**: Documents linking to this one
+- **Similar**: Semantically similar documents (top 20)
+- **Graph caching**: 0.1s response time (vs 90s uncached)
+
+**Use Case:** Understand document relationships, discover unexpected connections, validate similarity scoring.
+
+### Explorer View
+
+Alternative search results view showing document relationships and graph context. Displays wikilinks, backlinks, and similar documents alongside search results.
+
+**Use Case:** Research mode, follow connection threads, visual exploration of vault structure.
+
+**Access:** All experimental tools available from the management page (`/manage` or web UI management link).
 
 ## Documentation
 
@@ -534,13 +662,15 @@ See [docs/SEARCH-MECHANISMS.md](docs/SEARCH-MECHANISMS.md) for detailed technica
 
 ## Project Status
 
-**Version**: 0.6.0
+**Version**: 0.7.0
 
-**Phase**: Phase 3 Complete ✅
+**Phase**: Experimentation Phase Active
 
-All major phases completed: Phase 0 (Discovery & Validation), Phase 1 (Minimal Viable Search), Phase 2 (Gleanings Integration), Phase 2.5 (Mobile Validation & UI Optimization), and Phase 3 (Enhanced Features including multi-vault, search quality, and UX polish).
+All major phases completed: Phase 0 (Discovery & Validation), Phase 1 (Minimal Viable Search), Phase 2 (Gleanings Integration), Phase 2.5 (Mobile Validation & UI Optimization), Phase 3 (Enhanced Features including multi-vault, search quality, and UX polish), and Production Hardening (Phases 0-4 + 6). Currently exploring search UX improvements through experimental tools.
 
-**Next**: Phase 4 (Vault-First LLM) or Production Hardening
+**Testing**: 223 tests (171 passing baseline)
+
+**Next**: Continue experimentation or Phase 4 (Vault-First LLM)
 
 See [docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md) for complete history and next steps.
 
@@ -565,5 +695,5 @@ See [docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md) for complete history and ne
 ---
 
 **Created**: 2025-11-17
-**Last Updated**: 2025-12-03
-**Version**: 0.6.0
+**Last Updated**: 2026-01-26
+**Version**: 0.7.0

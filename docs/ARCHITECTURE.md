@@ -3,8 +3,8 @@
 > **Purpose**: This document explains the technical architecture of Temoa, how components interact, and how semantic search with embeddings works.
 
 **Created**: 2025-11-22
-**Last Updated**: 2026-01-04
-**Status**: Phase 3.5 Complete (Search Profiles, Adaptive Chunking, QoL Improvements)
+**Last Updated**: 2026-01-26
+**Status**: Phase 3.6 Complete (Experimentation Tools: Search Harness, Pipeline Viewer, Inspector, VaultGraph)
 
 ---
 
@@ -14,14 +14,15 @@
 2. [How Embeddings Work](#how-embeddings-work)
 3. [Search Profiles](#search-profiles)
 4. [Adaptive Chunking](#adaptive-chunking)
-5. [Multi-Vault Support](#multi-vault-support)
-6. [Request Flow](#request-flow)
-7. [Storage Architecture](#storage-architecture)
-8. [Component Details](#component-details)
-9. [Error Handling Philosophy](#error-handling-philosophy)
-10. [Security Architecture](#security-architecture)
-11. [Deployment Model](#deployment-model)
-12. [Performance Characteristics](#performance-characteristics)
+5. [Experimentation Tools](#experimentation-tools-phase-36)
+6. [Multi-Vault Support](#multi-vault-support)
+7. [Request Flow](#request-flow)
+8. [Storage Architecture](#storage-architecture)
+9. [Component Details](#component-details)
+10. [Error Handling Philosophy](#error-handling-philosophy)
+11. [Security Architecture](#security-architecture)
+12. [Deployment Model](#deployment-model)
+13. [Performance Characteristics](#performance-characteristics)
 
 ---
 
@@ -388,6 +389,306 @@ temoa index --enable-chunking
 - `repos`, `keywords`, `recent`: Chunking disabled (short content)
 
 **See**: [SEARCH-MECHANISMS.md](SEARCH-MECHANISMS.md#adaptive-chunking) for technical implementation details.
+
+---
+
+## Experimentation Tools (Phase 3.6)
+
+**Status**: IMPLEMENTED (January 2026)
+
+Temoa includes interactive tools for experimenting with search parameters, visualizing the search pipeline, and exploring document relationships. These tools are integrated into the main search interface.
+
+### Search Harness (Client-Side Score Remixing)
+
+The search harness enables real-time experimentation with search weights without server round-trips.
+
+**Architecture Innovation**: Two-tier parameter model
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ Server-Side Parameters (Require Re-fetch)                   │
+│ - Hybrid weight (semantic vs BM25 balance)                  │
+│ - Result limit (top-K selection)                            │
+│ - Cross-encoder re-ranking (enable/disable)                 │
+│ - Query expansion (enable/disable)                          │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼ Single API call
+┌─────────────────────────────────────────────────────────────┐
+│ Server Returns Raw Component Scores                         │
+│ {                                                            │
+│   "scores": {                                                │
+│     "semantic": 0.85,        // Bi-encoder similarity        │
+│     "bm25": 0.42,            // BM25 keyword score           │
+│     "rrf": 0.63,             // Fused score                  │
+│     "cross_encoder": 4.52,   // Re-ranking score             │
+│     "time_boost": 1.15       // Temporal boost multiplier    │
+│   }                                                          │
+│ }                                                            │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│ Client-Side Remix Parameters (Instant Re-sort)              │
+│ - Mix balance (adjust semantic vs BM25 weight)              │
+│ - Tag multiplier (boost tag-matched results)                │
+│ - Time weight (emphasize recent documents)                  │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Key Features**:
+- **Instant feedback**: Adjust weights and see results re-sort in <50ms
+- **Visual indicators**: Tag matches glow green, time-boosted dates glow purple
+- **Profile saving**: Export configurations to JSON or localStorage
+- **Parameter tracking**: Yellow border shows when server-side params changed
+
+**API Integration**:
+```
+GET /search?q=query&harness=true
+→ Returns result.scores object with all component scores
+→ Returns harness.mix and harness.server metadata
+→ Client remixes: final = (semantic × w_sem + bm25 × w_bm25) × tag_mult × time_mult
+```
+
+**Implementation**: `src/temoa/server.py` (harness parameter), `src/temoa/ui/search.html` (Explorer view)
+
+### Pipeline Viewer (Stage-by-Stage Debugging)
+
+Visualizes how results flow through the 8-stage search pipeline.
+
+**Pipeline Stages Captured**:
+```
+Stage 0: Query Expansion (TF-IDF, optional)
+   ↓ Timing: ~400ms (only for <3 word queries)
+
+Stage 1: Initial Retrieval (bi-encoder semantic search)
+   ↓ Timing: ~400ms
+   ↓ Returns: Top 100 candidates (from 8,755 chunks)
+
+Stage 1.5: Chunk Deduplication (if chunking enabled)
+   ↓ Timing: <5ms
+   ↓ Keep best chunk per file
+
+Stage 2: Score Filtering (min_score threshold)
+   ↓ Timing: <1ms
+
+Stage 3: Status Filtering (exclude inactive gleanings)
+   ↓ Timing: <1ms
+
+Stage 4: Type Filtering (include/exclude by type)
+   ↓ Timing: <1ms
+
+Stage 5: Time-Aware Boost (exponential decay)
+   ↓ Timing: <5ms
+   ↓ Formula: boost = max_boost × (0.5 ** (days_old / half_life))
+
+Stage 6: Cross-Encoder Re-Ranking (optional, default on)
+   ↓ Timing: ~200ms
+   ↓ Precision: +20-30% improvement
+
+Stage 7: Top-K Selection (final results)
+   ↓ Returns: User-specified limit (default 10)
+```
+
+**Captured Data Per Stage**:
+- Result count (how many documents remain)
+- Timing (milliseconds spent in stage)
+- Top results with all scores (semantic, BM25, RRF, cross-encoder, time)
+- Rank changes (which results moved up/down)
+- Filtered items (what was removed and why)
+
+**API Integration**:
+```
+GET /search?q=query&pipeline_debug=true
+→ Returns pipeline object with stages array
+→ Each stage: {name, timing_ms, result_count, top_results, removed_items}
+→ Overhead: <50ms when enabled, 0ms when disabled
+```
+
+**Implementation**: `src/temoa/server.py` (pipeline_debug parameter), `src/temoa/ui/search.html` (collapsible stage view)
+
+### Inspector (Document Exploration)
+
+Detailed examination of individual search results with two layers of relatedness.
+
+**Two Layers of Document Relatedness**:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ Layer 1: Explicit Links (Wikilinks)                         │
+│ - High signal: Human-curated relationships                  │
+│ - Structural: How notes are connected                       │
+│ - Uses vault wikilink graph (NetworkX + obsidiantools)      │
+└─────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────┐
+│ Layer 2: Implicit Similarity (Embeddings)                   │
+│ - Universal: Works on any text, no links required           │
+│ - Semantic: Content-based relationships                     │
+│ - Uses bi-encoder model (all-mpnet-base-v2)                 │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Inspector Sections**:
+
+1. **Score Breakdown**:
+   - Visual bars for semantic, BM25, RRF, cross-encoder scores
+   - Tag boost indicator (5x when active)
+   - Time boost indicator (exponential decay formula)
+   - Hover tooltips explaining each score type
+
+2. **Similar by Topic** (Layer 2 - Semantic):
+   - Top 6 semantically similar notes
+   - Uses note title as search query
+   - Pure semantic search (no BM25)
+   - Amber chips distinguish from graph links
+
+3. **Linked Notes** (Layer 1 - Structural):
+   - Incoming links (notes linking TO this note)
+   - Outgoing links (notes this note links TO)
+   - 2-hop neighbors (excluding daily notes)
+   - Blue chips for graph relationships
+   - Click to open in Obsidian
+
+4. **Metadata Display**:
+   - Frontmatter fields (type, project, status, source, url)
+   - Tags (all tags shown)
+   - Dates (created, modified with relative time)
+   - Full description text
+
+**Implementation**: `src/temoa/ui/search.html` (Inspector pane in Explorer view)
+
+### VaultGraph (Wikilink Analysis)
+
+**Purpose**: Provides fast access to vault structure via wikilink relationships.
+
+**Architecture**:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ VaultGraph Class (src/temoa/vault_graph.py)                 │
+│                                                              │
+│ Dependencies:                                                │
+│   - obsidiantools (v0.11.0): Vault parsing, wikilink extract│
+│   - NetworkX: Graph algorithms, path finding                │
+│                                                              │
+│ Data Structure:                                              │
+│   - Directed graph: A → B means "A links to B"              │
+│   - Undirected graph: For neighborhood exploration          │
+│   - Node: Note name (without .md extension)                 │
+│   - Edge: Wikilink from one note to another                 │
+└─────────────────────────────────────────────────────────────┘
+
+Caching Strategy:
+┌─────────────────────────────────────────────────────────────┐
+│ First Load: ~90 seconds                                      │
+│   - Parse all vault files for wikilinks                     │
+│   - Build NetworkX graph                                    │
+│   - Save to .temoa/vault_graph.pkl (~700KB)                 │
+│                                                              │
+│ Cached Load: ~0.1 seconds (900x faster)                     │
+│   - Load pickled NetworkX graphs                            │
+│   - Skip parsing, skip graph construction                   │
+│                                                              │
+│ Auto-Rebuild:                                                │
+│   - Triggered on reindex (API: POST /reindex)               │
+│   - Triggered on reindex (CLI: temoa index --vault X)       │
+│   - Keeps graph in sync with vault changes                  │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Key Methods**:
+- `ensure_loaded()` - Lazy load with cache preference
+- `get_neighbors(note, max_hops)` - Find connected notes within N hops
+- `get_hub_notes()` - Find well-connected notes (high in/out degree)
+- `get_path(source, target)` - Shortest path between two notes
+- `rebuild_and_cache()` - Force rebuild from vault (during reindex)
+
+**API Endpoints**:
+```
+GET /graph/neighbors?note=X&vault=Y
+→ Returns incoming, outgoing, 2-hop neighbors
+
+GET /graph/stats?vault=X
+→ Returns node_count, edge_count, connected_components, isolated_notes
+
+GET /similar?note=X&vault=Y&limit=6
+→ Returns semantically similar notes (Layer 2)
+```
+
+**Storage**:
+```
+~/Obsidian/vault-name/
+  └── .temoa/
+      └── vault_graph.pkl     ← Cached NetworkX graphs (~700KB)
+          └── {
+              'graph': DirectedGraph,
+              'undirected': UndirectedGraph,
+              'cached_at': '2026-01-26T10:30:00',
+              'node_count': 2006,
+              'edge_count': 5423
+          }
+```
+
+**Memory Usage**:
+- Graph in memory: ~10-20MB (depending on vault size)
+- Cache file on disk: ~700KB (2,000 notes, 5,000 links)
+- Per-vault isolation: Each vault has independent cached graph
+
+**Performance Characteristics**:
+```
+Operation                    Time       Notes
+─────────────────────────────────────────────────────────────
+Initial graph build          ~90s       One-time per vault
+Cached graph load            ~0.1s      900x faster
+get_neighbors()              <5ms       NetworkX BFS
+get_hub_notes()              ~50ms      Iterate all nodes
+get_path()                   <10ms      Shortest path (Dijkstra)
+rebuild_and_cache()          ~90s       During reindex only
+```
+
+**Design Decisions**:
+
+**DEC-092**: Use obsidiantools for vault graph analysis
+- Mature library (v0.11.0), production-ready
+- NetworkX integration (powerful graph algorithms)
+- Handles Obsidian-specific wikilink syntax
+
+**DEC-093**: Two layers of relatedness (explicit + implicit)
+- Explicit links (wikilinks): High-signal, human-curated
+- Implicit similarity (embeddings): Universal, works on any text
+- Both layers complement each other
+
+**DEC-094**: Lazy graph loading with persistent cache
+- First load expensive (~90s), subsequent loads fast (~0.1s)
+- Auto-rebuild on reindex keeps graph in sync
+- Cache stored in `.temoa/` for vault co-location
+
+### Integration with Main Interface
+
+All experimentation tools are integrated into the unified search interface at `/search`:
+
+**List View** (Simple):
+- Standard search results
+- Search history dropdown
+- Quick access to results
+
+**Explorer View** (Advanced):
+- Three-pane layout: Controls | Results | Inspector
+- Controls pane: Fetch (server params) + Live (remix params)
+- Results pane: Click any result to inspect
+- Inspector pane: Scores + Similar + Linked + Metadata
+
+**View Toggle**:
+- Button in header (List ⟷ Explorer)
+- Keyboard shortcut: `t`
+- State preserved across switches
+- localStorage persistence
+
+**Navigation**:
+- All tools accessible from main search interface
+- No context switching between separate pages
+- Unified state management (query, results, params)
 
 ---
 
@@ -971,6 +1272,13 @@ Gleaning Management:
 │ GET  /gleanings/{id}            │ Get single gleaning   │
 │ POST /gleanings/{id}/status     │ Update status         │
 │ GET  /gleaning/stats            │ Counts by status      │
+└─────────────────────────────────┴───────────────────────┘
+
+Graph Exploration (Phase 3.6):
+┌─────────────────────────────────┬───────────────────────┐
+│ GET  /graph/neighbors           │ Wikilink connections  │
+│ GET  /graph/stats               │ Graph statistics      │
+│ GET  /similar                   │ Semantic neighbors    │
 └─────────────────────────────────┴───────────────────────┘
 
 UI & PWA:
@@ -1599,6 +1907,68 @@ async def lifespan(app: FastAPI):
 - ✗ Mixed concerns (user data + system data)
 
 **Future**: Allow configurable storage location if needed
+
+### DEC-092: Use obsidiantools for Vault Graph Analysis
+
+**Problem**: Need to explore note relationships beyond semantic similarity
+**Solution**: Use obsidiantools library with NetworkX for wikilink graph analysis
+**Impact**: Production-ready graph features with powerful algorithms
+
+**Why obsidiantools**:
+- Mature library (v0.11.0), actively maintained
+- NetworkX integration (BFS, shortest path, hub detection)
+- Handles Obsidian-specific wikilink syntax
+- Proven in production by other tools
+
+### DEC-093: Two Layers of Document Relatedness
+
+**Insight**: Temoa was treating notes as isolated islands, ignoring explicit human-curated relationships
+
+**Solution**: Support both layers of relatedness:
+1. **Explicit links (wikilinks)** - High signal, structural, human-curated
+2. **Implicit similarity (embeddings)** - Universal, semantic, works on any text
+
+**Impact**: Richer exploration beyond pure semantic search
+
+**Complementary, not competing**:
+- Wikilinks show intentional connections
+- Embeddings find unexpected similarities
+- Together: structural + semantic understanding
+
+### DEC-094: Client-Side Score Remixing
+
+**Problem**: Experimenting with search weights requires server round-trips (slow feedback loop)
+**Solution**: Two-tier parameter model - server returns raw scores, client remixes instantly
+**Impact**: <50ms feedback for weight adjustments vs ~400ms API calls
+
+**Architecture**:
+```
+Server-side (require re-fetch): hybrid_weight, limit, rerank, expand
+Client-side (instant remix):    mix_balance, tag_mult, time_weight
+```
+
+**Why this works**:
+- Component scores (semantic, BM25, time) are independent
+- Final score is linear combination: easily recalculated
+- Browser can re-sort results without server
+- Enables rapid parameter experimentation
+
+### DEC-095: Lazy Graph Loading with Persistent Cache
+
+**Problem**: Building wikilink graph takes ~90 seconds (too slow for every search)
+**Solution**: Cache NetworkX graphs to `.temoa/vault_graph.pkl`, lazy load on demand
+**Impact**: 900x faster load (0.1s vs 90s)
+
+**Cache Strategy**:
+- First load: Build + cache (~90s)
+- Subsequent: Load from cache (~0.1s)
+- Auto-rebuild: On reindex only (keeps graph in sync)
+- Per-vault: Independent cached graphs
+
+**Trade-offs**:
+- ✓ Fast access to graph features
+- ✓ No startup penalty
+- ✗ Graph stale until next reindex (acceptable - vault changes infrequent)
 
 ---
 

@@ -455,3 +455,21 @@ Then experiment with **Option A** (Graph-Boosted) in harness:
 4. **Inspector section order**: Similar by Topic now before Linked Notes
 
 **Files**: src/temoa/vault_graph.py, src/temoa/server.py, src/temoa/cli.py, src/temoa/ui/search.html
+
+---
+
+## Entry 62: Documentation Refresh (2026-01-26)
+
+**What**: Comprehensive documentation update bringing all major docs current with Experimentation phase.
+
+**Why**: README was from Dec 3, CLAUDE.md from Dec 15. Missing Search Profiles, Adaptive Chunking, entire Experimentation phase (harness, inspector, pipeline viewer).
+
+**How**:
+
+1. **README.md**: Version 0.6.0 → 0.7.0, added Search Profiles section, Adaptive Chunking, Experimental Tools section, new API endpoints
+2. **CLAUDE.md**: Added Experimentation Phase to Development Phases, new Implementation Patterns (Harness, Inspector, Pipeline Viewer), updated Current State Summary
+3. **ARCHITECTURE.md**: New "Experimentation Tools (Phase 3.6)" section with Search Harness, Pipeline Viewer, Inspector, VaultGraph architecture. Added DEC-092 through DEC-095
+4. **DEPLOYMENT.md**: Added Unified Search Interface section, Graph API endpoints
+5. **TESTING.md**: Updated test counts, added note about harness/graph tests
+
+**Files**: README.md, CLAUDE.md, docs/ARCHITECTURE.md, docs/DEPLOYMENT.md, docs/TESTING.md

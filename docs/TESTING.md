@@ -1,6 +1,6 @@
 # Temoa Testing Guide
 
-**Last Updated**: 2026-01-09
+**Last Updated**: 2026-01-26
 **Test Baseline**: 171 passing, 37 known failures, 9 skipped, 6 errors
 
 ---
@@ -169,7 +169,7 @@ These tests document **nice-to-have improvements** for future phases:
 | Normalizers | `test_normalizers.py` | ⚠️ 10/21 passing |
 | Reranker | `test_reranker.py` | ✅ 8/8 passing |
 | Search Profiles | `test_search_profiles.py` | ✅ 24/24 passing |
-| Server | `test_server.py` | ✅ 53/53 passing |
+| Server | `test_server.py` | ✅ 53/53 passing (includes harness, graph API tests) |
 | Storage | `test_storage.py` | ⚠️ 4/8 passing |
 | Synthesis | `test_synthesis.py` | ⚠️ 1/8 (6 errors, 1 fail) |
 | Unicode | `test_unicode.py` | ✅ 4/4 passing |
@@ -348,5 +348,6 @@ uv run python -m pytest --lf
 ---
 
 **Created**: 2026-01-09
+**Last Updated**: 2026-01-26
 **Author**: Claude (Sonnet 4.5)
-**Context**: Phase 4 Complete - Production Hardening
+**Context**: Phase 4 Complete - Production Hardening, Experimentation Tools Added

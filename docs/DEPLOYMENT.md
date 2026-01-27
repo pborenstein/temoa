@@ -1,8 +1,8 @@
 # Temoa Deployment Guide
 
-**Last Updated**: 2026-01-04
+**Last Updated**: 2026-01-26
 **Version**: 0.6.0
-**For**: Phase 3.5 Complete - Production Deployment
+**For**: Phase 3.5 Complete - Production Deployment + Exploration Tools
 
 ---
 
@@ -452,6 +452,23 @@ curl http://localhost:8080/stats | jq .
 }
 ```
 
+### Graph API (Exploration Tools)
+
+**Note neighbors** (wikilink graph):
+```bash
+curl "http://localhost:8080/graph/neighbors?file_path=MyNote.md&vault=amoxtli" | jq .
+```
+
+**Graph statistics**:
+```bash
+curl "http://localhost:8080/graph/stats?vault=amoxtli" | jq .
+```
+
+**Graph hubs** (most-linked notes):
+```bash
+curl "http://localhost:8080/graph/hubs?limit=10&vault=amoxtli" | jq .
+```
+
 ### Web UI
 
 Open in browser:
@@ -460,6 +477,14 @@ open http://localhost:8080
 ```
 
 Try searching for something. Results should appear in <1 second.
+
+**Unified Search Interface**:
+- **List View**: Simple search with results cards (default)
+- **Explorer View**: Three-pane layout with score inspection
+  - Controls pane: Fetch/Live parameter mixer
+  - Results pane: Search results with click-to-inspect
+  - Inspector pane: Detailed scores, metadata, linked notes, similar topics
+- Toggle between views: Click "List"/"Explorer" button or press `t`
 
 ### Automated Smoke Test
 
@@ -866,5 +891,5 @@ Installing as a PWA provides one-tap access from your home screen, launches with
 ---
 
 **Created**: 2025-11-19
-**Last Updated**: 2026-01-09 (Phase 4 - Security Hardening)
+**Last Updated**: 2026-01-26 (Exploration Tools)
 **Version**: 0.6.0

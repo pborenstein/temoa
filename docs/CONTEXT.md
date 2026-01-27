@@ -2,15 +2,15 @@
 phase: "Experimentation"
 phase_name: "Search Harness"
 updated: 2026-01-26
-last_commit: e1a8a67
-branch: knobs-and-dials
+last_commit: 73289ac
+branch: main
 ---
 
 # Current Context
 
 ## Current Focus
 
-Inspector UX improvements: graph caching for fast loading, search history dropdown, section ordering.
+Documentation refresh: brought all major docs up to date with Experimentation phase features.
 
 ## Active Tasks
 
@@ -19,7 +19,8 @@ Inspector UX improvements: graph caching for fast loading, search history dropdo
 - [x] Implement graph caching (90s → 0.1s load time)
 - [x] Replace search history pills with dropdown
 - [x] Swap order: Similar by Topic before Linked Notes
-- [ ] Test end-to-end: full Inspector functionality
+- [x] Test end-to-end: full Inspector functionality
+- [x] Update all documentation for Experimentation phase
 
 ## Blockers
 
@@ -27,15 +28,12 @@ None.
 
 ## Context
 
-- **Graph caching**: VaultGraph now persists to `.temoa/vault_graph.pkl`
-  - First load: ~90s (builds from obsidiantools)
-  - Cached load: ~0.1s
-  - Rebuilds automatically on `temoa index` / `temoa reindex` / `/reindex`
-- **Search history**: Now a dropdown under search input instead of pills
-  - Arrow keys to navigate, Enter to select, X to delete individual items
-  - Shows on focus when input is empty
-- **Inspector order**: Similar by Topic (semantic) now appears before Linked Notes (graph)
+- **Documentation refresh**: README, CLAUDE.md, ARCHITECTURE.md, DEPLOYMENT.md, TESTING.md all updated
+- **Version**: Now 0.7.0 (was 0.6.0)
+- **Phase**: Experimentation Phase Active (was "Phase 3 Complete")
+- **New sections**: Search Profiles, Adaptive Chunking, Experimental Tools documented
+- **ARCHITECTURE.md**: Added DEC-092 through DEC-095 for experimentation tools
 
 ## Next Session
 
-Test the full Inspector with both sections. Commit the current changes.
+Documentation is current. Continue experimentation or move to Phase 4 (Vault-First LLM).
