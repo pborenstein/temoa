@@ -9,8 +9,11 @@ Graph persistence:
 - Load order: try cache first, fall back to building from scratch
 """
 
+import io
 import logging
 import pickle
+import re
+from contextlib import redirect_stdout
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
@@ -62,9 +65,36 @@ class VaultGraph:
         try:
             from obsidiantools.api import Vault
 
-            logger.info(f"Loading vault graph from {self.vault_path}...")
+            logger.info(f"Building vault graph from {self.vault_path} (this may take a while for large vaults)...")
             self._vault = Vault(self.vault_path)
-            self._vault.connect()
+
+            # obsidiantools prints ugly YAML parse errors to stdout via
+            # print(). Capture them and log a clean summary instead.
+            captured = io.StringIO()
+            with redirect_stdout(captured):
+                self._vault.connect()
+
+            # Summarize any frontmatter warnings from obsidiantools.
+            # It prints lines like: "Front matter not populated for foo.md: ScannerError(...)"
+            # Extract filenames and log them clearly.
+            output = captured.getvalue()
+            if output:
+                fm_pattern = re.compile(r"Front matter not populated for ([^:]+):")
+                filenames = fm_pattern.findall(output)
+                other_lines = [
+                    l.strip() for l in output.splitlines()
+                    if l.strip() and "Front matter not populated" not in l
+                ]
+                if filenames:
+                    # Deduplicate (obsidiantools may parse the same file twice)
+                    unique = sorted(set(filenames))
+                    logger.warning(
+                        f"{len(unique)} file(s) had unparseable YAML frontmatter (skipped):\n"
+                        + "\n".join(f"  - {name}" for name in unique)
+                    )
+                for line in other_lines:
+                    logger.debug("obsidiantools: %s", line)
+
             self._graph = self._vault.graph
             self._undirected = self._graph.to_undirected()
             self._loaded = True

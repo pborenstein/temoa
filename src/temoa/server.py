@@ -2,6 +2,7 @@
 import logging
 import os
 import sys
+import threading
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Optional
@@ -1831,25 +1832,28 @@ async def reindex(
         # Invalidate cache after reindex to ensure fresh data on next access
         client_cache.invalidate(vault_path, config.default_model)
 
-        # Rebuild vault graph and update cache
+        # Rebuild vault graph in background (takes ~90s, not needed for search)
         vault_graphs = request.app.state.vault_graphs
         storage_dir = vault_path / ".temoa"
-        try:
-            logger.info(f"Rebuilding vault graph for {vault_name}...")
-            graph = VaultGraph(vault_path, storage_dir)
-            if graph.rebuild_and_cache():
-                vault_graphs[vault_name] = graph
-                result["graph_rebuilt"] = True
-                result["graph_nodes"] = graph._graph.number_of_nodes()
-                result["graph_edges"] = graph._graph.number_of_edges()
-                logger.info(f"Vault graph rebuilt: {result['graph_nodes']} nodes, {result['graph_edges']} edges")
-            else:
-                result["graph_rebuilt"] = False
-                logger.warning("Vault graph rebuild failed")
-        except Exception as e:
-            logger.warning(f"Vault graph rebuild failed: {e}")
-            result["graph_rebuilt"] = False
-            result["graph_error"] = str(e)
+
+        def _rebuild_graph():
+            try:
+                graph = VaultGraph(vault_path, storage_dir)
+                if graph.rebuild_and_cache():
+                    vault_graphs[vault_name] = graph
+                    logger.info(
+                        f"Vault graph rebuilt: {graph._graph.number_of_nodes()} nodes, "
+                        f"{graph._graph.number_of_edges()} edges"
+                    )
+                else:
+                    logger.warning("Vault graph rebuild failed")
+            except Exception as e:
+                logger.warning(f"Vault graph rebuild failed: {e}")
+
+        thread = threading.Thread(target=_rebuild_graph, daemon=True)
+        thread.start()
+        logger.info(f"Vault graph rebuild started in background for '{vault_name}'")
+        result["graph_rebuild"] = "started in background"
 
         # Add vault information to response
         result["vault"] = {

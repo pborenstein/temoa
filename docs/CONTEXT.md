@@ -1,8 +1,8 @@
 ---
 phase: "Experimentation"
 phase_name: "Search Harness"
-updated: 2026-01-26
-last_commit: 94d0270
+updated: 2026-01-27
+last_commit: 58351b5
 branch: main
 ---
 
@@ -10,13 +10,14 @@ branch: main
 
 ## Current Focus
 
-Documentation structure cleanup: removed stray `docs/phases/` directory, archived planning doc.
+Vault graph build improvements: suppressed obsidiantools stdout spam, added file-level error reporting, moved graph rebuild to background thread during reindex.
 
 ## Active Tasks
 
-- [x] Update all documentation for Experimentation phase
-- [x] Archive stray phase-3.5 planning doc from `docs/phases/`
-- [x] Remove vestigial `docs/phases/` directory
+- [x] Suppress ugly frontmatter parse errors from obsidiantools during graph build
+- [x] Log filenames of files with bad YAML frontmatter (not just count)
+- [x] Move graph rebuild to background thread in `/reindex` endpoint
+- [ ] Fix the 42 files with unparseable YAML frontmatter in vault (user task)
 
 ## Blockers
 
@@ -24,11 +25,12 @@ None.
 
 ## Context
 
-- **Token-efficient system**: Uses CONTEXT.md + IMPLEMENTATION.md + chronicles/
-- **No `docs/phases/`**: Planning docs go in archive after implementation
+- **Graph build now async**: `/reindex` returns immediately; graph rebuilds in daemon thread (~90s)
+- **CLI graph build still sync**: Intentional -- CLI users expect blocking completion
+- **obsidiantools stdout capture**: `redirect_stdout` captures `print()` spam, extracts filenames via regex
+- **42 bad frontmatter files**: Now listed by name in WARNING log; user can fix the YAML
 - **Version**: 0.7.0, Experimentation Phase Active
-- **Documentation**: All major docs current as of previous session
 
 ## Next Session
 
-Continue experimentation with Search Harness tools, or move to Phase 4 (Vault-First LLM).
+Continue experimentation with Search Harness tools, or move to Phase 4 (Vault-First LLM). User may want to investigate/fix the 42 files with bad YAML frontmatter.

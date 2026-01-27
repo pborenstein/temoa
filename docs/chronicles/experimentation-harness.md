@@ -473,3 +473,23 @@ Then experiment with **Option A** (Graph-Boosted) in harness:
 5. **TESTING.md**: Updated test counts, added note about harness/graph tests
 
 **Files**: README.md, CLAUDE.md, docs/ARCHITECTURE.md, docs/DEPLOYMENT.md, docs/TESTING.md
+
+---
+
+## Entry 63: Graph Build Cleanup (2026-01-27)
+
+**What**: Fixed noisy graph build output and moved graph rebuild to background thread.
+
+**Why**: Three issues during `/reindex`:
+
+1. obsidiantools prints raw `ScannerError` repr to stdout for every file with bad YAML frontmatter -- ugly, unformatted, wall of text
+2. No indication that graph building is happening (just silence for ~90s)
+3. Graph build blocks the `/reindex` HTTP response for ~90s despite only being needed by Inspector
+
+**How**:
+
+1. **Suppressed stdout spam** (vault_graph.py): Wrapped `Vault.connect()` in `redirect_stdout()` to capture obsidiantools `print()` calls. Extracts filenames via regex, deduplicates (obsidiantools parses files twice), logs single WARNING with file list.
+2. **Added progress logging** (vault_graph.py): Changed log message to `"Building vault graph from {path} (this may take a while for large vaults)..."`
+3. **Background thread** (server.py): Graph rebuild now runs in daemon thread. `/reindex` returns immediately with `"graph_rebuild": "started in background"`. Graph swapped into `vault_graphs` dict when done. CLI still synchronous (intentional).
+
+**Files**: src/temoa/vault_graph.py, src/temoa/server.py
