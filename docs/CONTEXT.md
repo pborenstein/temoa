@@ -1,8 +1,8 @@
 ---
 phase: "Experimentation"
 phase_name: "Search Harness"
-updated: 2026-01-27
-last_commit: d696882
+updated: 2026-01-29
+last_commit: e8b3349
 branch: main
 ---
 
@@ -10,11 +10,12 @@ branch: main
 
 ## Current Focus
 
-Removed search profiles feature entirely (DEC-095). Profiles were an unused abstraction layer; all search parameters continue to work as direct query params.
+Testing plinth's token-efficient documentation system with opencode. Created NO-CLAUDE-SKILLS.md guide for using plinth without Claude Code skills.
 
 ## Active Tasks
 
 - [x] Remove search profiles (search_profiles.py, tests, server, CLI, UI, docs)
+- [x] Create NO-CLAUDE-SKILLS.md guide for opencode compatibility
 - [ ] Fix the 42 files with unparseable YAML frontmatter in vault (user task)
 
 ## Blockers
@@ -30,4 +31,4 @@ None.
 
 ## Next Session
 
-Continue experimentation with Search Harness tools, or move to Phase 4 (Vault-First LLM). User may want to investigate/fix the 42 files with bad YAML frontmatter.
+Test NO-CLAUDE-SKILLS.md with other projects, or continue Temoa experimentation. User may want to fix YAML frontmatter issues or explore Phase 4 (Vault-First LLM).

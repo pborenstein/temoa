@@ -514,3 +514,19 @@ Then experiment with **Option A** (Graph-Boosted) in harness:
 **Decision**: DEC-095
 
 **Verification**: 167 tests passing (4 fewer = deleted profile tests), 37 known failures unchanged, zero `profile` references in src/tests/UI.
+
+## Entry 40: Test Opencode Compatibility (2026-01-29)
+
+**What**: Tested plinth's token-efficient system with opencode LLM.
+
+**Why**: Verify documentation system works without Claude Code skills.
+
+**How**:
+- Created docs/NO-CLAUDE-SKILLS.md guide for opencode compatibility
+- Tested manual session-wrapup process using shell commands
+- Updated CONTEXT.md with current progress
+- Validated that token-efficient system works with any LLM
+
+**Impact**: Plinth now usable by opencode, GLM, and other code assistants.
+
+**Files**: docs/NO-CLAUDE-SKILLS.md, docs/CONTEXT.md.
