@@ -3,12 +3,15 @@
 **Date**: 2026-02-01
 **Branch**: `filters-and-combs`
 **Status**: ✅ COMPLETE
+**Reference**: [Obsidian Search Syntax](https://help.obsidian.md/plugins/search)
 
 ---
 
 ## What Was Implemented
 
 Phase 1 implements Obsidian-style filtering for the Explorer view in Temoa with instant, client-side filtering capabilities.
+
+**Note**: Implementation is a subset of full Obsidian search syntax. See reference link for complete syntax options.
 
 ### Features Delivered
 

@@ -2,6 +2,10 @@
 
 **Quick reference for Obsidian-style filtering in Temoa Explorer view**
 
+**Full Obsidian Syntax**: [https://help.obsidian.md/plugins/search](https://help.obsidian.md/plugins/search)
+
+**Note**: Temoa implements a subset of Obsidian's search operators.
+
 ---
 
 ## Basic Syntax
