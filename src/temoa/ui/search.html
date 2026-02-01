@@ -710,6 +710,160 @@
             display: block;
         }
 
+        /* Filter components */
+        .filter-input-wrapper {
+            position: relative;
+            margin-bottom: 8px;
+        }
+
+        .filter-input {
+            width: 100%;
+            padding: 8px 32px 8px 8px;
+            font-size: 12px;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+            border: 1px solid #404040;
+            border-radius: 6px;
+            background: #2a2a2a;
+            color: #e0e0e0;
+            outline: none;
+            resize: vertical;
+            min-height: 60px;
+            line-height: 1.4;
+        }
+
+        .filter-input:focus {
+            border-color: #666666;
+        }
+
+        .filter-input::placeholder {
+            color: #555555;
+            font-size: 11px;
+        }
+
+        .filter-help-toggle {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 20px;
+            height: 20px;
+            border: 1px solid #404040;
+            border-radius: 50%;
+            background: #1a1a1a;
+            color: #888888;
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+        }
+
+        .filter-help-toggle:hover {
+            background: #2a2a2a;
+            border-color: #666666;
+            color: #aaaaaa;
+        }
+
+        .filter-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 8px;
+            min-height: 20px;
+        }
+
+        .filter-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 8px;
+            font-size: 11px;
+            background: #2a5a8a;
+            color: #e0e0e0;
+            border-radius: 12px;
+            cursor: default;
+        }
+
+        .filter-chip-remove {
+            cursor: pointer;
+            font-weight: bold;
+            opacity: 0.7;
+            transition: opacity 0.15s;
+        }
+
+        .filter-chip-remove:hover {
+            opacity: 1;
+        }
+
+        .tag-match-mode {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .toggle-group {
+            display: flex;
+            gap: 0;
+            border: 1px solid #404040;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .toggle-btn {
+            padding: 4px 12px;
+            font-size: 11px;
+            font-weight: 500;
+            border: none;
+            background: #2a2a2a;
+            color: #888888;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .toggle-btn:not(:last-child) {
+            border-right: 1px solid #404040;
+        }
+
+        .toggle-btn:hover {
+            background: #333333;
+            color: #aaaaaa;
+        }
+
+        .toggle-btn.active {
+            background: #3a5a7a;
+            color: #e0e0e0;
+        }
+
+        .filter-help {
+            padding: 10px;
+            background: #1a1a1a;
+            border: 1px solid #333333;
+            border-radius: 6px;
+            margin-top: 8px;
+        }
+
+        .filter-help h4 {
+            font-size: 11px;
+            font-weight: 500;
+            color: #aaaaaa;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+
+        .filter-examples {
+            font-size: 11px;
+            line-height: 1.8;
+            color: #c0c0c0;
+        }
+
+        .filter-examples code {
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+            background: #2a2a2a;
+            padding: 2px 6px;
+            border-radius: 3px;
+            color: #6aa6d6;
+        }
+
         /* Action buttons */
         .action-row {
             display: flex;
@@ -1257,6 +1411,56 @@
                         </div>
                     </div>
 
+                    <!-- Filters section (client-side, instant) -->
+                    <div class="mixer-section" id="filters-section">
+                        <h3>
+                            Filters
+                            <span class="tooltip-wrapper">
+                                <span class="info-icon">?</span>
+                                <span class="tooltip">Filter results instantly using Obsidian-style syntax. No server call needed.</span>
+                            </span>
+                        </h3>
+
+                        <!-- Filter syntax input -->
+                        <div class="filter-input-wrapper">
+                            <textarea
+                                id="filter-input"
+                                class="filter-input"
+                                placeholder="tag:python path:Gleanings file:README"
+                                rows="2"
+                            ></textarea>
+                            <button id="filter-help-toggle" class="filter-help-toggle" title="Show filter syntax help">?</button>
+                        </div>
+
+                        <!-- Active filter chips -->
+                        <div id="filter-chips" class="filter-chips"></div>
+
+                        <!-- Tag match mode toggle -->
+                        <div class="tag-match-mode">
+                            <label style="font-size: 12px; color: #666; margin-right: 8px;">Tag matching:</label>
+                            <div class="toggle-group">
+                                <button class="toggle-btn active" data-mode="any">ANY</button>
+                                <button class="toggle-btn" data-mode="all">ALL</button>
+                            </div>
+                        </div>
+
+                        <!-- Filter help panel (collapsible) -->
+                        <div id="filter-help" class="filter-help" style="display: none;">
+                            <h4>Filter Syntax</h4>
+                            <div class="filter-examples">
+                                <code>tag:python</code> - Filter by tag<br>
+                                <code>tag:python,obsidian</code> - Multiple tags (comma-separated)<br>
+                                <code>path:L/Gleanings</code> - Path contains string<br>
+                                <code>file:README</code> - Filename contains string<br>
+                                <code>type:gleaning</code> - Filter by type (server-side)<br>
+                                <code>status:active</code> - Filter by status (server-side)
+                            </div>
+                            <p style="font-size: 11px; color: #888; margin-top: 8px;">
+                                Combine filters with spaces. Tag mode (ANY/ALL) controls whether results need any or all specified tags.
+                            </p>
+                        </div>
+                    </div>
+
                     <!-- Live params (client-side, instant) -->
                     <div class="mixer-section" id="live-section">
                         <h3>
@@ -1397,6 +1601,19 @@
                 time_weight: 1.0
             },
 
+            // Filter params (client-side filtering)
+            filterParams: {
+                filterText: '',
+                tagMatchMode: 'any',  // 'any' | 'all'
+                parsedFilters: {
+                    tags: [],
+                    types: [],
+                    statuses: [],
+                    paths: [],
+                    files: []
+                }
+            },
+
             fetchParamsChanged: false,
             lastFetchParams: null
         };
@@ -1515,6 +1732,7 @@
                     if (data.searchHistory) state.searchHistory = data.searchHistory;
                     if (data.fetchParams) state.fetchParams = { ...state.fetchParams, ...data.fetchParams };
                     if (data.liveParams) state.liveParams = { ...state.liveParams, ...data.liveParams };
+                    if (data.filterParams) state.filterParams = { ...state.filterParams, ...data.filterParams };
                     if (data.vault) state.vault = data.vault;
                 }
             } catch (err) {
@@ -1529,6 +1747,7 @@
                     searchHistory: state.searchHistory,
                     fetchParams: state.fetchParams,
                     liveParams: state.liveParams,
+                    filterParams: state.filterParams,
                     vault: state.vault
                 };
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
@@ -1576,6 +1795,24 @@
             liveBalanceValue.textContent = `${100-liveWeight}/${liveWeight}`;
             liveTags.value = state.liveParams.tag_multiplier;
             liveTime.value = state.liveParams.time_weight;
+
+            // Filter controls
+            const filterInput = document.getElementById('filter-input');
+            const tagMatchModeBtns = document.querySelectorAll('.toggle-btn');
+
+            if (filterInput) {
+                filterInput.value = state.filterParams.filterText || '';
+                updateFilterChips(state.filterParams.parsedFilters);
+
+                // Sync tag match mode toggle
+                tagMatchModeBtns.forEach(btn => {
+                    if (btn.dataset.mode === state.filterParams.tagMatchMode) {
+                        btn.classList.add('active');
+                    } else {
+                        btn.classList.remove('active');
+                    }
+                });
+            }
         }
 
         async function loadVaults() {
@@ -1739,6 +1976,43 @@
                 linkElement.setAttribute('download', exportFileDefaultName);
                 linkElement.click();
             });
+
+            // Filter controls
+            const filterInput = document.getElementById('filter-input');
+            const filterHelpToggle = document.getElementById('filter-help-toggle');
+            const filterHelp = document.getElementById('filter-help');
+            const tagMatchModeBtns = document.querySelectorAll('.toggle-btn');
+
+            if (filterInput) {
+                // Update filters on input
+                filterInput.addEventListener('input', handleFilterInput);
+
+                // Help toggle
+                if (filterHelpToggle && filterHelp) {
+                    filterHelpToggle.addEventListener('click', () => {
+                        const isVisible = filterHelp.style.display !== 'none';
+                        filterHelp.style.display = isVisible ? 'none' : 'block';
+                    });
+                }
+
+                // Tag match mode toggle
+                tagMatchModeBtns.forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        // Update active state
+                        tagMatchModeBtns.forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+
+                        // Update state
+                        state.filterParams.tagMatchMode = btn.dataset.mode;
+                        saveState();
+
+                        // Re-filter results
+                        if (state.rawResults.length > 0) {
+                            remixAndRender();
+                        }
+                    });
+                });
+            }
         }
 
         function markFetchDirty() {
@@ -1902,6 +2176,222 @@
             }
         }
 
+        // ========================================
+        // Filter Parsing & Application
+        // ========================================
+
+        function parseFilterSyntax(input) {
+            // Parse Obsidian-style filter syntax
+            // Returns: {queryText: string, filters: {...}}
+
+            const filters = {
+                tags: [],
+                types: [],
+                statuses: [],
+                paths: [],
+                files: []
+            };
+
+            let remainingText = input;
+
+            // Extract tag: filters
+            const tagRegex = /tag:([^\s]+)/g;
+            let match;
+            while ((match = tagRegex.exec(input)) !== null) {
+                filters.tags.push(...match[1].split(','));
+                remainingText = remainingText.replace(match[0], '');
+            }
+
+            // Extract type: filters (server-side, but we parse them)
+            const typeRegex = /type:([^\s]+)/g;
+            while ((match = typeRegex.exec(input)) !== null) {
+                filters.types.push(...match[1].split(','));
+                remainingText = remainingText.replace(match[0], '');
+            }
+
+            // Extract status: filters (server-side, but we parse them)
+            const statusRegex = /status:([^\s]+)/g;
+            while ((match = statusRegex.exec(input)) !== null) {
+                filters.statuses.push(...match[1].split(','));
+                remainingText = remainingText.replace(match[0], '');
+            }
+
+            // Extract path: filters
+            const pathRegex = /path:([^\s]+)/g;
+            while ((match = pathRegex.exec(input)) !== null) {
+                filters.paths.push(match[1]);
+                remainingText = remainingText.replace(match[0], '');
+            }
+
+            // Extract file: filters
+            const fileRegex = /file:([^\s]+)/g;
+            while ((match = fileRegex.exec(input)) !== null) {
+                filters.files.push(match[1]);
+                remainingText = remainingText.replace(match[0], '');
+            }
+
+            return {
+                queryText: remainingText.trim(),
+                filters: filters
+            };
+        }
+
+        function applyFilters(results, filters, tagMatchMode) {
+            // Apply client-side filters to results
+            // Returns filtered array
+
+            if (!results || results.length === 0) return results;
+
+            return results.filter(result => {
+                const fm = result.frontmatter || {};
+
+                // Tag filtering
+                if (filters.tags.length > 0) {
+                    const resultTags = fm.tags || [];
+                    const hasTag = tagMatchMode === 'any'
+                        ? filters.tags.some(tag => resultTags.includes(tag))
+                        : filters.tags.every(tag => resultTags.includes(tag));
+                    if (!hasTag) return false;
+                }
+
+                // Path filtering
+                if (filters.paths.length > 0) {
+                    const path = result.file_path || '';
+                    const matchesPath = filters.paths.some(p =>
+                        path.toLowerCase().includes(p.toLowerCase())
+                    );
+                    if (!matchesPath) return false;
+                }
+
+                // File filtering
+                if (filters.files.length > 0) {
+                    const filename = result.title || '';
+                    const matchesFile = filters.files.some(f =>
+                        filename.toLowerCase().includes(f.toLowerCase())
+                    );
+                    if (!matchesFile) return false;
+                }
+
+                return true;
+            });
+        }
+
+        function updateFilterChips(filters) {
+            // Render active filters as chips
+            const chipsContainer = document.getElementById('filter-chips');
+            if (!chipsContainer) return;
+
+            const chips = [];
+
+            // Tag chips
+            filters.tags.forEach(tag => {
+                chips.push({
+                    type: 'tag',
+                    value: tag,
+                    label: `tag:${tag}`
+                });
+            });
+
+            // Path chips
+            filters.paths.forEach(path => {
+                chips.push({
+                    type: 'path',
+                    value: path,
+                    label: `path:${path}`
+                });
+            });
+
+            // File chips
+            filters.files.forEach(file => {
+                chips.push({
+                    type: 'file',
+                    value: file,
+                    label: `file:${file}`
+                });
+            });
+
+            // Type chips (informational only, handled server-side)
+            filters.types.forEach(type => {
+                chips.push({
+                    type: 'type',
+                    value: type,
+                    label: `type:${type}`
+                });
+            });
+
+            // Status chips (informational only, handled server-side)
+            filters.statuses.forEach(status => {
+                chips.push({
+                    type: 'status',
+                    value: status,
+                    label: `status:${status}`
+                });
+            });
+
+            if (chips.length === 0) {
+                chipsContainer.innerHTML = '';
+                return;
+            }
+
+            chipsContainer.innerHTML = chips.map(chip => `
+                <div class="filter-chip" data-type="${chip.type}" data-value="${chip.value}">
+                    ${chip.label}
+                    <span class="filter-chip-remove" onclick="removeFilterChip('${chip.type}', '${chip.value}')">×</span>
+                </div>
+            `).join('');
+        }
+
+        function removeFilterChip(type, value) {
+            // Remove a specific filter chip
+            const filterInput = document.getElementById('filter-input');
+            if (!filterInput) return;
+
+            const filterText = filterInput.value;
+            const pattern = `${type}:${value}`;
+
+            // Remove the filter from the input
+            let newText = filterText;
+
+            // Handle comma-separated values
+            const regex = new RegExp(`${type}:([^\\s]+)`, 'g');
+            let match;
+            while ((match = regex.exec(filterText)) !== null) {
+                const fullMatch = match[0];
+                const values = match[1].split(',');
+                const newValues = values.filter(v => v !== value);
+
+                if (newValues.length === 0) {
+                    // Remove entire filter
+                    newText = newText.replace(fullMatch, '');
+                } else {
+                    // Update with remaining values
+                    newText = newText.replace(fullMatch, `${type}:${newValues.join(',')}`);
+                }
+            }
+
+            // Clean up extra spaces
+            newText = newText.replace(/\s+/g, ' ').trim();
+
+            filterInput.value = newText;
+            handleFilterInput();
+        }
+
+        function handleFilterInput() {
+            // Parse filter input and update state
+            const filterInput = document.getElementById('filter-input');
+            if (!filterInput) return;
+
+            const filterText = filterInput.value;
+            const parsed = parseFilterSyntax(filterText);
+
+            state.filterParams.filterText = filterText;
+            state.filterParams.parsedFilters = parsed.filters;
+
+            updateFilterChips(parsed.filters);
+            saveState();
+            remixAndRender();
+        }
+
         function remixAndRender() {
             // Client-side remix: re-blend semantic/BM25, apply tag/time multipliers
             if (!state.rawResults || state.rawResults.length === 0) return;
@@ -1939,7 +2429,11 @@
             // Sort by final score descending
             remixed.sort((a, b) => b.final_score - a.final_score);
 
-            state.remixedResults = remixed;
+            // Apply client-side filters
+            const { parsedFilters, tagMatchMode } = state.filterParams;
+            const filtered = applyFilters(remixed, parsedFilters, tagMatchMode);
+
+            state.remixedResults = filtered;
 
             if (state.viewMode === 'list') {
                 renderListResults();
