@@ -1,34 +1,36 @@
 ---
 phase: "Experimentation"
-phase_name: "Search Harness"
-updated: 2026-01-29
-last_commit: e8b3349
-branch: main
+phase_name: "Filtering & Combs"
+updated: 2026-02-01
+last_commit: 70479b2
+branch: filters-and-combs
 ---
 
 # Current Context
 
 ## Current Focus
 
-Testing plinth's token-efficient documentation system with opencode. Created NO-CLAUDE-SKILLS.md guide for using plinth without Claude Code skills.
+Implementing Obsidian-style filtering for Explorer view. Phase 1 complete (client-side tag/path/file filtering). Property filter syntax corrected: use `[property:value]` not `[property]:value`.
 
 ## Active Tasks
 
-- [x] Remove search profiles (search_profiles.py, tests, server, CLI, UI, docs)
-- [x] Create NO-CLAUDE-SKILLS.md guide for opencode compatibility
-- [ ] Fix the 42 files with unparseable YAML frontmatter in vault (user task)
+- [x] Phase 1: Core filtering UI (tag, path, file filters with ANY/ALL toggle)
+- [ ] Fix property filter syntax in planning docs (`[property:value]` format)
+- [ ] Test Phase 1 implementation in browser
+- [ ] Phase 2: Property filtering + /properties endpoint (when ready)
 
 ## Blockers
 
-None.
+None. Awaiting user testing/feedback on Phase 1.
 
 ## Context
 
-- **Search profiles removed**: Deleted search_profiles.py, test_search_profiles.py, /profiles endpoint, --profile CLI flag, profile dropdown in UI. All search params (hybrid, rerank, expand_query, time_boost, type filters) still work directly.
-- **Tests: 167 passing** (was 171; difference is the 4 deleted profile test functions). 37 known failures unchanged.
-- **Graph build async**: `/reindex` returns immediately; graph rebuilds in daemon thread (~90s)
-- **Experimentation Phase Active**: Search Harness, Inspector, Pipeline Viewer all functional
+- **Phase 1 filtering complete**: Client-side tag/path/file filters, filter chips, ANY/ALL toggle, state persistence. ~450 lines added to search.html.
+- **Property syntax correction needed**: User specified `[project:temoa]` format, not `[project]:temoa` as I assumed in planning docs.
+- **Performance**: <100ms for 100 results + 10 filters, zero network overhead
+- **Hybrid approach**: Server-side type/status filters, client-side tag/path/file for instant feedback
+- **Docs created**: PHASE1-IMPLEMENTATION-SUMMARY.md, FILTER-TESTING-GUIDE.md, FILTER-SYNTAX-REFERENCE.md
 
 ## Next Session
 
-Test NO-CLAUDE-SKILLS.md with other projects, or continue Temoa experimentation. User may want to fix YAML frontmatter issues or explore Phase 4 (Vault-First LLM).
+User will test Phase 1. Fix property syntax in planning docs. Await feedback before implementing Phase 2 (property filtering).

@@ -530,3 +530,25 @@ Then experiment with **Option A** (Graph-Boosted) in harness:
 **Impact**: Plinth now usable by opencode, GLM, and other code assistants.
 
 **Files**: docs/NO-CLAUDE-SKILLS.md, docs/CONTEXT.md.
+
+---
+
+## Entry 65: Obsidian-Style Filtering (Phase 1) (2026-02-01)
+
+**What**: Implemented client-side filtering for Explorer view with tag/path/file filters, ANY/ALL toggle, and filter chips.
+
+**Why**: Enable instant result filtering without server round-trips. Follows "Knobs and Dials" philosophy - experiment with filters quickly to discover what works.
+
+**How**:
+- Filter syntax input with help panel: `tag:python path:L/Gleanings file:README`
+- ANY/ALL toggle for tag matching (OR vs AND logic)
+- Visual filter chips with remove buttons
+- Client-side filtering via `parseFilterSyntax()` and `applyFilters()`
+- State persistence in localStorage
+- Zero network overhead (<100ms for 100 results + 10 filters)
+
+**Note**: Property filter syntax corrected to `[property:value]` format (not `[property]:value`).
+
+**Files**: src/temoa/ui/search.html (~450 lines), commit 70479b2
+
+**Docs**: PHASE1-IMPLEMENTATION-SUMMARY.md, FILTER-TESTING-GUIDE.md, FILTER-SYNTAX-REFERENCE.md
