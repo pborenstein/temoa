@@ -552,3 +552,23 @@ Then experiment with **Option A** (Graph-Boosted) in harness:
 **Files**: src/temoa/ui/search.html (~450 lines), commit 70479b2
 
 **Docs**: PHASE1-IMPLEMENTATION-SUMMARY.md, FILTER-TESTING-GUIDE.md, FILTER-SYNTAX-REFERENCE.md
+
+---
+
+## Entry 66: Filtering Polish & Obsidian Reference (2026-02-01)
+
+**What**: Fixed keyboard shortcuts interfering with filter input and added Obsidian search syntax reference.
+
+**Why**: User reported 't' key shortcut prevented typing "tag" in filter textarea. Documentation needed canonical reference to Obsidian's full search syntax.
+
+**How**:
+- Attempted fix: Added TEXTAREA check to keyboard shortcut handler
+- Final fix: Removed all keyboard shortcuts ('/', 'Esc', 't') - they interfered with normal typing
+- Added https://help.obsidian.md/plugins/search reference to all filtering docs
+- Created FILTERING-IMPLEMENTATION-PLAN.md as master plan with full Obsidian syntax reference
+
+**Impact**: Users can type freely in any input field. Documentation clearly shows which Obsidian operators are implemented vs not implemented.
+
+**Files**: src/temoa/ui/search.html, commits fac9386/088bb94/3e97b28
+
+**Docs**: FILTERING-IMPLEMENTATION-PLAN.md (new), updated PHASE1-IMPLEMENTATION-SUMMARY.md, FILTER-SYNTAX-REFERENCE.md
