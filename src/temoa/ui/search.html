@@ -1861,22 +1861,7 @@
             // History dropdown
             setupHistoryDropdown();
 
-            // Keyboard shortcuts
-            document.addEventListener('keydown', (e) => {
-                const isInputField = e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA';
-
-                if (e.key === '/' && !isInputField) {
-                    e.preventDefault();
-                    document.getElementById('query-input').focus();
-                }
-                if (e.key === 'Escape') {
-                    document.getElementById('query-input').blur();
-                }
-                if (e.key === 't' && !e.ctrlKey && !e.metaKey && !isInputField) {
-                    e.preventDefault();
-                    toggleView();
-                }
-            });
+            // Keyboard shortcuts removed - were interfering with typing
 
             // Help button
             const helpBtn = document.getElementById('help-btn');
