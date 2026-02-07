@@ -448,6 +448,221 @@ def filter_by_type(
     return filtered, num_filtered
 
 
+def filter_by_properties(
+    results: list,
+    include_props: list[dict] | None = None,
+    exclude_props: list[dict] | None = None
+) -> tuple[list, int]:
+    """
+    Filter results by any frontmatter property.
+
+    Args:
+        results: Search results from Synthesis
+        include_props: If set, only include results matching these properties
+                      Format: [{"prop": "type", "value": "gleaning"}, ...]
+        exclude_props: If set, exclude results matching these properties
+                      Format: [{"prop": "status", "value": "archived"}, ...]
+
+    Returns:
+        (filtered_results, num_filtered_out)
+
+    Logic:
+        - If include_props: Keep only if ANY property matches
+        - If exclude_props: Remove if ANY property matches
+        - If both: Apply include first, then exclude
+        - Property values compared as strings (case-sensitive)
+    """
+    if not include_props and not exclude_props:
+        return results, 0
+
+    filtered = []
+
+    for result in results:
+        frontmatter_data = result.get("frontmatter", {})
+
+        # Apply inclusive filter
+        if include_props:
+            match_found = False
+            for prop_filter in include_props:
+                prop_name = prop_filter.get("prop")
+                prop_value = prop_filter.get("value")
+                if not prop_name or not prop_value:
+                    continue
+
+                # Get the property value from frontmatter
+                fm_value = frontmatter_data.get(prop_name)
+                if fm_value is None:
+                    continue
+
+                # Compare as strings
+                if str(fm_value).lower() == str(prop_value).lower():
+                    match_found = True
+                    break
+
+            if not match_found:
+                continue
+
+        # Apply exclusive filter
+        if exclude_props:
+            should_exclude = False
+            for prop_filter in exclude_props:
+                prop_name = prop_filter.get("prop")
+                prop_value = prop_filter.get("value")
+                if not prop_name or not prop_value:
+                    continue
+
+                fm_value = frontmatter_data.get(prop_name)
+                if fm_value is None:
+                    continue
+
+                if str(fm_value).lower() == str(prop_value).lower():
+                    should_exclude = True
+                    logger.debug(f"Filtered out {prop_name}={fm_value}: {result.get('title', 'Unknown')}")
+                    break
+
+            if should_exclude:
+                continue
+
+        filtered.append(result)
+
+    num_filtered = len(results) - len(filtered)
+    return filtered, num_filtered
+
+
+def filter_by_tags(
+    results: list,
+    include_tags: list[str] | None = None,
+    exclude_tags: list[str] | None = None
+) -> tuple[list, int]:
+    """
+    Filter results by tags in frontmatter or content.
+
+    Args:
+        results: Search results from Synthesis
+        include_tags: If set, only include results with these tags (OR logic)
+        exclude_tags: If set, exclude results with these tags (OR logic)
+
+    Returns:
+        (filtered_results, num_filtered_out)
+    """
+    if not include_tags and not exclude_tags:
+        return results, 0
+
+    filtered = []
+
+    for result in results:
+        # Get tags from frontmatter (already parsed by Synthesis)
+        frontmatter_data = result.get("frontmatter", {})
+        tags = frontmatter_data.get("tags", [])
+
+        # Normalize tags (remove # prefix if present, lowercase)
+        if isinstance(tags, str):
+            tags = [tags]
+        tags = [t.lstrip('#').lower() for t in tags] if tags else []
+
+        # Apply inclusive filter
+        if include_tags:
+            normalized_include = [t.lstrip('#').lower() for t in include_tags]
+            if not any(t in tags for t in normalized_include):
+                continue
+
+        # Apply exclusive filter
+        if exclude_tags:
+            normalized_exclude = [t.lstrip('#').lower() for t in exclude_tags]
+            if any(t in tags for t in normalized_exclude):
+                logger.debug(f"Filtered out tags {tags}: {result.get('title', 'Unknown')}")
+                continue
+
+        filtered.append(result)
+
+    num_filtered = len(results) - len(filtered)
+    return filtered, num_filtered
+
+
+def filter_by_paths(
+    results: list,
+    include_paths: list[str] | None = None,
+    exclude_paths: list[str] | None = None
+) -> tuple[list, int]:
+    """
+    Filter results by file path patterns.
+
+    Args:
+        results: Search results from Synthesis
+        include_paths: If set, only include results with paths containing these patterns
+        exclude_paths: If set, exclude results with paths containing these patterns
+
+    Returns:
+        (filtered_results, num_filtered_out)
+    """
+    if not include_paths and not exclude_paths:
+        return results, 0
+
+    filtered = []
+
+    for result in results:
+        file_path = result.get("file_path", "")
+
+        # Apply inclusive filter
+        if include_paths:
+            if not any(pattern in file_path for pattern in include_paths):
+                continue
+
+        # Apply exclusive filter
+        if exclude_paths:
+            if any(pattern in file_path for pattern in exclude_paths):
+                logger.debug(f"Filtered out path {file_path}")
+                continue
+
+        filtered.append(result)
+
+    num_filtered = len(results) - len(filtered)
+    return filtered, num_filtered
+
+
+def filter_by_files(
+    results: list,
+    include_files: list[str] | None = None,
+    exclude_files: list[str] | None = None
+) -> tuple[list, int]:
+    """
+    Filter results by filename patterns.
+
+    Args:
+        results: Search results from Synthesis
+        include_files: If set, only include results with filenames containing these patterns
+        exclude_files: If set, exclude results with filenames containing these patterns
+
+    Returns:
+        (filtered_results, num_filtered_out)
+    """
+    if not include_files and not exclude_files:
+        return results, 0
+
+    from pathlib import Path
+    filtered = []
+
+    for result in results:
+        file_path = result.get("file_path", "")
+        filename = Path(file_path).name
+
+        # Apply inclusive filter
+        if include_files:
+            if not any(pattern in filename for pattern in include_files):
+                continue
+
+        # Apply exclusive filter
+        if exclude_files:
+            if any(pattern in filename for pattern in exclude_files):
+                logger.debug(f"Filtered out file {filename}")
+                continue
+
+        filtered.append(result)
+
+    num_filtered = len(results) - len(filtered)
+    return filtered, num_filtered
+
+
 # Determine CORS allowed origins
 # Priority: 1. Environment variable, 2. Config file, 3. Safe defaults
 cors_origins_env = os.getenv("TEMOA_CORS_ORIGINS", "").strip()
@@ -718,7 +933,14 @@ async def get_config(request: Request, vault: str = None):
         return JSONResponse(content={
             "vaults": vaults_config,
             "default_vault": config.get_default_vault()["name"],
-            "default_model": config.default_model
+            "default_model": config.default_model,
+            "search": {
+                "default_limit": config.search_default_limit,
+                "max_limit": config.search_max_limit,
+                "timeout": config.search_timeout,
+                "hybrid_enabled": config.hybrid_search_enabled,
+                "default_query_filter": config.default_query_filter
+            }
         })
 
     except Exception as e:
@@ -749,13 +971,37 @@ async def search(
         ge=0.0,
         le=1.0
     ),
-    include_types: Optional[str] = Query(
+    include_props: Optional[str] = Query(
         default=None,
-        description="Comma-separated list of types to include (e.g., 'gleaning,article')"
+        description="JSON array of property filters to include: [{\"prop\": \"name\", \"value\": \"val\"}]"
     ),
-    exclude_types: Optional[str] = Query(
-        default="daily",
-        description="Comma-separated list of types to exclude (default: 'daily')"
+    exclude_props: Optional[str] = Query(
+        default=None,
+        description="JSON array of property filters to exclude: [{\"prop\": \"name\", \"value\": \"val\"}]"
+    ),
+    include_tags: Optional[str] = Query(
+        default=None,
+        description="JSON array of tags to include: [\"python\", \"ai\"]"
+    ),
+    exclude_tags: Optional[str] = Query(
+        default=None,
+        description="JSON array of tags to exclude: [\"draft\", \"wip\"]"
+    ),
+    include_paths: Optional[str] = Query(
+        default=None,
+        description="JSON array of path patterns to include: [\"Gleanings\", \"Projects\"]"
+    ),
+    exclude_paths: Optional[str] = Query(
+        default=None,
+        description="JSON array of path patterns to exclude: [\"Archive\", \"Templates\"]"
+    ),
+    include_files: Optional[str] = Query(
+        default=None,
+        description="JSON array of filename patterns to include: [\"README\", \"index\"]"
+    ),
+    exclude_files: Optional[str] = Query(
+        default=None,
+        description="JSON array of filename patterns to exclude: [\"draft\", \"temp\"]"
     ),
     hybrid: Optional[bool] = Query(
         default=None,
@@ -837,19 +1083,69 @@ async def search(
         # Get client for specified vault
         synthesis, vault_path, vault_name = get_client_for_vault(request, vault)
 
-        # Parse type filters
-        include_type_list = None
-        if include_types:
-            include_type_list = [t.strip() for t in include_types.split(",") if t.strip()]
+        # Parse filter parameters from JSON
+        import json
 
-        exclude_type_list = None
-        if exclude_types:
-            exclude_type_list = [t.strip() for t in exclude_types.split(",") if t.strip()]
+        include_props_list = []
+        if include_props:
+            try:
+                include_props_list = json.loads(include_props)
+            except json.JSONDecodeError:
+                logger.warning(f"Invalid include_props JSON: {include_props}")
+
+        exclude_props_list = []
+        if exclude_props:
+            try:
+                exclude_props_list = json.loads(exclude_props)
+            except json.JSONDecodeError:
+                logger.warning(f"Invalid exclude_props JSON: {exclude_props}")
+
+        include_tags_list = []
+        if include_tags:
+            try:
+                include_tags_list = json.loads(include_tags)
+            except json.JSONDecodeError:
+                logger.warning(f"Invalid include_tags JSON: {include_tags}")
+
+        exclude_tags_list = []
+        if exclude_tags:
+            try:
+                exclude_tags_list = json.loads(exclude_tags)
+            except json.JSONDecodeError:
+                logger.warning(f"Invalid exclude_tags JSON: {exclude_tags}")
+
+        include_paths_list = []
+        if include_paths:
+            try:
+                include_paths_list = json.loads(include_paths)
+            except json.JSONDecodeError:
+                logger.warning(f"Invalid include_paths JSON: {include_paths}")
+
+        exclude_paths_list = []
+        if exclude_paths:
+            try:
+                exclude_paths_list = json.loads(exclude_paths)
+            except json.JSONDecodeError:
+                logger.warning(f"Invalid exclude_paths JSON: {exclude_paths}")
+
+        include_files_list = []
+        if include_files:
+            try:
+                include_files_list = json.loads(include_files)
+            except json.JSONDecodeError:
+                logger.warning(f"Invalid include_files JSON: {include_files}")
+
+        exclude_files_list = []
+        if exclude_files:
+            try:
+                exclude_files_list = json.loads(exclude_files)
+            except json.JSONDecodeError:
+                logger.warning(f"Invalid exclude_files JSON: {exclude_files}")
 
         # Determine whether to use hybrid search
         use_hybrid = hybrid if hybrid is not None else config.hybrid_search_enabled
 
-        logger.info(f"Search: vault='{vault_name}', query='{q}', limit={limit}, min_score={min_score}, include_types={include_type_list}, exclude_types={exclude_type_list}, hybrid={use_hybrid}, expand={expand_query}, time_boost={time_boost}, rerank={rerank}, model={model or 'default'}")
+        logger.info(f"Search: vault='{vault_name}', query='{q}', limit={limit}, min_score={min_score}, include_props={include_props_list}, exclude_props={exclude_props_list}, include_tags={include_tags_list}, exclude_tags={exclude_tags_list}, include_paths={include_paths_list}, exclude_paths={exclude_paths_list}, include_files={include_files_list}, exclude_files={exclude_files_list}, hybrid={use_hybrid}, expand={expand_query}, time_boost={time_boost}, rerank={rerank}, model={model or 'default'}")
 
         # Initialize pipeline state container (if debugging enabled)
         pipeline_state = None
@@ -869,8 +1165,14 @@ async def search(
                     "time_boost": time_boost,
                     "limit": limit,
                     "min_score": min_score,
-                    "include_types": include_type_list,
-                    "exclude_types": exclude_type_list
+                    "include_props": include_props_list,
+                    "exclude_props": exclude_props_list,
+                    "include_tags": include_tags_list,
+                    "exclude_tags": exclude_tags_list,
+                    "include_paths": include_paths_list,
+                    "exclude_paths": exclude_paths_list,
+                    "include_files": include_files_list,
+                    "exclude_files": exclude_files_list
                 }
             }
 
@@ -950,6 +1252,8 @@ async def search(
         stage_start = time.time()
         search_limit = limit * 2 if limit else 50
 
+        logger.info(f"Stage 1: Starting primary retrieval (limit={search_limit}, hybrid={use_hybrid})")
+
         # Choose search method
         if use_hybrid:
             try:
@@ -964,6 +1268,8 @@ async def search(
 
         # Get results
         results = data.get("results", [])
+        stage_duration = time.time() - stage_start
+        logger.info(f"Stage 1: Completed primary retrieval in {stage_duration:.2f}s ({len(results)} results)")
 
         # Capture Stage 1 & 2 state (retrieval + dedup, combined since dedup happens inside hybrid_search)
         if pipeline_state is not None:
@@ -1065,42 +1371,89 @@ async def search(
             )
             pipeline_state["stages"].append(stage_state)
 
-        # Stage 5: Type filtering
+        # Stage 5: Query Filter (properties, tags, paths, files)
         stage_start = time.time()
-        results_before_type_filter = filtered_results
-        filtered_results, type_removed = filter_by_type(
-            filtered_results,
-            include_types=include_type_list,
-            exclude_types=exclude_type_list
-        )
+        results_before_filtering = filtered_results
+        total_filtered = 0
 
-        if type_removed > 0:
-            logger.info(f"Filtered {type_removed} results by type (include={include_type_list}, exclude={exclude_type_list})")
+        logger.info(f"Stage 5: Starting Query Filter with {len(filtered_results)} results")
+
+        # Apply property filters
+        if include_props_list or exclude_props_list:
+            filter_start = time.time()
+            logger.info(f"Applying property filters: include={include_props_list}, exclude={exclude_props_list}")
+            filtered_results, props_removed = filter_by_properties(
+                filtered_results,
+                include_props=include_props_list,
+                exclude_props=exclude_props_list
+            )
+            total_filtered += props_removed
+            filter_duration = time.time() - filter_start
+            logger.info(f"Filtered {props_removed} results by properties in {filter_duration:.2f}s")
+
+        # Apply tag filters
+        if include_tags_list or exclude_tags_list:
+            filtered_results, tags_removed = filter_by_tags(
+                filtered_results,
+                include_tags=include_tags_list,
+                exclude_tags=exclude_tags_list
+            )
+            total_filtered += tags_removed
+            if tags_removed > 0:
+                logger.info(f"Filtered {tags_removed} results by tags")
+
+        # Apply path filters
+        if include_paths_list or exclude_paths_list:
+            filtered_results, paths_removed = filter_by_paths(
+                filtered_results,
+                include_paths=include_paths_list,
+                exclude_paths=exclude_paths_list
+            )
+            total_filtered += paths_removed
+            if paths_removed > 0:
+                logger.info(f"Filtered {paths_removed} results by paths")
+
+        # Apply file filters
+        if include_files_list or exclude_files_list:
+            filtered_results, files_removed = filter_by_files(
+                filtered_results,
+                include_files=include_files_list,
+                exclude_files=exclude_files_list
+            )
+            total_filtered += files_removed
+            if files_removed > 0:
+                logger.info(f"Filtered {files_removed} results by files")
 
         # Capture Stage 5 state
         if pipeline_state is not None:
             removed_items = []
-            if type_removed > 0:
+            if total_filtered > 0:
                 filtered_paths = {r.get("relative_path") for r in filtered_results}
                 removed_items = [
                     {
                         "relative_path": r.get("relative_path"),
-                        "type": r.get("type", "unknown")
+                        "title": r.get("title", "Unknown")
                     }
-                    for r in results_before_type_filter
+                    for r in results_before_filtering
                     if r.get("relative_path") not in filtered_paths
                 ][:20]
 
             stage_state = capture_stage_state(
                 stage_num=5,
-                stage_name="Type Filtering",
+                stage_name="Query Filter",
                 results=filtered_results,
                 metadata={
-                    "before_count": len(results_before_type_filter),
+                    "before_count": len(results_before_filtering),
                     "after_count": len(filtered_results),
-                    "removed_count": type_removed,
-                    "include_types": include_type_list,
-                    "exclude_types": exclude_type_list,
+                    "removed_count": total_filtered,
+                    "include_props": include_props_list,
+                    "exclude_props": exclude_props_list,
+                    "include_tags": include_tags_list,
+                    "exclude_tags": exclude_tags_list,
+                    "include_paths": include_paths_list,
+                    "exclude_paths": exclude_paths_list,
+                    "include_files": include_files_list,
+                    "exclude_files": exclude_files_list,
                     "removed_items": removed_items
                 },
                 start_time=stage_start
@@ -1199,8 +1552,8 @@ async def search(
         data["filtered_count"] = {
             "by_score": score_removed,
             "by_status": status_removed,
-            "by_type": type_removed,
-            "total_removed": score_removed + status_removed + type_removed
+            "by_query_filter": total_filtered,
+            "total_removed": score_removed + status_removed + total_filtered
         }
 
         # Add vault information to response

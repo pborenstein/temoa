@@ -808,3 +808,41 @@ Transformed 342 GitHub gleanings to clean, consistent format with short titles a
 - **Results Filter**: Post-fetch filtering (client-side, filters cached results)
 
 **Commits**: 6ed7394 (docs correction)
+
+---
+
+## Entry 74: Generic Query Filter with Performance Trade-offs (2026-02-07)
+
+**What**: Implemented Query Filter with generic property/tag/path/file filtering, but discovered architectural performance limitation.
+
+**Why**: Original plan was type/status filtering only. User wanted ANY property filtering (`[title:artichoke]`, `[author:smith]`), plus tags/paths/files. All using same Obsidian syntax.
+
+**How**:
+- Replaced type-specific params with generic JSON arrays: `include_props`, `exclude_props`, `include_tags`, etc.
+- Properties format: `[{prop: "type", value: "gleaning"}]`
+- Tags/paths/files: `["value1", "value2"]`
+- Updated `extractServerFilters()` to extract all filter types from AST
+- Implemented `filter_by_properties()`, `filter_by_tags()`, `filter_by_paths()`, `filter_by_files()`
+- Added config option: `search.default_query_filter` (e.g., `-[type:daily]`)
+- Added cancel button (AbortController) for slow searches
+
+**Performance Issue Discovered**:
+- **Architectural limitation**: Can't filter BEFORE semantic search
+- **Pipeline**: Stage 1 (search entire vault) → Stage 5 (filter results)
+- **Inclusive filters slow**: `[type:daily]` searches 3,059 files, filters to ~50 (30+ seconds)
+- **Exclude filters fast**: `-[type:gleaning]` limits search, filters after (~6 seconds)
+- **Root cause**: Synthesis doesn't support pre-filtering, must search all files first
+
+**Workarounds Implemented**:
+1. Loading message warns: "This may take 30+ seconds. Use exclude filters (-) for faster results."
+2. Cancel button lets user abort slow searches
+3. Documentation: Use exclude filters when possible
+
+**Long-term Fix Options**:
+1. Modify Synthesis to accept filter callbacks before semantic search
+2. Pre-filter file list before passing to Synthesis (requires Synthesis API changes)
+3. Accept current behavior with clear usage guidance
+
+**Files**: config.example.json, src/temoa/config.py, src/temoa/server.py, src/temoa/ui/search.html
+
+**Commits**: (uncommitted - session wrap-up in progress)

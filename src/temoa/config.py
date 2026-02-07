@@ -269,6 +269,11 @@ class Config:
         # Default to False if not specified for backwards compatibility
         return self._config.get("search", {}).get("hybrid_enabled", False)
 
+    @property
+    def default_query_filter(self) -> str:
+        """Default query filter (e.g., '-[type:daily]')"""
+        return self._config.get("search", {}).get("default_query_filter", "")
+
     def get_all_vaults(self) -> List[Dict[str, Any]]:
         """
         Get list of all configured vaults.

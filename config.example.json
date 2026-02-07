@@ -15,7 +15,8 @@
     "default_limit": 10,
     "max_limit": 50,
     "timeout": 10,
-    "hybrid_enabled": false
+    "hybrid_enabled": false,
+    "default_query_filter": "-[type:daily]"
   },
   "rate_limits": {
     "search_per_hour": 1000,

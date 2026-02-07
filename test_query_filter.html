@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Query Filter Test</title>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        .test { margin: 20px 0; padding: 10px; border: 1px solid #ccc; }
+        .pass { background: #dfd; }
+        .fail { background: #fdd; }
+        pre { background: #f5f5f5; padding: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Query Filter Test</h1>
+    <div id="results"></div>
+
+    <script>
+        // Copy the filter parser code from search.html here for testing
+        // (Just the essential parts)
+
+        class FilterLexer {
+            // ... (lexer code from search.html)
+        }
+
+        class FilterParser {
+            // ... (parser code from search.html)
+        }
+
+        function extractServerFilters(ast) {
+            const filters = {
+                include_props: [],
+                exclude_props: [],
+                include_tags: [],
+                exclude_tags: [],
+                include_paths: [],
+                exclude_paths: [],
+                include_files: [],
+                exclude_files: []
+            }
+
+            function walk(node, negated = false) {
+                if (!node) return
+
+                switch (node.type) {
+                    case 'OR':
+                    case 'AND':
+                        walk(node.left, negated)
+                        walk(node.right, negated)
+                        break
+
+                    case 'NOT':
+                        walk(node.expr, !negated)
+                        break
+
+                    case 'FILTER':
+                        if (node.isProperty) {
+                            const propFilter = { prop: node.filterType, value: node.value }
+                            if (negated) {
+                                filters.exclude_props.push(propFilter)
+                            } else {
+                                filters.include_props.push(propFilter)
+                            }
+                        }
+                        else if (node.filterType === 'tag') {
+                            if (negated) {
+                                filters.exclude_tags.push(node.value)
+                            } else {
+                                filters.include_tags.push(node.value)
+                            }
+                        }
+                        else if (node.filterType === 'path') {
+                            if (negated) {
+                                filters.exclude_paths.push(node.value)
+                            } else {
+                                filters.include_paths.push(node.value)
+                            }
+                        }
+                        else if (node.filterType === 'file') {
+                            if (negated) {
+                                filters.exclude_files.push(node.value)
+                            } else {
+                                filters.include_files.push(node.value)
+                            }
+                        }
+                        break
+
+                    case 'TEXT':
+                        break
+                }
+            }
+
+            walk(ast)
+            return filters
+        }
+
+        const tests = [
+            {
+                name: "Exclude daily notes",
+                input: "-[type:daily]",
+                expected: {
+                    exclude_props: [{prop: "type", value: "daily"}]
+                }
+            },
+            {
+                name: "Type and tag filter",
+                input: "[type:reference] tag:llms",
+                expected: {
+                    include_props: [{prop: "type", value: "reference"}],
+                    include_tags: ["llms"]
+                }
+            },
+            {
+                name: "Path and negative tag",
+                input: "path:Gleanings -tag:archived",
+                expected: {
+                    include_paths: ["Gleanings"],
+                    exclude_tags: ["archived"]
+                }
+            },
+            {
+                name: "Title property",
+                input: "[title:artichoke]",
+                expected: {
+                    include_props: [{prop: "title", value: "artichoke"}]
+                }
+            }
+        ];
+
+        const resultsDiv = document.getElementById('results');
+
+        tests.forEach(test => {
+            const testDiv = document.createElement('div');
+            testDiv.className = 'test';
+
+            try {
+                const lexer = new FilterLexer(test.input);
+                const tokens = lexer.tokenize();
+                const parser = new FilterParser(tokens);
+                const ast = parser.parse();
+                const filters = extractServerFilters(ast);
+
+                // Check if result matches expected
+                let pass = true;
+                const result = {include_props: filters.include_props, exclude_props: filters.exclude_props, include_tags: filters.include_tags, exclude_tags: filters.exclude_tags, include_paths: filters.include_paths, exclude_paths: filters.exclude_paths};
+
+                // Simple JSON comparison
+                const resultStr = JSON.stringify(result);
+                const expectedStr = JSON.stringify(test.expected);
+
+                if (resultStr !== expectedStr) {
+                    pass = false;
+                }
+
+                testDiv.classList.add(pass ? 'pass' : 'fail');
+                testDiv.innerHTML = `
+                    <h3>${pass ? '✓' : '✗'} ${test.name}</h3>
+                    <p>Input: <code>${test.input}</code></p>
+                    <p>Expected:</p>
+                    <pre>${JSON.stringify(test.expected, null, 2)}</pre>
+                    <p>Got:</p>
+                    <pre>${JSON.stringify(result, null, 2)}</pre>
+                `;
+            } catch (e) {
+                testDiv.classList.add('fail');
+                testDiv.innerHTML = `
+                    <h3>✗ ${test.name}</h3>
+                    <p>Input: <code>${test.input}</code></p>
+                    <p>Error: ${e.message}</p>
+                `;
+            }
+
+            resultsDiv.appendChild(testDiv);
+        });
+    </script>
+</body>
+</html>

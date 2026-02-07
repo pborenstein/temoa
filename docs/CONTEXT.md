@@ -2,7 +2,7 @@
 phase: "Experimentation"
 phase_name: "Two-Phase Filtering"
 updated: 2026-02-07
-last_commit: 6ed7394
+last_commit: 82a4e84
 branch: filters-and-combs
 ---
 
@@ -10,33 +10,31 @@ branch: filters-and-combs
 
 ## Current Focus
 
-Results Filter complete! Need to implement Query Filter (server-side type/status filtering).
+Query Filter implemented with generic property filtering. Performance issue: inclusive filters search entire vault first (slow). Need architectural fix or usage guidance.
 
 ## Active Tasks
 
-- [x] Results Filter (client-side) - tag, path, file filtering on cached results
-- [x] Obsidian syntax parser (lexer + AST evaluation)
-- [x] Reset/clear controls
-- [ ] Query Filter (server-side) - type, status filtering at fetch time
-- [ ] Separate Query Filter UI section above Results Filter
-- [ ] Query Filter clear button
+- [x] Query Filter (server-side) - generic property/tag/path/file filtering
+- [x] Query Filter UI section with clear button
+- [x] Generic filter functions (not just type/status)
+- [x] Cancel button for slow searches
+- [ ] Performance optimization for inclusive filters (architectural)
 
 ## Blockers
 
-None.
+Architectural limitation: can't filter BEFORE semantic search. Inclusive filters (`[type:daily]`) search entire vault then filter (30+ seconds). Exclude filters (`-[type:gleaning]`) are fast.
 
 ## Context
 
-- **Results Filter (✓ Complete)**: Client-side filtering of cached results using Obsidian syntax
-  - Filters: `tag:python`, `path:Gleanings`, `file:README`
-  - Instant feedback (no server round-trip)
-  - Clear button (✕) and included in Reset Mix
-- **Query Filter (⚠ TODO)**: Server-side filtering at fetch time
-  - Filters: `type:gleaning`, `status:active`, `[property:value]` syntax
-  - Sends `include_types`/`exclude_types` params to `/search` endpoint
-  - More efficient (don't fetch what you don't need)
-  - Needs separate UI section with own clear button
+- **Query Filter (✓ Implemented)**: Server-side filtering using Obsidian syntax
+  - Properties: `[type:gleaning]`, `[title:foo]`, `[any:value]`
+  - Tags: `tag:python`, Paths: `path:Gleanings`, Files: `file:README`
+  - Sends JSON arrays to `/search`: `include_props`, `exclude_props`, etc.
+  - Cancel button for slow searches (AbortController)
+- **Performance Issue**: Inclusive filters slow (search all → filter). Exclude filters fast (search limited → filter)
+- **Workaround**: Use exclude filters (`-[type:daily]`) instead of include (`[type:gleaning]`)
+- **Long-term fix**: Pass filters to Synthesis BEFORE semantic search (requires Synthesis changes)
 
 ## Next Session
 
-Implement Query Filter section: extract type/status from AST, send as query params, add UI section above Results Filter.
+Consider: (1) Add pre-filtering to Synthesis, (2) Document performance trade-offs, (3) Add UI warnings for slow filter patterns, or (4) Accept current behavior with guidance.

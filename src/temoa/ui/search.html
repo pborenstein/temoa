@@ -740,6 +740,11 @@
             font-size: 11px;
         }
 
+        .filter-input.default-value {
+            color: #888888;
+            font-style: italic;
+        }
+
         .filter-help-toggle {
             position: absolute;
             top: 8px;
@@ -1411,6 +1416,28 @@
                         </div>
                     </div>
 
+                    <!-- Query Filter section (server-side) -->
+                    <div class="mixer-section" id="query-filter-section">
+                        <h3>
+                            Query Filter
+                            <span class="tooltip-wrapper">
+                                <span class="info-icon">?</span>
+                                <span class="tooltip">Filter at fetch time. Property filters ([type:...], [status:...]) sent to server. Requires new search.</span>
+                            </span>
+                        </h3>
+
+                        <!-- Query Filter input -->
+                        <div class="filter-input-wrapper">
+                            <textarea
+                                id="query-filter-input"
+                                class="filter-input"
+                                placeholder="[type:gleaning] [status:active]"
+                                rows="2"
+                            ></textarea>
+                            <button id="query-filter-clear-btn" class="filter-help-toggle" title="Clear query filter" style="right: 32px;">✕</button>
+                        </div>
+                    </div>
+
                     <!-- Filters section (client-side, instant) -->
                     <div class="mixer-section" id="filters-section">
                         <h3>
@@ -1620,6 +1647,17 @@
                 time_weight: 1.0
             },
 
+            // Query Filter (server-side, property filters)
+            queryFilterText: '',
+            queryFilterDefault: '',    // Default from config
+            queryFilterAst: null,
+            queryServerFilters: {
+                include_types: [],
+                exclude_types: [],
+                include_statuses: [],
+                exclude_statuses: []
+            },
+
             // Filter params (client-side filtering)
             filterParams: {
                 filterText: '',
@@ -1736,6 +1774,7 @@
 
         async function initialize() {
             restoreState();
+            await loadConfig();
             await loadVaults();
             syncUIWithState();
             setupEventHandlers();
@@ -1859,6 +1898,36 @@
             if (filterInput) {
                 filterInput.value = state.filterParams.filterText || ''
                 updateFilterChips(state.filterParams.filterText)
+            }
+        }
+
+        async function loadConfig() {
+            try {
+                const res = await fetch('/config');
+                const data = await res.json();
+
+                // Load default query filter
+                const defaultQueryFilter = data.search?.default_query_filter || '';
+                state.queryFilterDefault = defaultQueryFilter;
+                state.queryFilterText = defaultQueryFilter;
+
+                // Set initial value in UI
+                const queryFilterInput = document.getElementById('query-filter-input');
+                if (queryFilterInput) {
+                    queryFilterInput.value = defaultQueryFilter;
+                    if (defaultQueryFilter) {
+                        queryFilterInput.classList.add('default-value');
+                    }
+
+                    // Parse default filter to set initial server filters
+                    const parsed = parseFilterSyntax(defaultQueryFilter);
+                    if (!parsed.error && parsed.ast) {
+                        state.queryFilterAst = parsed.ast;
+                        state.queryServerFilters = extractServerFilters(parsed.ast);
+                    }
+                }
+            } catch (err) {
+                console.error('Failed to load config:', err);
             }
         }
 
@@ -2044,6 +2113,23 @@
                     })
                 }
             }
+
+            // Query Filter controls
+            const queryFilterInput = document.getElementById('query-filter-input')
+            const queryFilterClearBtn = document.getElementById('query-filter-clear-btn')
+
+            if (queryFilterInput) {
+                // Update query filters on input
+                queryFilterInput.addEventListener('input', handleQueryFilterInput)
+
+                // Clear button
+                if (queryFilterClearBtn) {
+                    queryFilterClearBtn.addEventListener('click', () => {
+                        queryFilterInput.value = state.queryFilterDefault
+                        handleQueryFilterInput()
+                    })
+                }
+            }
         }
 
         function markFetchDirty() {
@@ -2124,7 +2210,37 @@
             if (liveTags) liveTags.value = 5.0;
             if (liveTime) liveTime.value = 1.0;
 
-            // Clear filter input
+            // Reset Query Filter to default
+            const queryFilterInput = document.getElementById('query-filter-input');
+            if (queryFilterInput) {
+                queryFilterInput.value = state.queryFilterDefault;
+                if (state.queryFilterDefault) {
+                    queryFilterInput.classList.add('default-value');
+                }
+
+                // Re-parse default filter
+                const parsed = parseFilterSyntax(state.queryFilterDefault);
+                if (!parsed.error && parsed.ast) {
+                    state.queryFilterText = state.queryFilterDefault;
+                    state.queryFilterAst = parsed.ast;
+                    state.queryServerFilters = extractServerFilters(parsed.ast);
+                } else {
+                    state.queryFilterText = '';
+                    state.queryFilterAst = null;
+                    state.queryServerFilters = {
+                        include_props: [],
+                        exclude_props: [],
+                        include_tags: [],
+                        exclude_tags: [],
+                        include_paths: [],
+                        exclude_paths: [],
+                        include_files: [],
+                        exclude_files: []
+                    };
+                }
+            }
+
+            // Clear Results Filter
             const filterInput = document.getElementById('filter-input');
             if (filterInput) filterInput.value = '';
             updateFilterChips('');
@@ -2195,15 +2311,48 @@
         // Search Flow
         // ========================================
 
+        // AbortController for canceling searches
+        let currentSearchController = null;
+
         async function runSearch() {
             const query = document.getElementById('query-input').value.trim();
             if (!query) return;
+
+            // Cancel previous search if running
+            if (currentSearchController) {
+                currentSearchController.abort();
+            }
+
+            // Create new abort controller for this search
+            currentSearchController = new AbortController();
 
             const mainEl = state.viewMode === 'list'
                 ? document.querySelector('.list-main')
                 : document.querySelector('#results-pane .pane-content');
 
-            mainEl.innerHTML = '<div class="loading"><div class="spinner"></div><span>Searching...</span></div>';
+            // Show loading with warning if Query Filter has include filters
+            const hasIncludeFilters =
+                (state.queryServerFilters.include_props && state.queryServerFilters.include_props.length > 0) ||
+                (state.queryServerFilters.include_tags && state.queryServerFilters.include_tags.length > 0) ||
+                (state.queryServerFilters.include_paths && state.queryServerFilters.include_paths.length > 0) ||
+                (state.queryServerFilters.include_files && state.queryServerFilters.include_files.length > 0);
+
+            const loadingMessage = hasIncludeFilters
+                ? '<div class="loading"><div class="spinner"></div><span>Searching entire vault, then filtering...<br><small style="color: #888;">This may take 30+ seconds. Use exclude filters (-) for faster results.</small><br><button id="cancel-search-btn" style="margin-top: 12px; padding: 8px 16px; background: #d32f2f; color: white; border: none; border-radius: 4px; cursor: pointer;">Cancel Search</button></span></div>'
+                : '<div class="loading"><div class="spinner"></div><span>Searching...<br><button id="cancel-search-btn" style="margin-top: 12px; padding: 8px 16px; background: #d32f2f; color: white; border: none; border-radius: 4px; cursor: pointer;">Cancel</button></span></div>';
+
+            mainEl.innerHTML = loadingMessage;
+
+            // Wire up cancel button
+            const cancelBtn = document.getElementById('cancel-search-btn');
+            if (cancelBtn) {
+                cancelBtn.addEventListener('click', () => {
+                    if (currentSearchController) {
+                        currentSearchController.abort();
+                        mainEl.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⊗</div><div class="empty-state-text">Search canceled</div></div>';
+                    }
+                });
+            }
 
             const runBtn = document.getElementById('run-btn');
             runBtn.disabled = true;
@@ -2219,7 +2368,35 @@
                     harness: 'true'
                 });
 
-                const response = await fetch(`/search?${params}`);
+                // Add query filter params as JSON
+                if (state.queryServerFilters.include_props && state.queryServerFilters.include_props.length > 0) {
+                    params.append('include_props', JSON.stringify(state.queryServerFilters.include_props));
+                }
+                if (state.queryServerFilters.exclude_props && state.queryServerFilters.exclude_props.length > 0) {
+                    params.append('exclude_props', JSON.stringify(state.queryServerFilters.exclude_props));
+                }
+                if (state.queryServerFilters.include_tags && state.queryServerFilters.include_tags.length > 0) {
+                    params.append('include_tags', JSON.stringify(state.queryServerFilters.include_tags));
+                }
+                if (state.queryServerFilters.exclude_tags && state.queryServerFilters.exclude_tags.length > 0) {
+                    params.append('exclude_tags', JSON.stringify(state.queryServerFilters.exclude_tags));
+                }
+                if (state.queryServerFilters.include_paths && state.queryServerFilters.include_paths.length > 0) {
+                    params.append('include_paths', JSON.stringify(state.queryServerFilters.include_paths));
+                }
+                if (state.queryServerFilters.exclude_paths && state.queryServerFilters.exclude_paths.length > 0) {
+                    params.append('exclude_paths', JSON.stringify(state.queryServerFilters.exclude_paths));
+                }
+                if (state.queryServerFilters.include_files && state.queryServerFilters.include_files.length > 0) {
+                    params.append('include_files', JSON.stringify(state.queryServerFilters.include_files));
+                }
+                if (state.queryServerFilters.exclude_files && state.queryServerFilters.exclude_files.length > 0) {
+                    params.append('exclude_files', JSON.stringify(state.queryServerFilters.exclude_files));
+                }
+
+                const response = await fetch(`/search?${params}`, {
+                    signal: currentSearchController.signal
+                });
                 if (!response.ok) throw new Error(`Search failed: ${response.statusText}`);
 
                 const data = await response.json();
@@ -2238,14 +2415,23 @@
                 addToSearchHistory(query);
                 remixAndRender();
 
+                // Clear abort controller on success
+                currentSearchController = null;
+
             } catch (err) {
-                console.error('Search error:', err);
-                mainEl.innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-state-icon">⚠️</div>
-                        <div class="empty-state-text">Search failed<br>${err.message}</div>
-                    </div>
-                `;
+                // Check if it was canceled
+                if (err.name === 'AbortError') {
+                    console.log('Search canceled by user');
+                    // UI already updated by cancel button
+                } else {
+                    console.error('Search error:', err);
+                    mainEl.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">⚠️</div>
+                            <div class="empty-state-text">Search failed<br>${err.message}</div>
+                        </div>
+                    `;
+                }
             } finally {
                 runBtn.disabled = false;
             }
@@ -2608,12 +2794,16 @@
         // ========================================
 
         function extractServerFilters(ast) {
-            // Walk AST and extract type/status filters for server-side filtering
+            // Walk AST and extract ALL filters for server-side filtering
             const filters = {
-                include_types: [],
-                exclude_types: [],
-                include_statuses: [],
-                exclude_statuses: []
+                include_props: [],   // [{prop, value}]
+                exclude_props: [],   // [{prop, value}]
+                include_tags: [],    // [value]
+                exclude_tags: [],    // [value]
+                include_paths: [],   // [value]
+                exclude_paths: [],   // [value]
+                include_files: [],   // [value]
+                exclude_files: []    // [value]
             }
 
             function walk(node, negated = false) {
@@ -2631,17 +2821,37 @@
                         break
 
                     case 'FILTER':
-                        if (node.filterType === 'type') {
+                        // Property filters: [prop:value]
+                        if (node.isProperty) {
+                            const propFilter = { prop: node.filterType, value: node.value }
                             if (negated) {
-                                filters.exclude_types.push(node.value)
+                                filters.exclude_props.push(propFilter)
                             } else {
-                                filters.include_types.push(node.value)
+                                filters.include_props.push(propFilter)
                             }
-                        } else if (node.filterType === 'status') {
+                        }
+                        // Tag filters: tag:value
+                        else if (node.filterType === 'tag') {
                             if (negated) {
-                                filters.exclude_statuses.push(node.value)
+                                filters.exclude_tags.push(node.value)
                             } else {
-                                filters.include_statuses.push(node.value)
+                                filters.include_tags.push(node.value)
+                            }
+                        }
+                        // Path filters: path:value
+                        else if (node.filterType === 'path') {
+                            if (negated) {
+                                filters.exclude_paths.push(node.value)
+                            } else {
+                                filters.include_paths.push(node.value)
+                            }
+                        }
+                        // File filters: file:value
+                        else if (node.filterType === 'file') {
+                            if (negated) {
+                                filters.exclude_files.push(node.value)
+                            } else {
+                                filters.include_files.push(node.value)
                             }
                         }
                         break
@@ -2828,6 +3038,66 @@
             `
         }
 
+
+        function handleQueryFilterInput() {
+            // Parse Query Filter and mark fetch as dirty if server filters changed
+            const queryFilterInput = document.getElementById('query-filter-input')
+            if (!queryFilterInput) return
+
+            const queryFilterText = queryFilterInput.value
+            const parsed = parseFilterSyntax(queryFilterText)
+
+            if (parsed.error) {
+                console.error('Query Filter parse error:', parsed.error)
+                // Don't block - just ignore invalid filter
+                return
+            }
+
+            // Update state
+            state.queryFilterText = queryFilterText
+            state.queryFilterAst = parsed.ast
+
+            // Extract server filters
+            const newServerFilters = parsed.ast ? extractServerFilters(parsed.ast) : {
+                include_props: [],
+                exclude_props: [],
+                include_tags: [],
+                exclude_tags: [],
+                include_paths: [],
+                exclude_paths: [],
+                include_files: [],
+                exclude_files: []
+            }
+
+            // Check if filters changed
+            const oldServerFilters = state.queryServerFilters || {}
+            const changed =
+                JSON.stringify(newServerFilters.include_props) !== JSON.stringify(oldServerFilters.include_props) ||
+                JSON.stringify(newServerFilters.exclude_props) !== JSON.stringify(oldServerFilters.exclude_props) ||
+                JSON.stringify(newServerFilters.include_tags) !== JSON.stringify(oldServerFilters.include_tags) ||
+                JSON.stringify(newServerFilters.exclude_tags) !== JSON.stringify(oldServerFilters.exclude_tags) ||
+                JSON.stringify(newServerFilters.include_paths) !== JSON.stringify(oldServerFilters.include_paths) ||
+                JSON.stringify(newServerFilters.exclude_paths) !== JSON.stringify(oldServerFilters.exclude_paths) ||
+                JSON.stringify(newServerFilters.include_files) !== JSON.stringify(oldServerFilters.include_files) ||
+                JSON.stringify(newServerFilters.exclude_files) !== JSON.stringify(oldServerFilters.exclude_files)
+
+            state.queryServerFilters = newServerFilters
+
+            // Remove default styling if value differs from default
+            if (queryFilterText !== state.queryFilterDefault) {
+                queryFilterInput.classList.remove('default-value')
+            } else {
+                queryFilterInput.classList.add('default-value')
+            }
+
+            saveState()
+
+            if (changed) {
+                // Mark fetch as dirty
+                markFetchDirty()
+                console.log('Query Filter changed - click Run to apply')
+            }
+        }
 
         function handleFilterInput() {
             // Parse filter input and update state
