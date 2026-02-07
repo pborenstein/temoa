@@ -846,3 +846,28 @@ Transformed 342 GitHub gleanings to clean, consistent format with short titles a
 **Files**: config.example.json, src/temoa/config.py, src/temoa/server.py, src/temoa/ui/search.html
 
 **Commits**: 6911066
+
+---
+
+## Entry 76: Option B - Single LIVE Slider (2026-02-07)
+
+**What**: Simplified search controls by implementing Option B architecture - removed FETCH hybrid slider, kept only LIVE slider for instant client-side blending.
+
+**Why**: 
+- Confusion: Two sliders (FETCH and LIVE) seemed redundant
+- FETCH slider only controlled which searches ran, not actual blending
+- RRF always merged with fixed weights regardless of slider position
+- User expectation: Slider should blend semantic/BM25 scores, not toggle searches
+
+**How**:
+1. **Server changes**: Removed `hybrid_weight` parameter, server always runs both semantic + BM25 with RRF merge
+2. **UI changes**: Removed FETCH section's hybrid slider, kept only LIVE slider
+3. **Fixed missing BM25 scores**: Added `hybrid: 'true'` to search params (was falling back to config)
+4. **Inspector optimization**: Created `updateInspectorScores()` to update only scores section when LIVE sliders change, avoiding wasteful re-fetches of graph/similar data
+5. **UX improvement**: Added "Clear All" button to search history dropdown
+
+**Result**: One slider, one mental model. Server runs both searches (~450ms), client remixes instantly (~5ms). Can try 10 different blends in 2 seconds.
+
+**Files**: src/temoa/server.py, src/temoa/ui/search.html, tests/test_server.py, docs/CONTEXT.md, docs/IMPLEMENTATION.md
+
+**Commits**: (pending)

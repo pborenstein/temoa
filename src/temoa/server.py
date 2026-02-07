@@ -1439,7 +1439,11 @@ async def search(
         # Choose search method
         if use_hybrid:
             try:
-                data = synthesis.hybrid_search(query=q, limit=search_limit, file_filter=file_filter)
+                data = synthesis.hybrid_search(
+                    query=q,
+                    limit=search_limit,
+                    file_filter=file_filter
+                )
             except SynthesisError as e:
                 # Fall back to semantic search if hybrid fails
                 logger.warning(f"Hybrid search failed, falling back to semantic: {e}")

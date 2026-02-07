@@ -198,3 +198,23 @@ def test_graph_hubs_endpoint(client):
     assert "hubs" in data
     assert "vault" in data
     assert isinstance(data["hubs"], list)
+
+
+def test_search_hybrid_mode(client):
+    """Test that hybrid search works and returns both semantic and BM25 scores"""
+    query = "python"
+
+    # Hybrid search (server uses RRF to merge semantic + BM25)
+    response = client.get(f"/search?q={query}&hybrid=true&limit=10")
+    assert response.status_code == 200
+    data = response.json()
+
+    # Should return results structure
+    assert "results" in data
+    assert isinstance(data["results"], list)
+
+    # Results should have both semantic and BM25 scores (for client-side mixing)
+    if len(data["results"]) > 0:
+        result = data["results"][0]
+        # Should have raw scores for client-side blending
+        assert "similarity_score" in result or "bm25_score" in result

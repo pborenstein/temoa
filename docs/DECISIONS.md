@@ -7,7 +7,7 @@
 > **For LLMs/Contributors**: Follow the governance process below when adding new decisions.
 
 **Last Updated**: 2026-02-07
-**Total Decisions**: 96 (DEC-001 through DEC-096, with historical gaps documented)
+**Total Decisions**: 97 (DEC-001 through DEC-102, with historical gaps documented)
 
 ---
 
@@ -237,3 +237,54 @@ These decisions were made during development but later superseded by refined app
 **Governance Process**: Established 2025-12-14
 **Reconciliation**: Added 19 historical decisions (DEC-002 through DEC-041 gaps)
 **Format**: Inspired by Architecture Decision Records (ADR) pattern, adapted for chronicle-based documentation
+
+---
+
+## DEC-102: Option B - Single LIVE Slider (2026-02-07)
+
+**Status**: ✅ Accepted
+
+**Context**:
+- Users reported confusion between FETCH and LIVE sliders - both seemed to control semantic/BM25 blending
+- FETCH slider actually controlled which searches ran (semantic-only, BM25-only, or both)
+- When both searches ran, RRF merged them with fixed weights regardless of slider position
+- User expectation: Slider at 0% = semantic only, 100% = BM25 only, with gradual blending in between
+- RRF's fixed formula meant slider positions between 0.1-0.9 all gave the same results
+
+**Decision**:
+Implement Option B architecture:
+- **Server**: Always run both semantic + BM25 searches, merge with RRF, return raw scores
+- **Client**: Single LIVE slider instantly re-blends scores without server call
+- **Remove**: FETCH hybrid slider (redundant, confusing)
+- **Keep**: LIVE slider for instant experimentation (0%=semantic, 100%=BM25)
+
+**Alternatives Considered**:
+
+1. **Option A: Make FETCH slider do weighted blending**
+   - Replace RRF with weighted average on server
+   - Both FETCH and LIVE would do same thing (redundant)
+   - Rejected: Two sliders doing identical work is confusing
+
+2. **Option C: Different roles for each slider**
+   - FETCH: Controls retrieval strategy (which searches run)
+   - LIVE: Controls final display ranking
+   - Rejected: Too complex, users wouldn't understand the difference
+
+**Consequences**:
+- ✅ **Simpler**: One slider, one mental model
+- ✅ **Instant feedback**: Client remix ~5ms vs server call ~450ms
+- ✅ **Experimentation**: Can try 10 blends in 2 seconds
+- ✅ **Always get both**: Server runs both searches, user chooses blend
+- ⚠️ **Always pays cost**: Both searches always run (~50ms overhead vs single search)
+- ⚠️ **RRF smoothing**: Semantic/BM25 differences may be subtle due to RRF's conservative merging
+
+**Implementation**:
+- Removed `hybrid_weight` parameter from server
+- Server always passes `hybrid=true` to synthesis
+- UI always sends `hybrid: 'true'` parameter
+- LIVE slider blends: `final = (1-w)*semantic + w*bm25`
+- Inspector optimized: Only scores section updates, no graph/similar re-fetch
+
+**See Also**: Chronicle Entry 76
+
+---

@@ -279,14 +279,12 @@ The production hardening is complete. Now we experiment with different combinati
 - [x] Build pipeline viewer (`/pipeline`) for stage-by-stage visualization (Entry 53)
 - [x] Add `?harness=true` API parameter for structured score output
 - [x] Add `?pipeline_debug=true` API parameter for stage state capture
-- [ ] Build unified Explorer interface (`/explorer`) consolidating all tools (Entry 54-55, in progress)
-  - [x] Phase 1: Core layout with responsive three-pane grid
-  - [x] Phase 1: State management with localStorage persistence
-  - [x] Phase 1: Controls pane (Fetch/Live mixer)
-  - [x] Phase 1: Add `/explorer` route to server
-  - [ ] Phase 1: Results pane - List mode
-  - [ ] Phase 1: Inspector pane layout (empty state)
-  - [ ] Phase 1: Wire up search flow (Controls → API → Results)
+- [x] Implement Option B: Single LIVE slider architecture (Entry 76)
+  - [x] Remove FETCH hybrid slider, keep only LIVE slider
+  - [x] Server always runs hybrid search (semantic + BM25)
+  - [x] Client-side instant re-blending without server calls
+  - [x] Inspector optimized to update only scores section
+  - [x] Add "Clear All" button to search history dropdown
 
 **Experimentation**:
 - [ ] Document baseline performance (latency, relevance)

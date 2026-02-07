@@ -184,6 +184,30 @@
             text-align: center;
         }
 
+        .history-dropdown-footer {
+            padding: 8px 14px;
+            border-top: 1px solid #333;
+            display: flex;
+            justify-content: flex-end;
+            background: #252525;
+        }
+
+        .history-clear-all-btn {
+            font-size: 12px;
+            color: #999;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 3px;
+            transition: all 0.15s;
+        }
+
+        .history-clear-all-btn:hover {
+            color: #cc4444;
+            background: #333;
+        }
+
         /* Adjust input border-radius when dropdown is visible */
         .search-input-wrapper:has(.search-history-dropdown.visible) .search-input {
             border-radius: 6px 6px 0 0;
@@ -1351,30 +1375,6 @@
                             </span>
                         </h3>
 
-                        <!-- Hybrid balance slider -->
-                        <div class="balance-slider" style="margin-bottom: 10px;">
-                            <div class="balance-labels">
-                                <span>
-                                    Sem
-                                    <span class="tooltip-wrapper">
-                                        <span class="info-icon">?</span>
-                                        <span class="tooltip"><strong>Fetch mode: Semantic</strong><br>Retrieves docs by conceptual similarity.<br>Good for exploratory searches.</span>
-                                    </span>
-                                </span>
-                                <span class="balance-value" id="fetch-balance-value">50/50</span>
-                                <span>
-                                    <span class="tooltip-wrapper">
-                                        <span class="info-icon">?</span>
-                                        <span class="tooltip"><strong>Fetch mode: Keyword</strong><br>Retrieves docs with exact word matches.<br>Good for specific terms, tags, names.</span>
-                                    </span>
-                                    BM25
-                                </span>
-                            </div>
-                            <div class="balance-track">
-                                <input type="range" id="fetch-hybrid" class="balance-input" min="0" max="100" value="50">
-                            </div>
-                        </div>
-
                         <div class="mixer-grid">
                             <div class="mixer-item">
                                 <label>
@@ -1634,7 +1634,6 @@
 
             // Fetch params (require server round-trip)
             fetchParams: {
-                hybrid_weight: 0.5,
                 limit: 20,
                 rerank: true,
                 expand: false
@@ -1864,8 +1863,6 @@
         }
 
         function syncExplorerControls() {
-            const fetchHybrid = document.getElementById('fetch-hybrid');
-            const fetchBalanceValue = document.getElementById('fetch-balance-value');
             const fetchLimit = document.getElementById('fetch-limit');
             const fetchRerank = document.getElementById('fetch-rerank');
             const fetchExpand = document.getElementById('fetch-expand');
@@ -1875,12 +1872,9 @@
             const liveTags = document.getElementById('live-tags');
             const liveTime = document.getElementById('live-time');
 
-            if (!fetchHybrid) return; // Controls not loaded yet
+            if (!fetchLimit) return; // Controls not loaded yet
 
             // Fetch controls
-            const fetchWeight = Math.round(state.fetchParams.hybrid_weight * 100);
-            fetchHybrid.value = fetchWeight;
-            fetchBalanceValue.textContent = `${100-fetchWeight}/${fetchWeight}`;
             fetchLimit.value = state.fetchParams.limit;
             fetchRerank.checked = state.fetchParams.rerank;
             fetchExpand.checked = state.fetchParams.expand;
@@ -1993,8 +1987,6 @@
         }
 
         function setupExplorerControls() {
-            const fetchHybrid = document.getElementById('fetch-hybrid');
-            const fetchBalanceValue = document.getElementById('fetch-balance-value');
             const fetchLimit = document.getElementById('fetch-limit');
             const fetchRerank = document.getElementById('fetch-rerank');
             const fetchExpand = document.getElementById('fetch-expand');
@@ -2008,16 +2000,9 @@
             const resetMixBtn = document.getElementById('reset-mix-btn');
             const exportBtn = document.getElementById('export-btn');
 
-            if (!fetchHybrid) return; // Elements not loaded yet
+            if (!fetchLimit) return; // Elements not loaded yet
 
             // Fetch controls (mark as dirty when changed)
-            fetchHybrid.addEventListener('input', () => {
-                const val = parseInt(fetchHybrid.value);
-                fetchBalanceValue.textContent = `${100-val}/${val}`;
-                state.fetchParams.hybrid_weight = val / 100;
-                markFetchDirty();
-                saveState();
-            });
 
             fetchLimit.addEventListener('change', () => {
                 state.fetchParams.limit = parseInt(fetchLimit.value);
@@ -2140,7 +2125,6 @@
                 const current = state.fetchParams;
                 const last = state.lastFetchParams;
                 const changed =
-                    current.hybrid_weight !== last.hybrid_weight ||
                     current.limit !== last.limit ||
                     current.rerank !== last.rerank ||
                     current.expand !== last.expand;
@@ -2158,7 +2142,6 @@
         function resetMix() {
             // Reset all params to defaults
             state.fetchParams = {
-                hybrid_weight: 0.5,
                 limit: 20,
                 rerank: true,
                 expand: false
@@ -2183,16 +2166,10 @@
             };
 
             // Update Fetch UI
-            const fetchHybrid = document.getElementById('fetch-hybrid');
-            const fetchBalanceValue = document.getElementById('fetch-balance-value');
             const fetchLimit = document.getElementById('fetch-limit');
             const fetchRerank = document.getElementById('fetch-rerank');
             const fetchExpand = document.getElementById('fetch-expand');
 
-            if (fetchHybrid) {
-                fetchHybrid.value = 50;
-                fetchBalanceValue.textContent = '50/50';
-            }
             if (fetchLimit) fetchLimit.value = 20;
             if (fetchRerank) fetchRerank.checked = true;
             if (fetchExpand) fetchExpand.checked = false;
@@ -2362,7 +2339,7 @@
                     q: query,
                     vault: state.vault || '',
                     limit: state.fetchParams.limit,
-                    hybrid_weight: state.fetchParams.hybrid_weight,
+                    hybrid: 'true',  // Always use hybrid search for Option B
                     rerank: state.fetchParams.rerank,
                     expand: state.fetchParams.expand,
                     harness: 'true'
@@ -3227,6 +3204,19 @@
             } else {
                 renderExplorerResults();
             }
+
+            // Update Inspector scores if a result is currently selected
+            if (state.selectedResult && state.remixedResults.length > 0) {
+                // Find the updated result in remixedResults
+                const updatedResult = state.remixedResults.find(
+                    r => r.relative_path === state.selectedResult.relative_path
+                );
+                if (updatedResult) {
+                    // Update only the scores section (don't re-fetch graph/similar)
+                    state.selectedResult = updatedResult;
+                    updateInspectorScores(updatedResult);
+                }
+            }
         }
 
         function renderListResults() {
@@ -3653,12 +3643,20 @@
                 return;
             }
 
-            dropdown.innerHTML = state.searchHistory.map((query, idx) => `
+            const historyItems = state.searchHistory.map((query, idx) => `
                 <div class="history-dropdown-item" data-query="${escapeHtml(query)}" data-index="${idx}">
                     <span>${escapeHtml(query)}</span>
                     <span class="delete-btn" data-index="${idx}">&times;</span>
                 </div>
             `).join('');
+
+            const footer = `
+                <div class="history-dropdown-footer">
+                    <button class="history-clear-all-btn" id="clear-history-btn">Clear All</button>
+                </div>
+            `;
+
+            dropdown.innerHTML = historyItems + footer;
 
             // Click to select
             dropdown.querySelectorAll('.history-dropdown-item').forEach(item => {
@@ -3687,6 +3685,18 @@
                     }
                 });
             });
+
+            // Clear all button
+            const clearAllBtn = document.getElementById('clear-history-btn');
+            if (clearAllBtn) {
+                clearAllBtn.addEventListener('mousedown', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    state.searchHistory = [];
+                    saveState();
+                    dropdown.classList.remove('visible');
+                });
+            }
         }
 
         function renderSearchHistory() {
@@ -4063,6 +4073,170 @@
             fetchSemanticNeighbors(result);
         }
 
+        function updateInspectorScores(result) {
+            // Only update the scores section, don't touch graph/similar sections
+            const inspectorContent = document.querySelector('#inspector-pane .pane-content');
+            if (!inspectorContent) return;
+
+            // Find the existing scores section
+            const existingScoresSection = inspectorContent.querySelector('.inspector-section:has(h3)');
+            if (!existingScoresSection) return;
+
+            // Find the scores section (it's after Similar and Graph sections)
+            const sections = inspectorContent.querySelectorAll('.inspector-section');
+            let scoresSection = null;
+            for (const section of sections) {
+                const h3 = section.querySelector('h3');
+                if (h3 && h3.textContent === 'Scores') {
+                    scoresSection = section;
+                    break;
+                }
+            }
+            if (!scoresSection) return;
+
+            // Clear and rebuild scores section
+            scoresSection.innerHTML = '';
+            const scoresTitle = document.createElement('h3');
+            scoresTitle.textContent = 'Scores';
+            scoresSection.appendChild(scoresTitle);
+
+            // Rebuild all score bars (same logic as renderInspector)
+            // Semantic score
+            if (result.similarity_score !== undefined) {
+                scoresSection.appendChild(createScoreBar(
+                    'Semantic',
+                    result.similarity_score,
+                    result.similarity_score,
+                    '<strong>Scale: 0.0 to 1.0</strong><br>' +
+                    'Measures conceptual similarity using AI embeddings. ' +
+                    'Finds documents about the same topic even if they use different words.<br><br>' +
+                    '<strong>0.0-0.3:</strong> Not relevant<br>' +
+                    '<strong>0.3-0.5:</strong> Somewhat related<br>' +
+                    '<strong>0.5-0.7:</strong> Relevant<br>' +
+                    '<strong>0.7-1.0:</strong> Highly relevant'
+                ));
+            }
+
+            // BM25 score
+            if (result.bm25_score !== undefined) {
+                const normalizedBM25 = Math.min(result.bm25_score / 10, 1);
+                scoresSection.appendChild(createScoreBar(
+                    'BM25',
+                    result.bm25_score.toFixed(2),
+                    normalizedBM25,
+                    '<strong>Scale: 0 to 30+ (typical: 0-15)</strong><br>' +
+                    'Keyword matching score. Higher = more exact word matches.<br><br>' +
+                    '<strong>Factors:</strong><br>' +
+                    '• How often query words appear<br>' +
+                    '• How rare the words are (rare = higher)<br>' +
+                    '• Document length (longer = lower)<br>' +
+                    '• Tags get 2x weight + 5x boost when matched<br><br>' +
+                    '<strong>0-5:</strong> Weak match<br>' +
+                    '<strong>5-15:</strong> Good match<br>' +
+                    '<strong>15+:</strong> Excellent match (often tag-boosted)'
+                ));
+            }
+
+            // RRF score
+            if (result.rrf_score !== undefined) {
+                scoresSection.appendChild(createScoreBar(
+                    'RRF',
+                    result.rrf_score.toFixed(4),
+                    result.rrf_score,
+                    '<strong>Scale: 0.0 to ~0.05 (typical)</strong><br>' +
+                    'Reciprocal Rank Fusion - combines Semantic + BM25 rankings.<br><br>' +
+                    '<strong>How it works:</strong><br>' +
+                    'RRF = sum(1 / (60 + rank))<br>' +
+                    '• Docs in both lists: highest scores<br>' +
+                    '• Tag-boosted docs: 1.5-2.0x multiplier<br>' +
+                    '• BM25-only docs: conservative boost<br><br>' +
+                    '<strong>0.00-0.02:</strong> Lower ranked<br>' +
+                    '<strong>0.02-0.04:</strong> Mid-tier<br>' +
+                    '<strong>0.04+:</strong> Top results'
+                ));
+            }
+
+            // Cross-encoder score
+            if (result.cross_encoder_score !== undefined) {
+                const normalized = (result.cross_encoder_score + 1) / 2;
+                scoresSection.appendChild(createScoreBar(
+                    'Cross-Enc',
+                    result.cross_encoder_score.toFixed(4),
+                    normalized,
+                    '<strong>Scale: -12 to +12 (typical: -1 to +1)</strong><br>' +
+                    'Precision re-ranking using ms-marco-MiniLM model. ' +
+                    'Processes query + document together for accurate relevance.<br><br>' +
+                    '<strong>Negative:</strong> Not relevant<br>' +
+                    '<strong>-1 to 0:</strong> Weak match<br>' +
+                    '<strong>0 to +2:</strong> Good match<br>' +
+                    '<strong>+2 to +12:</strong> Excellent match<br><br>' +
+                    '<em>Note: Skipped for tag-boosted results (already perfect)</em>'
+                ));
+            }
+
+            // Tag boost indicator
+            if (result.tag_boosted) {
+                const row = document.createElement('div');
+                row.className = 'inspector-row';
+                const label = document.createElement('div');
+                label.className = 'inspector-label';
+                label.textContent = 'Tag Boosted';
+                const value = document.createElement('div');
+                value.className = 'inspector-value';
+
+                const currentMultiplier = state.liveParams.tag_multiplier;
+                if (currentMultiplier > 1) {
+                    value.textContent = `⚡ Yes (${currentMultiplier}x)`;
+                    value.style.color = '#cc8800';
+                } else if (currentMultiplier === 1) {
+                    value.textContent = '⚡ Disabled (1x)';
+                    value.style.color = '#888888';
+                } else {
+                    value.textContent = `⚡ Reduced (${currentMultiplier}x)`;
+                    value.style.color = '#666666';
+                }
+
+                row.appendChild(label);
+                row.appendChild(value);
+                scoresSection.appendChild(row);
+            }
+
+            // Time boost
+            if (result.time_boost !== undefined && result.time_boost > 0) {
+                const row = document.createElement('div');
+                row.className = 'inspector-row';
+                const label = document.createElement('div');
+                label.className = 'inspector-label';
+                label.textContent = 'Time Boost';
+                const value = document.createElement('div');
+                value.className = 'inspector-value';
+                value.textContent = `+${(result.time_boost * 100).toFixed(0)}%`;
+                value.style.color = '#88aa88';
+                row.appendChild(label);
+                row.appendChild(value);
+                scoresSection.appendChild(row);
+            }
+
+            // Final score
+            if (result.final_score !== undefined) {
+                const results = state.remixedResults.length > 0 ? state.remixedResults : state.rawResults;
+                const maxFinal = Math.max(...results.map(r => r.final_score || 0));
+                const normalized = maxFinal > 0 ? result.final_score / maxFinal : 0;
+                scoresSection.appendChild(createScoreBar(
+                    'Final',
+                    result.final_score.toFixed(4),
+                    normalized,
+                    '<strong>Scale: 0.0 to 2.0+ (depends on mix)</strong><br>' +
+                    'Client-side remixed score using LIVE controls.<br><br>' +
+                    '<strong>Formula:</strong><br>' +
+                    'Final = (Sem × (1-balance) + BM25 × balance)<br>' +
+                    '• Tag-boosted: × Tag Multiplier<br>' +
+                    '• Recent docs: × (1 + Time Weight)<br><br>' +
+                    '<em>Adjust sliders in Controls to see this change!</em>'
+                ));
+            }
+        }
+
         async function fetchGraphNeighbors(relativePath) {
             const graphContent = document.getElementById('graph-content');
             if (!graphContent) {
@@ -4239,7 +4413,7 @@
                     q: title,
                     vault: state.vault || '',
                     limit: 8,
-                    hybrid_weight: 1.0,  // Pure semantic search
+                    hybrid: 'true',  // Use hybrid search (server will use RRF)
                     rerank: false,
                     expand: false
                 });
