@@ -1623,6 +1623,7 @@
             filterParams: {
                 filterText: '',
                 ast: null,           // Parsed AST from filter syntax
+                hasError: false,     // Parse error flag
                 serverFilters: {     // Extracted server-side filters (type, status)
                     include_types: [],
                     exclude_types: [],
@@ -2731,7 +2732,12 @@
             // Returns filtered array
 
             if (!results || results.length === 0) return results
-            if (!ast) return results
+
+            // If no AST and no error, return all results (no filter active)
+            // If no AST but hasError, return empty array (invalid filter)
+            if (!ast) {
+                return state.filterParams.hasError ? [] : results
+            }
 
             return results.filter(result => evaluateAST(ast, result, queryText))
         }
@@ -2773,13 +2779,32 @@
             if (parsed.error) {
                 // Show error message
                 console.error('Filter parse error:', parsed.error)
-                // TODO: Show user-friendly error in UI
-                updateFilterChips(filterText)
+
+                // Set error state
+                state.filterParams.filterText = filterText
+                state.filterParams.ast = null
+                state.filterParams.hasError = true
+
+                // Show error chip
+                const chipsContainer = document.getElementById('filter-chips')
+                if (chipsContainer) {
+                    chipsContainer.innerHTML = `
+                        <div class="filter-chip" style="background: #ffebee; color: #c62828; border-color: #ef5350;">
+                            ⚠ ${parsed.error}
+                        </div>
+                    `
+                }
+
+                saveState()
+
+                // Clear results to show the filter is invalid
+                remixAndRender()
                 return
             }
 
             state.filterParams.filterText = filterText
             state.filterParams.ast = parsed.ast
+            state.filterParams.hasError = false
 
             // Extract server filters
             const newServerFilters = parsed.ast ? extractServerFilters(parsed.ast) : {
