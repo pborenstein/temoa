@@ -1429,6 +1429,7 @@
                                 placeholder="tag:python path:Gleanings file:README"
                                 rows="2"
                             ></textarea>
+                            <button id="filter-clear-btn" class="filter-help-toggle" title="Clear filter" style="right: 32px;">✕</button>
                             <button id="filter-help-toggle" class="filter-help-toggle" title="Show filter syntax help">?</button>
                         </div>
 
@@ -2012,12 +2013,28 @@
 
             // Filter controls
             const filterInput = document.getElementById('filter-input')
+            const filterClearBtn = document.getElementById('filter-clear-btn')
             const filterHelpToggle = document.getElementById('filter-help-toggle')
             const filterHelp = document.getElementById('filter-help')
 
             if (filterInput) {
                 // Update filters on input
                 filterInput.addEventListener('input', handleFilterInput)
+
+                // Clear button
+                if (filterClearBtn) {
+                    filterClearBtn.addEventListener('click', () => {
+                        filterInput.value = ''
+                        state.filterParams.filterText = ''
+                        state.filterParams.ast = null
+                        state.filterParams.hasError = false
+                        updateFilterChips('')
+                        saveState()
+                        if (state.rawResults.length > 0) {
+                            remixAndRender()
+                        }
+                    })
+                }
 
                 // Help toggle
                 if (filterHelpToggle && filterHelp) {
@@ -2053,14 +2070,48 @@
         }
 
         function resetMix() {
-            // Reset to defaults
+            // Reset all params to defaults
+            state.fetchParams = {
+                hybrid_weight: 0.5,
+                limit: 20,
+                rerank: true,
+                expand: false
+            };
+
             state.liveParams = {
                 mix_balance: 0.5,
                 tag_multiplier: 5.0,
                 time_weight: 1.0
             };
 
-            // Update UI
+            state.filterParams = {
+                filterText: '',
+                ast: null,
+                hasError: false,
+                serverFilters: {
+                    include_types: [],
+                    exclude_types: [],
+                    include_statuses: [],
+                    exclude_statuses: []
+                }
+            };
+
+            // Update Fetch UI
+            const fetchHybrid = document.getElementById('fetch-hybrid');
+            const fetchBalanceValue = document.getElementById('fetch-balance-value');
+            const fetchLimit = document.getElementById('fetch-limit');
+            const fetchRerank = document.getElementById('fetch-rerank');
+            const fetchExpand = document.getElementById('fetch-expand');
+
+            if (fetchHybrid) {
+                fetchHybrid.value = 50;
+                fetchBalanceValue.textContent = '50/50';
+            }
+            if (fetchLimit) fetchLimit.value = 20;
+            if (fetchRerank) fetchRerank.checked = true;
+            if (fetchExpand) fetchExpand.checked = false;
+
+            // Update Live UI
             const liveBalance = document.getElementById('live-balance');
             const liveBalanceValue = document.getElementById('live-balance-value');
             const liveTags = document.getElementById('live-tags');
@@ -2069,9 +2120,19 @@
             if (liveBalance) {
                 liveBalance.value = 50;
                 liveBalanceValue.textContent = '50/50';
-                liveTags.value = 5.0;
-                liveTime.value = 1.0;
             }
+            if (liveTags) liveTags.value = 5.0;
+            if (liveTime) liveTime.value = 1.0;
+
+            // Clear filter input
+            const filterInput = document.getElementById('filter-input');
+            if (filterInput) filterInput.value = '';
+            updateFilterChips('');
+
+            // Clear dirty marker
+            const fetchSection = document.getElementById('fetch-section');
+            if (fetchSection) fetchSection.classList.remove('dirty');
+            state.fetchParamsChanged = false;
 
             // Remix if results exist
             if (state.rawResults.length > 0) {
