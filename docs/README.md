@@ -2,7 +2,7 @@
 
 > **Navigation guide** for all documentation in this directory.
 
-**Last Updated**: 2026-01-04
+**Last Updated**: 2026-02-07
 
 ---
 
@@ -34,12 +34,13 @@ Living documents tracking implementation progress and decisions.
 
 | Document | Purpose | Audience |
 |----------|---------|----------|
+| [TRACKING-SYSTEM.md](TRACKING-SYSTEM.md) | **START HERE** - Explains Temoa's hybrid tracking system | Everyone |
 | [CONTEXT.md](CONTEXT.md) | Current project status and session context | Everyone |
 | [IMPLEMENTATION.md](IMPLEMENTATION.md) | Master progress tracker across all phases (current phase detailed) | Everyone |
 | [DECISIONS.md](DECISIONS.md) | Architectural decision registry (DEC-001+) with governance process | Developers, Contributors, LLMs |
 | [CHRONICLES.md](CHRONICLES.md) | Design discussions and historical context (links to decisions) | Developers, Future maintainers |
 
-**Note**: Session workflows (pick-up/wrap-up) are now managed by the plinth plugin (`/session-wrapup` command).
+**Note**: Session workflows (pick-up/wrap-up) are now managed by the plinth plugin (`/session-wrapup` command). See [TRACKING-SYSTEM.md](TRACKING-SYSTEM.md) for manual workflows.
 
 ---
 

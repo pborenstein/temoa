@@ -72,4 +72,5 @@ Keep active when:
 ---
 
 **Archive Created**: 2025-11-24
-**Last Updated**: 2026-01-04
+**Last Updated**: 2026-02-07
+**See Also**: [docs/TRACKING-SYSTEM.md](../TRACKING-SYSTEM.md) - Explains Temoa's documentation approach

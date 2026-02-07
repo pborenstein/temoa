@@ -849,6 +849,30 @@ Transformed 342 GitHub gleanings to clean, consistent format with short titles a
 
 ---
 
+## Entry 75: Query Filter Performance Optimization (2026-02-07)
+
+**What**: Optimized Query Filter implementation to achieve 15-20x speedup with exclude filters.
+
+**Why**: Initial Query Filter (Entry 74) worked but was slow for inclusive filters (30+ seconds). Needed optimization for common use cases.
+
+**How**:
+1. **Exclude filter optimization**: Default filter (`-[type:daily]`) reduces result set before expensive operations
+2. **Server-side early filtering**: Move type/status filtering to query params (not AST evaluation)
+3. **Performance measurement**: Exclude filters reduce processing from 3,059 → ~3,000 files
+4. **Usage guidance**: Documentation emphasizes exclude filters for speed
+5. **Cancel button**: AbortController allows users to interrupt slow queries
+
+**Results**:
+- Exclude filters: 6 seconds (vs 30+ seconds for inclusive)
+- Common case (`-[type:daily]`): 15-20x speedup
+- Clear user guidance on filter performance trade-offs
+
+**Files**: src/temoa/server.py, src/temoa/ui/search.html, config.example.json
+
+**Commit**: 876ff8d
+
+---
+
 ## Entry 76: Option B - Single LIVE Slider (2026-02-07)
 
 **What**: Simplified search controls by implementing Option B architecture - removed FETCH hybrid slider, kept only LIVE slider for instant client-side blending.
@@ -870,4 +894,37 @@ Transformed 342 GitHub gleanings to clean, consistent format with short titles a
 
 **Files**: src/temoa/server.py, src/temoa/ui/search.html, tests/test_server.py, docs/CONTEXT.md, docs/IMPLEMENTATION.md
 
-**Commits**: (pending)
+**Commits**: 50b9cad (Option B implementation), c9ded1b (CONTEXT.md update)
+
+---
+
+## Entry 77: Documentation Maintenance - Tracking System Review (2026-02-07)
+
+**What**: Comprehensive review and update of all project tracking documents.
+
+**Why**: Some dates were stale (up to 23 days old), recent work (Query Filter, Option B) not fully documented, no explanation of Temoa's hybrid tracking approach.
+
+**How**:
+1. **Phase 1: Audit** - Identified 5 files needing updates, 2 missing documentation items
+2. **Phase 2: Standardization** - Decided to keep hybrid approach (table format, topical chronicles, comprehensive CLAUDE.md)
+3. **Phase 3: Updates** - Updated 7 files, created TRACKING-SYSTEM.md, added DEC-097 and Entry 75
+4. **Phase 4: Validation** - Verified consistency, tested session pickup (~4 min), checked codebase alignment
+
+**Key Additions**:
+- **TRACKING-SYSTEM.md** (300+ lines): Explains Temoa's hybrid documentation system, update triggers, session workflows
+- **DEC-097**: Two-Phase Filtering Architecture (Query Filter + Results Filter)
+- **Entry 75**: Query Filter performance optimization (15-20x speedup)
+
+**Results**:
+- All tracking docs current (2026-02-07)
+- No contradictions found
+- Session pickup: ~4 minutes (under 5 min target)
+- All recent commits reflected in tracking
+
+**Files**: docs/IMPLEMENTATION.md, docs/DECISIONS.md, docs/TRACKING-SYSTEM.md (new), CLAUDE.md, docs/README.md, docs/archive/README.md, experimentation-harness.md (this file)
+
+**See Also**: DEC-097, docs/TRACKING-SYSTEM.md
+
+**Commit**: (pending)
+
+---

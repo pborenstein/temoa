@@ -182,6 +182,7 @@ This checks for:
 | DEC-094: Lazy graph loading per vault | 58 | ~90s load time, cache on first request not startup |
 | DEC-095: Remove search profiles feature | 64 | Unused abstraction; direct query params sufficient |
 | DEC-096: Obsidian-compatible filter parser | 70 | Lexer+parser with AST for property syntax, boolean operators, grouping |
+| DEC-097: Two-phase filtering architecture | 73-74 | Query Filter (server pre-filtering) + Results Filter (client post-filtering) |
 
 ---
 
@@ -286,5 +287,75 @@ Implement Option B architecture:
 - Inspector optimized: Only scores section updates, no graph/similar re-fetch
 
 **See Also**: Chronicle Entry 76
+
+**Commits**: 50b9cad
+
+---
+
+## DEC-097: Two-Phase Filtering Architecture (2026-02-07)
+
+**Status**: ✅ Accepted
+
+**Context**:
+- Users wanted flexible filtering: by property (`[type:gleaning]`), tag (`#python`), path (`folder/subfolder`), file name
+- Need both pre-filtering (reduce search scope) and post-filtering (refine cached results)
+- Performance critical: Searching 3,000 files takes 30+ seconds if filter is too inclusive
+
+**Decision**:
+Implement two-phase filtering architecture:
+
+1. **Query Filter** (Server-side, pre-fetch)
+   - Generic property/tag/path/file filtering BEFORE semantic search
+   - JSON query params: `include_props`, `exclude_props`, `include_tags`, etc.
+   - Properties format: `[{prop: "type", value: "gleaning"}]`
+   - Filters applied at Stage 5 of pipeline (after search, before re-ranking)
+   - Config option: `search.default_query_filter` for automatic exclusions
+
+2. **Results Filter** (Client-side, post-fetch)
+   - Obsidian-compatible syntax parser (lexer + AST)
+   - Filters cached results without server call
+   - Boolean operators: AND (space), OR (`OR`), NOT (`-`)
+   - Grouping with parentheses
+   - Clear button, persists to localStorage
+
+**Architectural Limitation**:
+- Cannot filter BEFORE semantic search (Synthesis limitation)
+- Query Filter applied at Stage 5 (after entire vault searched)
+- **Inclusive filters slow**: `[type:daily]` searches 3,059 files → 30+ seconds
+- **Exclude filters fast**: `-[type:gleaning]` limits results → 6 seconds
+- Workaround: Cancel button (AbortController) for long queries
+
+**Performance Impact**:
+- Exclude filters: 15-20x speedup (e.g., `-[type:daily]` reduces results from 3,059 to ~3,000)
+- Include filters: No speedup (must search all, then filter)
+- Default filter (`-[type:daily]`) improves most queries
+
+**Alternatives Considered**:
+
+1. **Single-phase filtering** (only client-side)
+   - Rejected: Always fetches full result set, slow for targeted queries
+
+2. **Pre-filtering at Synthesis level**
+   - Rejected: Requires modifying Synthesis internals, breaks encapsulation
+
+3. **Type-specific filters only**
+   - Rejected: User wanted arbitrary property filtering
+
+**Consequences**:
+- ✅ **Flexible**: Any property/tag/path/file can be filtered
+- ✅ **Fast for exclude filters**: Common case (exclude daily notes) is fast
+- ✅ **Cacheable**: Client-side Results Filter avoids re-fetching
+- ⚠️ **Slow for inclusive filters**: Use guidance/cancel button to mitigate
+- ⚠️ **Duplicate filter logic**: Property filtering exists in both client/server
+
+**Implementation**:
+- Query Filter: `extractServerFilters()` parses AST → JSON params → server applies
+- Results Filter: `parseFilter()` → AST → `evaluateFilter()` on cached results
+- Cancel support: AbortController passed to fetch, checked in filter loops
+- Default filter: Applied automatically unless overridden
+
+**See Also**: Chronicle Entries 73-74
+
+**Commits**: 6911066 (Query Filter), 876ff8d (15-20x speedup)
 
 ---

@@ -2,7 +2,7 @@
 
 > **Purpose**: This document provides context and guidance for Claude AI when working on the Temoa project across multiple sessions.
 
-**Last Updated**: 2026-01-26
+**Last Updated**: 2026-02-07
 **Project Status**: Experimentation Phase Active
 **Current Version**: 0.7.0
 **Current Branch**: `main`
@@ -21,12 +21,12 @@
 - **Frontmatter-aware search**: Tag boosting (5x multiplier) + description field indexing
 - **Hybrid search**: BM25 + semantic with RRF fusion and aggressive tag boosting
 - **Search quality pipeline**: Query expansion, cross-encoder re-ranking, time-aware scoring
+- **Two-phase filtering**: Query Filter (server pre-filtering) + Results Filter (client post-filtering with Obsidian syntax)
 - **Adaptive Chunking**: Full-content indexing for large files (4.4x content coverage)
 - **Multi-vault support**: LRU cache (max 3 vaults), independent indexes
 - **Experimental Tools**: Search Harness (score mixer), Inspector (wikilink explorer), Pipeline Viewer
 - **PWA support**: Installable on mobile devices
 - **Incremental reindexing**: 30x faster (5s vs 159s)
-- **Type filtering**: Exclude/include by frontmatter type field
 - **Gleaning management**: Status tracking, URL normalization, auto-restore
 - **Production Hardening**: Complete (CORS, rate limiting, path validation, error handling)
 
@@ -250,6 +250,8 @@ uv run main.py models
 - **Graph Caching**: VaultGraph with pickle caching (90s → 0.1s load time)
 - **Unified Search Interface**: View toggle (cards/list/explorer) in main search UI
 - **Search history dropdown**: Replaced pills UI, more space-efficient
+- **Two-Phase Filtering**: Query Filter (server pre-filtering, 15-20x speedup with exclude filters) + Results Filter (client-side Obsidian syntax parser)
+- **Option B Architecture**: Single LIVE slider for instant score blending (removed FETCH slider, server always runs hybrid)
 - **Experimental endpoints**: `/harness`, `/inspector`, `/pipeline` for rapid iteration
 
 **Key Principle**: "Knobs and Dials" approach - make all parameters tunable to discover optimal settings through experimentation rather than theory
@@ -403,9 +405,11 @@ Tags are keywords, not concepts. Temoa uses multi-layer approach:
 
 ## Current State Summary (Experimentation Phase Active)
 
-### Completed Features
+**For detailed progress tracking, see [docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md)**
 
-**Frontmatter-Aware Search** (NEW):
+### Completed Features (High-Level Overview)
+
+**Frontmatter-Aware Search**:
 - ✅ **Tag boosting**: 5x BM25 score multiplier when query matches tags
 - ✅ **Aggressive RRF boost**: 1.5-2.0x max_rrf to overcome fusion averaging
 - ✅ **Tag indexing**: Tags repeated 2x in BM25 corpus for emphasis
@@ -443,12 +447,13 @@ Tags are keywords, not concepts. Temoa uses multi-layer approach:
 - ✅ **Dark mode**: System preference detection
 - ✅ **Responsive design**: Mobile-first, tested on iOS/Android
 
-**Experimental Tools** (NEW):
+**Experimental Tools**:
 - ✅ **Search Harness**: Interactive score mixer with real-time remixing
 - ✅ **Pipeline Viewer**: 8-stage pipeline visualization
 - ✅ **Inspector**: Wikilink graph + semantic discovery ("Similar by Topic")
 - ✅ **Graph Caching**: VaultGraph pickle cache (90s → 0.1s load)
-- ✅ **Raw Score Storage**: Semantic, BM25, cross-encoder scores in results
+- ✅ **Two-Phase Filtering**: Query Filter (server) + Results Filter (client with Obsidian syntax)
+- ✅ **Option B Architecture**: Single LIVE slider (removed FETCH slider, instant blending)
 - ✅ **Experimental endpoints**: `/harness`, `/inspector`, `/pipeline`
 
 **Performance Optimizations** (Phase 2):
@@ -516,25 +521,11 @@ Tags are keywords, not concepts. Temoa uses multi-layer approach:
 
 ### Next Steps
 
-**Current Focus**: Experimentation Phase - "Knobs and Dials" approach
+**See [docs/CONTEXT.md](docs/CONTEXT.md) for current session focus and active tasks.**
 
-**Active Exploration** (via experimental tools):
-- Search quality improvements through harness tuning
-- Document discovery patterns via Inspector
-- Pipeline optimization through stage visualization
-- Parameter sensitivity analysis (what matters most?)
+**Current Phase**: Experimentation - "Knobs and Dials" approach via interactive tools
 
-**Ready for Production**: Core features complete
-- ✅ Security hardening complete (CORS, rate limiting, path validation)
-- ✅ Performance optimized (700-1300ms latency improvement)
-- ✅ Error handling robust (specific exception types, fail-open/closed patterns)
-- ✅ Testing baseline established (171/171 passing)
-- ✅ Documentation comprehensive (TESTING.md, ARCHITECTURE.md, DEPLOYMENT.md)
-
-**Future Options**:
-- **Phase 4: Vault-First LLM** - `/chat` endpoint with vault context, Apantli integration
-- **Continue Refinements** - Edge case handling, Unicode improvements, URL normalization
-- **Productionize Experimental Tools** - Integrate best discoveries into main search interface
+**Future Phases**: Phase 4 (Vault-First LLM) on backburner, focus on experimental tool refinement
 
 ---
 
@@ -721,7 +712,7 @@ When starting a new development session:
 ---
 
 **Created**: 2025-11-18
-**Last Major Update**: 2026-01-26 (added Experimentation Phase, updated to v0.7.0)
+**Last Major Update**: 2026-02-07 (updated features, slimmed duplicated sections)
 **For**: Claude AI development sessions
 **Owner**: pborenstein
 **Project**: Temoa - Vault-First Research Workflow

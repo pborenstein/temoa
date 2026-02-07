@@ -7,7 +7,7 @@
 **Project**: Temoa - Local Semantic Search Server for Obsidian Vault
 **Created**: 2025-11-18
 **Status**: Experimentation Phase 🔵 ACTIVE - Knobs & Dials Tuning
-**Last Updated**: 2026-01-14
+**Last Updated**: 2026-02-07
 **Current Version**: 0.7.0
 **Current Branch**: `main`
 **Estimated Timeline**: 4-6 weeks for Phases 0-2, ongoing for Phases 3-4
@@ -279,6 +279,17 @@ The production hardening is complete. Now we experiment with different combinati
 - [x] Build pipeline viewer (`/pipeline`) for stage-by-stage visualization (Entry 53)
 - [x] Add `?harness=true` API parameter for structured score output
 - [x] Add `?pipeline_debug=true` API parameter for stage state capture
+- [x] Implement Results Filter with Obsidian syntax (Entry 71-73)
+  - [x] Lexer + parser for property/tag/path/file filtering
+  - [x] Client-side filtering on cached results
+  - [x] Boolean operators (AND/OR/NOT) and grouping
+  - [x] Clear filter button and reset functionality
+- [x] Implement Query Filter for pre-filtering (Entry 74)
+  - [x] Generic property/tag/path/file filtering before search
+  - [x] JSON query params: `include_props`, `exclude_props`, `include_tags`, etc.
+  - [x] 15-20x speedup with exclude filters (e.g., `-[type:daily]`)
+  - [x] Cancel button for long-running queries (AbortController)
+  - [x] Config option: `search.default_query_filter`
 - [x] Implement Option B: Single LIVE slider architecture (Entry 76)
   - [x] Remove FETCH hybrid slider, keep only LIVE slider
   - [x] Server always runs hybrid search (semantic + BM25)
@@ -311,6 +322,6 @@ Moved to backburner. See [archive/backburner/phase-4-llm.md](archive/backburner/
 
 ---
 
-**Last Updated**: 2026-01-23
+**Last Updated**: 2026-02-07
 **Current Phase**: Experimentation (Knobs & Dials)
 **Next**: See CONTEXT.md for current session state
