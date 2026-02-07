@@ -604,3 +604,55 @@ Then experiment with **Option A** (Graph-Boosted) in harness:
 **Files**: docs/chronicles/gleanings-rethink-2026-02.md, docs/CONTEXT.md
 
 **Next**: Fix GitHub gleaning extraction to capture better descriptions automatically
+## Entry 68: Gleanings Text Cleanup (2026-02-06)
+
+**What**: Built and ran text cleaning utility to fix unicode problems across all 1,054 gleanings.
+
+**Why**: Emojis, smart quotes, JSON arrays, and other problematic unicode were breaking indexing and YAML parsing. GitHub gleanings especially problematic with emoji in titles/descriptions.
+
+**How**:
+
+1. **Created text_cleaner.py utility**:
+   - `remove_emojis()` - all emoji unicode ranges
+   - `remove_zero_width()` - invisible characters
+   - `remove_rtl_marks()` - RTL/LTR formatting
+   - `normalize_quotes()` - smart quotes → ASCII
+   - `normalize_dashes()` - en/em dashes → hyphens
+   - `normalize_spaces()` - non-breaking spaces, cleanup
+   - `clean_text()` - applies all operations
+
+2. **Created cleanup_gleanings.py script**:
+   - Cleans all text fields in frontmatter
+   - Converts JSON topic arrays to proper YAML lists
+   - Cleans headings and link text in body
+   - Dry run mode, progress reporting
+   - Detects JSON format in source to trigger rewrite
+
+3. **Ran cleanup on full vault**:
+   - Processed: 1,054 gleanings
+   - Modified: 341 files (32%)
+   - Text cleaned: 230 files
+   - Topics fixed: 122 files (JSON → YAML)
+   - Body cleaned: 101 files
+   - Errors: 0
+
+**Example fix**:
+```yaml
+# Before
+github_topics: ["topic1", "topic2"]
+# Title: user/repo: 🕵️‍♂️ Description
+
+# After
+github_topics:
+- topic1
+- topic2
+# Title: user/repo: Description
+```
+
+**Files**:
+- src/temoa/text_cleaner.py (new)
+- src/temoa/scripts/cleanup_gleanings.py (new)
+- docs/chronicles/gleaning-cleanup-analysis.md
+- docs/chronicles/text-cleanup-ready.md
+
+**Next**: Reindex vault, then reorganize GitHub gleaning structure (simpler titles, README descriptions)

@@ -1,8 +1,8 @@
 ---
 phase: "Experimentation"
-phase_name: "Gleanings Rethink"
+phase_name: "Gleanings Cleanup"
 updated: 2026-02-06
-last_commit: 003bf9b
+last_commit: aff7c89
 branch: filters-and-combs
 ---
 
@@ -10,15 +10,16 @@ branch: filters-and-combs
 
 ## Current Focus
 
-Filtering work surfaced fundamental issues with gleanings system. Pivoting to fix gleanings first before continuing with query/result filtering architecture.
+Text cleanup complete! All 1,054 gleanings cleaned of emojis, unicode problems, and JSON formatting issues.
 
 ## Active Tasks
 
-- [x] Document gleaning problems (GitHub template, two-phase filtering insight)
-- [ ] Fix GitHub gleaning extraction (better descriptions without requiring manual input)
-- [ ] Update gleaning template/format
-- [ ] Test gleaning improvements on existing gleanings
-- [ ] Return to filtering: implement Query filters (pre-fetch) vs Result filters (post-fetch)
+- [x] Document gleaning problems
+- [x] Create text cleaning utility (text_cleaner.py)
+- [x] Create cleanup script (cleanup_gleanings.py)
+- [x] Run cleanup on all gleanings (341 files modified)
+- [ ] Reindex vault to pick up cleaned frontmatter
+- [ ] Next: GitHub gleaning reorganization (title format, README descriptions)
 
 ## Blockers
 
@@ -26,13 +27,14 @@ None.
 
 ## Context
 
-- **Key insight**: Two-phase filtering needed - Query filters (pre-fetch/server) vs Result filters (post-fetch/client)
-- **Gleaning problem**: GitHub repos missing "why I saved this" context, template is redundant
-- **No manual descriptions**: User doesn't add context when saving gleanings, can't require it
-- **Terminology decided**: "Query filters" and "Result filters" (not "search" vs "display")
-- **Staying on branch**: Gleanings and filtering are intertwined, keeping together makes sense
-- **Chronicle entry 67**: Documented problems in gleanings-rethink-2026-02.md
+- **Cleanup complete**: 341/1,054 files modified (32%)
+  - 230 files: text cleaned (emojis, quotes, dashes)
+  - 122 files: JSON topics → YAML lists
+  - 101 files: body cleaned (headings, links)
+- **Zero errors**: All files processed successfully
+- **Files ready**: src/temoa/text_cleaner.py, src/temoa/scripts/cleanup_gleanings.py
+- **Two-phase filtering**: Terminology decided (Query/Result filters) - implement after gleaning work
 
 ## Next Session
 
-Start fixing gleaning extraction - focus on GitHub repos first. Need to extract better descriptions automatically without requiring manual input.
+Reindex vault, then continue GitHub gleaning reorganization (simpler titles, better descriptions from README).
