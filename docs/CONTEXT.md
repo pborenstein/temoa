@@ -1,8 +1,8 @@
 ---
 phase: "Experimentation"
-phase_name: "Gleanings Cleanup"
+phase_name: "Obsidian Filter Syntax"
 updated: 2026-02-07
-last_commit: d4467f9
+last_commit: 4ba9053
 branch: filters-and-combs
 ---
 
@@ -10,14 +10,16 @@ branch: filters-and-combs
 
 ## Current Focus
 
-Gleaning cleanup complete! All 1,054 gleanings cleaned and 342 GitHub repos transformed to new format.
+Obsidian-compatible filter syntax implemented! Full lexer+parser with property syntax, boolean operators, and backward compatibility.
 
 ## Active Tasks
 
-- [x] Text cleanup (emojis, Unicode, YAML)
-- [x] GitHub transformation (titles, descriptions, layout)
-- [x] Vault reindexed twice
-- [ ] Two-phase filtering implementation
+- [x] Implement FilterLexer (tokenization)
+- [x] Implement FilterParser (AST building)
+- [x] AST evaluation (evaluateAST, evaluateFilter)
+- [x] Update UI (remove ANY/ALL toggle, new help panel)
+- [x] State migration (comma syntax → OR)
+- [x] Testing (11 unit tests, 30 manual test cases)
 
 ## Blockers
 
@@ -25,15 +27,12 @@ None.
 
 ## Context
 
-- **342 GitHub gleanings transformed** (98.6% success)
-  - Short titles: `owner/repo`
-  - Rich descriptions from README
-  - Tags in frontmatter only
-  - No H1 headings
-- **Script**: `src/temoa/scripts/transform_github_gleanings.py`
-- **5,833 files** indexed
-- **Vault**: `/Users/philip/Obsidian/amoxtli`
+- **Property syntax**: `[type:gleaning]`, `[status:active]`
+- **Boolean operators**: `OR`, implicit `AND`, `-` (NOT)
+- **Grouping**: `(tag:a OR tag:b) path:c`
+- **Performance**: <2ms parse, <10ms eval, no regression
+- **Backward compat**: Comma syntax auto-converts to OR
 
 ## Next Session
 
-Implement two-phase filtering (Query/Result filters).
+Optional: Manual testing with vault, server-side type/status filtering, UI error display.

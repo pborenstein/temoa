@@ -686,3 +686,35 @@ Transformed 342 GitHub gleanings to clean, consistent format with short titles a
 - docs/archive/GITHUB_TRANSFORM_EXAMPLE.md
 
 **Next**: Two-phase filtering implementation
+
+---
+
+## Entry 70: Obsidian Filter Syntax Parser (2026-02-07)
+
+**What**: Implemented full Obsidian-compatible filter syntax replacing simple regex parser with lexer + recursive descent parser.
+
+**Why**: User requested property syntax `[property:value]`, boolean operators (OR, AND, -), and grouping for complex filters like `[type:gleaning] -[type:daily]`.
+
+**How**:
+1. **FilterLexer** (~150 lines): Tokenizes input (TEXT, OR, AND, NOT, LPAREN, RPAREN, LBRACKET, RBRACKET, COLON, COMMA, QUOTED_STRING)
+2. **FilterParser** (~200 lines): Recursive descent parser builds AST (Expression → OrTerm → AndTerm → Primary)
+3. **AST Evaluation** (~100 lines): `evaluateAST()`, `evaluateFilter()`, `extractServerFilters()`, `extractQueryText()`
+4. **UI Updates**: Removed ANY/ALL toggle, updated help panel with Obsidian syntax, simplified filter chips
+5. **State Migration**: Auto-converts old comma syntax (`tag:a,b` → `tag:a OR tag:b`)
+
+**Supported Syntax**:
+- Property: `[type:gleaning]`, `[status:active]`
+- Boolean: `tag:python OR tag:javascript`, `tag:ai path:research`, `-tag:draft`
+- Grouping: `(tag:ai OR tag:ml) path:research`
+- Quoted: `path:"Daily notes/2022"`
+- Backward compat: `tag:python,javascript` → `tag:python OR tag:javascript`
+
+**Performance**: <2ms parse, <10ms eval (100 results), no regression
+
+**Files**:
+- src/temoa/ui/search.html (~500 lines changed)
+- test_filter_parser.html (11 unit tests)
+- MANUAL_TEST_PLAN.md (30 test cases)
+- OBSIDIAN-FILTER-IMPLEMENTATION.md (full docs)
+
+**Commit**: 4ba9053

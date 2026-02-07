@@ -6,8 +6,8 @@
 >
 > **For LLMs/Contributors**: Follow the governance process below when adding new decisions.
 
-**Last Updated**: 2026-01-27
-**Total Decisions**: 95 (DEC-001 through DEC-095, with historical gaps documented)
+**Last Updated**: 2026-02-07
+**Total Decisions**: 96 (DEC-001 through DEC-096, with historical gaps documented)
 
 ---
 
@@ -181,6 +181,7 @@ This checks for:
 | DEC-093: Two layers of relatedness | 57-58 | Explicit links (wikilinks) + Implicit similarity (embeddings) |
 | DEC-094: Lazy graph loading per vault | 58 | ~90s load time, cache on first request not startup |
 | DEC-095: Remove search profiles feature | 64 | Unused abstraction; direct query params sufficient |
+| DEC-096: Obsidian-compatible filter parser | 70 | Lexer+parser with AST for property syntax, boolean operators, grouping |
 
 ---
 
