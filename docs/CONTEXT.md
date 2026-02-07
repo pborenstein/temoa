@@ -2,8 +2,8 @@
 phase: "Experimentation"
 phase_name: "Option B - Single LIVE Slider"
 updated: 2026-02-07
-last_commit: 5343029
-branch: filters-and-combs
+last_commit: 50b9cad
+branch: main
 ---
 
 # Current Context
