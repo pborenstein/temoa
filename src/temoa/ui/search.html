@@ -2662,7 +2662,9 @@
             switch (filterType) {
                 case 'tag': {
                     const resultTags = (fm.tags || []).map(t => t.toLowerCase())
-                    return resultTags.includes(filterValue)
+                    const matches = resultTags.includes(filterValue)
+                    console.log(`[FILTER] tag:${filterValue} checking "${result.title}" | tags: [${resultTags.join(', ')}] | matches: ${matches}`)
+                    return matches
                 }
 
                 case 'path': {
@@ -2806,6 +2808,8 @@
             state.filterParams.ast = parsed.ast
             state.filterParams.hasError = false
 
+            console.log('[FILTER] Parsed AST:', JSON.stringify(parsed.ast, null, 2))
+
             // Extract server filters
             const newServerFilters = parsed.ast ? extractServerFilters(parsed.ast) : {
                 include_types: [],
@@ -2878,7 +2882,9 @@
 
             // Apply client-side filters
             const { ast } = state.filterParams
+            console.log('[FILTER] Applying filters, AST:', ast, 'rawResults:', remixed.length)
             const filtered = applyFilters(remixed, ast, '')
+            console.log('[FILTER] After filtering:', filtered.length, 'results')
 
             state.remixedResults = filtered;
 
