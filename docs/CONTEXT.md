@@ -2,7 +2,7 @@
 phase: "Experimentation"
 phase_name: "Query Filter Pre-Filtering"
 updated: 2026-02-07
-last_commit: ef8bb9a
+last_commit: 876ff8d
 branch: filters-and-combs
 ---
 
