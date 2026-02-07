@@ -1,8 +1,8 @@
 ---
 phase: "Experimentation"
-phase_name: "Filtering & Combs"
-updated: 2026-02-01
-last_commit: 3e97b28
+phase_name: "Gleanings Rethink"
+updated: 2026-02-06
+last_commit: 003bf9b
 branch: filters-and-combs
 ---
 
@@ -10,15 +10,15 @@ branch: filters-and-combs
 
 ## Current Focus
 
-Phase 1 filtering complete and tested. Fixed keyboard shortcuts interfering with typing. Added Obsidian search syntax reference to docs.
+Filtering work surfaced fundamental issues with gleanings system. Pivoting to fix gleanings first before continuing with query/result filtering architecture.
 
 ## Active Tasks
 
-- [x] Phase 1: Core filtering UI (tag, path, file filters with ANY/ALL toggle)
-- [x] Fix keyboard shortcuts interfering with filter input
-- [x] Add Obsidian search reference to docs
-- [ ] User testing Phase 1 (in progress)
-- [ ] Phase 2: Property filtering + /properties endpoint (when ready)
+- [x] Document gleaning problems (GitHub template, two-phase filtering insight)
+- [ ] Fix GitHub gleaning extraction (better descriptions without requiring manual input)
+- [ ] Update gleaning template/format
+- [ ] Test gleaning improvements on existing gleanings
+- [ ] Return to filtering: implement Query filters (pre-fetch) vs Result filters (post-fetch)
 
 ## Blockers
 
@@ -26,12 +26,13 @@ None.
 
 ## Context
 
-- **Phase 1 complete + polished**: Removed all keyboard shortcuts (were interfering with typing in textarea)
-- **Obsidian reference added**: All docs now reference https://help.obsidian.md/plugins/search
-- **Property syntax**: `[property:value]` format confirmed (e.g., `[project:temoa]`)
-- **Performance**: <100ms for 100 results + 10 filters, zero network overhead
-- **Docs**: FILTERING-IMPLEMENTATION-PLAN.md (master plan), PHASE1-IMPLEMENTATION-SUMMARY.md, FILTER-TESTING-GUIDE.md, FILTER-SYNTAX-REFERENCE.md
+- **Key insight**: Two-phase filtering needed - Query filters (pre-fetch/server) vs Result filters (post-fetch/client)
+- **Gleaning problem**: GitHub repos missing "why I saved this" context, template is redundant
+- **No manual descriptions**: User doesn't add context when saving gleanings, can't require it
+- **Terminology decided**: "Query filters" and "Result filters" (not "search" vs "display")
+- **Staying on branch**: Gleanings and filtering are intertwined, keeping together makes sense
+- **Chronicle entry 67**: Documented problems in gleanings-rethink-2026-02.md
 
 ## Next Session
 
-Continue user testing. Gather feedback on filter UX. Implement Phase 2 (property filtering) when ready.
+Start fixing gleaning extraction - focus on GitHub repos first. Need to extract better descriptions automatically without requiring manual input.

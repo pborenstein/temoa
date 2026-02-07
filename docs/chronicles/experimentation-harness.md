@@ -572,3 +572,35 @@ Then experiment with **Option A** (Graph-Boosted) in harness:
 **Files**: src/temoa/ui/search.html, commits fac9386/088bb94/3e97b28
 
 **Docs**: FILTERING-IMPLEMENTATION-PLAN.md (new), updated PHASE1-IMPLEMENTATION-SUMMARY.md, FILTER-SYNTAX-REFERENCE.md
+## Entry 67: Gleanings Rethink - Problem Statement (2026-02-06)
+
+**What**: Documented fundamental issues with gleanings system surfaced by filtering implementation.
+
+**Why**: Phase 1 filtering (post-fetch/client-side) revealed need for two-phase filtering architecture and exposed that GitHub gleanings are not capturing essential "why I saved this" context.
+
+**How**:
+
+1. **Created problem statement document** (docs/chronicles/gleanings-rethink-2026-02.md):
+   - GitHub gleaning template broken (redundant, missing "why")
+   - Two-phase filtering architecture needed (pre-fetch vs post-fetch)
+   - Some filters can only work pre-fetch, some only post-fetch
+   - Type system is infinite but conventional (need discovery)
+   - Standard filters needed (e.g., always exclude type:daily)
+
+2. **Key decisions**:
+   - Terminology: "Query filters" (pre-fetch/server) vs "Result filters" (post-fetch/client)
+   - No manual descriptions required (user doesn't add context when gleaning)
+   - Stay on `filters-and-combs` branch (gleanings and filtering are intertwined)
+   - Fix gleanings first, then implement query/result filtering architecture
+
+3. **Gleaning purpose clarified**:
+   - Something interesting enough to save
+   - But either: not interesting enough for full text capture, OR full text is meaningless (GitHub repos)
+   - Should capture: what (title/URL), why (context), when (temporal), how to find (semantic)
+   - Current gap: GitHub gleanings missing the "why"
+
+**Decisions**: Terminology for two-phase filtering, approach for fixing gleanings
+
+**Files**: docs/chronicles/gleanings-rethink-2026-02.md, docs/CONTEXT.md
+
+**Next**: Fix GitHub gleaning extraction to capture better descriptions automatically
