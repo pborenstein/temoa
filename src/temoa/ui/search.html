@@ -1435,6 +1435,9 @@
                         <!-- Active filter chips -->
                         <div id="filter-chips" class="filter-chips"></div>
 
+                        <!-- Debug info -->
+                        <div id="filter-debug" style="font-size: 10px; color: #666; margin-top: 8px; font-family: monospace;"></div>
+
                         <!-- Filter help panel (collapsible) -->
                         <div id="filter-help" class="filter-help" style="display: none;">
                             <h4>Filter Syntax (Obsidian-Compatible)</h4>
@@ -2663,7 +2666,17 @@
                 case 'tag': {
                     const resultTags = (fm.tags || []).map(t => t.toLowerCase())
                     const matches = resultTags.includes(filterValue)
-                    console.log(`[FILTER] tag:${filterValue} checking "${result.title}" | tags: [${resultTags.join(', ')}] | matches: ${matches}`)
+
+                    // Add to debug output (first 3 results only)
+                    const debugDiv = document.getElementById('filter-debug')
+                    if (debugDiv) {
+                        const currentText = debugDiv.innerHTML
+                        const lineCount = (currentText.match(/<br>/g) || []).length
+                        if (lineCount < 8) { // Show first 5 results
+                            debugDiv.innerHTML += `<br>"${result.title.substring(0, 40)}" tags:[${resultTags.join(',')}] match:${matches}`
+                        }
+                    }
+
                     return matches
                 }
 
@@ -2808,7 +2821,11 @@
             state.filterParams.ast = parsed.ast
             state.filterParams.hasError = false
 
-            console.log('[FILTER] Parsed AST:', JSON.stringify(parsed.ast, null, 2))
+            // Show debug info
+            const debugDiv = document.getElementById('filter-debug')
+            if (debugDiv && parsed.ast) {
+                debugDiv.innerHTML = `AST: ${JSON.stringify(parsed.ast)}`
+            }
 
             // Extract server filters
             const newServerFilters = parsed.ast ? extractServerFilters(parsed.ast) : {
@@ -2882,9 +2899,13 @@
 
             // Apply client-side filters
             const { ast } = state.filterParams
-            console.log('[FILTER] Applying filters, AST:', ast, 'rawResults:', remixed.length)
             const filtered = applyFilters(remixed, ast, '')
-            console.log('[FILTER] After filtering:', filtered.length, 'results')
+
+            // Show filter result count
+            const debugDiv = document.getElementById('filter-debug')
+            if (debugDiv && ast) {
+                debugDiv.innerHTML += `<br>Before: ${remixed.length} results → After: ${filtered.length} results`
+            }
 
             state.remixedResults = filtered;
 
