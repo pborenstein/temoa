@@ -656,3 +656,33 @@ github_topics:
 - docs/chronicles/text-cleanup-ready.md
 
 **Next**: Reindex vault, then reorganize GitHub gleaning structure (simpler titles, README descriptions)
+
+---
+
+## Entry 69: GitHub Gleaning Transformation (2026-02-07)
+
+Transformed 342 GitHub gleanings to clean, consistent format with short titles and rich descriptions.
+
+**What**: Reorganized GitHub gleaning layout
+- Short titles: `owner/repo` (removed description suffix)
+- Rich descriptions: Extracted from README via GitHub API
+- Tags in YAML frontmatter (selected from github_topics)
+- No H1 headings (body starts with description)
+- Deleted `github_readme_excerpt` (HTML/image garbage)
+- Clean metadata: `**stars ★** · language · Last updated`
+
+**Why**: Long repetitive titles, tags in body text, useless README excerpts
+
+**How**:
+1. Created transformation script with README fetching
+2. Smart description extraction (skips HTML, images, installation)
+3. Tag selection (7 most relevant from topics)
+4. Applied to 342/347 gleanings (98.6% success)
+5. Reindexed vault (5,833 files)
+
+**Files**:
+- src/temoa/scripts/transform_github_gleanings.py (new)
+- docs/archive/GITHUB_LAYOUT_OPTIONS.md
+- docs/archive/GITHUB_TRANSFORM_EXAMPLE.md
+
+**Next**: Two-phase filtering implementation
