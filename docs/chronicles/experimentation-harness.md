@@ -781,3 +781,30 @@ Transformed 342 GitHub gleanings to clean, consistent format with short titles a
 **Files**: src/temoa/ui/search.html
 
 **Commit**: 5cfc60e
+
+---
+
+## Entry 73: Clarification - Results Filter Only (2026-02-07)
+
+**What**: Realized we only implemented Results Filter (client-side), not Query Filter (server-side).
+
+**Why**: Two-phase filtering architecture requires both:
+1. **Query Filter** (server-side) - type/status filtering at fetch time via query params
+2. **Results Filter** (client-side) - tag/path/file filtering on cached results
+
+**Current State**:
+- ✅ **Results Filter complete**: Obsidian syntax parser, tag/path/file filtering, clear button, reset functionality
+- ❌ **Query Filter not implemented**: type/status filters currently evaluated client-side, should be server-side
+
+**Next Steps**:
+1. Keep current "Results Filter" section (complete)
+2. Add separate "Query Filter" section above it
+3. Extract type/status from AST before fetch
+4. Send as `include_types`/`exclude_types` query params to `/search`
+5. Add clear button for Query Filter
+
+**Terminology**:
+- **Query Filter**: Pre-fetch filtering (server-side, affects what gets retrieved)
+- **Results Filter**: Post-fetch filtering (client-side, filters cached results)
+
+**Commits**: 6ed7394 (docs correction)

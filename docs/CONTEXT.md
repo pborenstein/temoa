@@ -1,8 +1,8 @@
 ---
 phase: "Experimentation"
-phase_name: "Filter UX Polish"
+phase_name: "Two-Phase Filtering"
 updated: 2026-02-07
-last_commit: 5cfc60e
+last_commit: 6ed7394
 branch: filters-and-combs
 ---
 
@@ -10,14 +10,16 @@ branch: filters-and-combs
 
 ## Current Focus
 
-Filter implementation complete with reset/clear controls! All mixer controls and filters can be reset to defaults.
+Results Filter complete! Need to implement Query Filter (server-side type/status filtering).
 
 ## Active Tasks
 
-- [x] Enhanced Reset Mix button (now resets all controls)
-- [x] Added Clear Filter button (✕ icon next to help)
-- [x] Filter bugs fixed (empty results display, invalid syntax handling)
-- [x] UI clarity improvements (renamed, better help text)
+- [x] Results Filter (client-side) - tag, path, file filtering on cached results
+- [x] Obsidian syntax parser (lexer + AST evaluation)
+- [x] Reset/clear controls
+- [ ] Query Filter (server-side) - type, status filtering at fetch time
+- [ ] Separate Query Filter UI section above Results Filter
+- [ ] Query Filter clear button
 
 ## Blockers
 
@@ -25,11 +27,16 @@ None.
 
 ## Context
 
-- **Reset Mix button**: Resets all fetch params, live params, and filter params to defaults
-- **Clear Filter button**: ✕ icon positioned next to ? button, clears filter and refreshes results
-- **Filters working correctly**: Empty results show "No results found", invalid syntax shows red error chip
-- **Complete reset capability**: Users can easily return to default state for all controls
+- **Results Filter (✓ Complete)**: Client-side filtering of cached results using Obsidian syntax
+  - Filters: `tag:python`, `path:Gleanings`, `file:README`
+  - Instant feedback (no server round-trip)
+  - Clear button (✕) and included in Reset Mix
+- **Query Filter (⚠ TODO)**: Server-side filtering at fetch time
+  - Filters: `type:gleaning`, `status:active`, `[property:value]` syntax
+  - Sends `include_types`/`exclude_types` params to `/search` endpoint
+  - More efficient (don't fetch what you don't need)
+  - Needs separate UI section with own clear button
 
 ## Next Session
 
-Obsidian filter syntax complete and polished. Ready for production use or next feature.
+Implement Query Filter section: extract type/status from AST, send as query params, add UI section above Results Filter.
