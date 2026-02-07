@@ -1414,7 +1414,7 @@
                     <!-- Filters section (client-side, instant) -->
                     <div class="mixer-section" id="filters-section">
                         <h3>
-                            Filters
+                            Results Filter
                             <span class="tooltip-wrapper">
                                 <span class="info-icon">?</span>
                                 <span class="tooltip">Filter results instantly using Obsidian-style syntax. No server call needed.</span>
@@ -1441,7 +1441,7 @@
 
                             <h5 style="margin-top: 12px; font-size: 13px; color: #555;">Basic Filters</h5>
                             <div class="filter-examples">
-                                <code>tag:python</code> - Has tag #python<br>
+                                <code>tag:python</code> - Has tag #python (results without this tag excluded)<br>
                                 <code>path:Gleanings</code> - Path contains "Gleanings"<br>
                                 <code>file:README</code> - Filename contains "README"<br>
                                 <code>[type:gleaning]</code> - Property type is "gleaning"<br>
@@ -1451,9 +1451,16 @@
                             <h5 style="margin-top: 12px; font-size: 13px; color: #555;">Boolean Logic</h5>
                             <div class="filter-examples">
                                 <code>tag:python OR tag:javascript</code> - Either tag<br>
-                                <code>tag:ai path:research</code> - Both (implicit AND)<br>
-                                <code>-tag:draft</code> - Exclude tag "draft"<br>
-                                <code>(tag:ai OR tag:ml) path:research</code> - Grouped OR
+                                <code>tag:ai path:research</code> - Both conditions (implicit AND)<br>
+                                <code>-tag:draft</code> - Exclude results with tag "draft"<br>
+                                <code>(tag:ai OR tag:ml) path:research</code> - Grouped OR with AND
+                            </div>
+
+                            <h5 style="margin-top: 12px; font-size: 13px; color: #555;">Examples</h5>
+                            <div class="filter-examples">
+                                <code>[type:writing] tag:poem</code> - Type is "writing" AND has tag "poem"<br>
+                                <code>[type:gleaning] -[type:daily]</code> - Gleanings but not daily notes<br>
+                                <code>tag:python -tag:wip</code> - Has python tag, excludes wip tag
                             </div>
 
                             <h5 style="margin-top: 12px; font-size: 13px; color: #555;">Quoted Values</h5>
