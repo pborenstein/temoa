@@ -1435,28 +1435,39 @@
                         <!-- Active filter chips -->
                         <div id="filter-chips" class="filter-chips"></div>
 
-                        <!-- Tag match mode toggle -->
-                        <div class="tag-match-mode">
-                            <label style="font-size: 12px; color: #666; margin-right: 8px;">Tag matching:</label>
-                            <div class="toggle-group">
-                                <button class="toggle-btn active" data-mode="any">ANY</button>
-                                <button class="toggle-btn" data-mode="all">ALL</button>
-                            </div>
-                        </div>
-
                         <!-- Filter help panel (collapsible) -->
                         <div id="filter-help" class="filter-help" style="display: none;">
-                            <h4>Filter Syntax</h4>
+                            <h4>Filter Syntax (Obsidian-Compatible)</h4>
+
+                            <h5 style="margin-top: 12px; font-size: 13px; color: #555;">Basic Filters</h5>
                             <div class="filter-examples">
-                                <code>tag:python</code> - Filter by tag<br>
-                                <code>tag:python,obsidian</code> - Multiple tags (comma-separated)<br>
-                                <code>path:L/Gleanings</code> - Path contains string<br>
-                                <code>file:README</code> - Filename contains string<br>
-                                <code>type:gleaning</code> - Filter by type (server-side)<br>
-                                <code>status:active</code> - Filter by status (server-side)
+                                <code>tag:python</code> - Has tag #python<br>
+                                <code>path:Gleanings</code> - Path contains "Gleanings"<br>
+                                <code>file:README</code> - Filename contains "README"<br>
+                                <code>[type:gleaning]</code> - Property type is "gleaning"<br>
+                                <code>[status:active]</code> - Property status is "active"
                             </div>
-                            <p style="font-size: 11px; color: #888; margin-top: 8px;">
-                                Combine filters with spaces. Tag mode (ANY/ALL) controls whether results need any or all specified tags.
+
+                            <h5 style="margin-top: 12px; font-size: 13px; color: #555;">Boolean Logic</h5>
+                            <div class="filter-examples">
+                                <code>tag:python OR tag:javascript</code> - Either tag<br>
+                                <code>tag:ai path:research</code> - Both (implicit AND)<br>
+                                <code>-tag:draft</code> - Exclude tag "draft"<br>
+                                <code>(tag:ai OR tag:ml) path:research</code> - Grouped OR
+                            </div>
+
+                            <h5 style="margin-top: 12px; font-size: 13px; color: #555;">Quoted Values</h5>
+                            <div class="filter-examples">
+                                <code>path:"Daily notes/2022"</code> - Path with spaces
+                            </div>
+
+                            <h5 style="margin-top: 12px; font-size: 13px; color: #555;">Backward Compatibility</h5>
+                            <div class="filter-examples">
+                                <code>tag:python,javascript</code> - Comma = OR (legacy)
+                            </div>
+
+                            <p style="font-size: 11px; color: #888; margin-top: 12px;">
+                                Filters use Obsidian search syntax. Space between filters means AND.
                             </p>
                         </div>
                     </div>
@@ -1604,13 +1615,12 @@
             // Filter params (client-side filtering)
             filterParams: {
                 filterText: '',
-                tagMatchMode: 'any',  // 'any' | 'all'
-                parsedFilters: {
-                    tags: [],
-                    types: [],
-                    statuses: [],
-                    paths: [],
-                    files: []
+                ast: null,           // Parsed AST from filter syntax
+                serverFilters: {     // Extracted server-side filters (type, status)
+                    include_types: [],
+                    exclude_types: [],
+                    include_statuses: [],
+                    exclude_statuses: []
                 }
             },
 
@@ -1723,20 +1733,58 @@
             console.log('Temoa initialized', state);
         }
 
+        function migrateFilterState(oldState) {
+            // Migrate old filter state to new Obsidian-compatible syntax
+            if (!oldState.filterParams) return oldState
+
+            const { filterText, tagMatchMode, parsedFilters } = oldState.filterParams
+
+            // Migrate comma syntax based on tagMatchMode
+            if (filterText && (tagMatchMode === 'any' || tagMatchMode === 'all')) {
+                // Convert tag:a,b syntax
+                const migratedText = filterText.replace(
+                    /(tag|path|file|type|status):([^,\s]+(?:,[^,\s]+)+)/g,
+                    (match, filterType, values) => {
+                        const parts = values.split(',').map(v => v.trim())
+                        if (tagMatchMode === 'any') {
+                            // ANY mode: tag:a,b → tag:a OR tag:b
+                            return parts.map(v => `${filterType}:${v}`).join(' OR ')
+                        } else {
+                            // ALL mode: tag:a,b → tag:a tag:b (implicit AND)
+                            return parts.map(v => `${filterType}:${v}`).join(' ')
+                        }
+                    }
+                )
+
+                oldState.filterParams.filterText = migratedText
+                console.log('Migrated filter syntax:', filterText, '→', migratedText)
+            }
+
+            // Remove deprecated fields
+            delete oldState.filterParams.tagMatchMode
+            delete oldState.filterParams.parsedFilters
+
+            return oldState
+        }
+
         function restoreState() {
             try {
-                const saved = localStorage.getItem(STORAGE_KEY);
+                const saved = localStorage.getItem(STORAGE_KEY)
                 if (saved) {
-                    const data = JSON.parse(saved);
-                    if (data.viewMode) state.viewMode = data.viewMode;
-                    if (data.searchHistory) state.searchHistory = data.searchHistory;
-                    if (data.fetchParams) state.fetchParams = { ...state.fetchParams, ...data.fetchParams };
-                    if (data.liveParams) state.liveParams = { ...state.liveParams, ...data.liveParams };
-                    if (data.filterParams) state.filterParams = { ...state.filterParams, ...data.filterParams };
-                    if (data.vault) state.vault = data.vault;
+                    let data = JSON.parse(saved)
+
+                    // Migrate old filter state
+                    data = migrateFilterState(data)
+
+                    if (data.viewMode) state.viewMode = data.viewMode
+                    if (data.searchHistory) state.searchHistory = data.searchHistory
+                    if (data.fetchParams) state.fetchParams = { ...state.fetchParams, ...data.fetchParams }
+                    if (data.liveParams) state.liveParams = { ...state.liveParams, ...data.liveParams }
+                    if (data.filterParams) state.filterParams = { ...state.filterParams, ...data.filterParams }
+                    if (data.vault) state.vault = data.vault
                 }
             } catch (err) {
-                console.error('Failed to restore state:', err);
+                console.error('Failed to restore state:', err)
             }
         }
 
@@ -1797,21 +1845,11 @@
             liveTime.value = state.liveParams.time_weight;
 
             // Filter controls
-            const filterInput = document.getElementById('filter-input');
-            const tagMatchModeBtns = document.querySelectorAll('.toggle-btn');
+            const filterInput = document.getElementById('filter-input')
 
             if (filterInput) {
-                filterInput.value = state.filterParams.filterText || '';
-                updateFilterChips(state.filterParams.parsedFilters);
-
-                // Sync tag match mode toggle
-                tagMatchModeBtns.forEach(btn => {
-                    if (btn.dataset.mode === state.filterParams.tagMatchMode) {
-                        btn.classList.add('active');
-                    } else {
-                        btn.classList.remove('active');
-                    }
-                });
+                filterInput.value = state.filterParams.filterText || ''
+                updateFilterChips(state.filterParams.filterText)
             }
         }
 
@@ -1965,40 +2003,21 @@
             });
 
             // Filter controls
-            const filterInput = document.getElementById('filter-input');
-            const filterHelpToggle = document.getElementById('filter-help-toggle');
-            const filterHelp = document.getElementById('filter-help');
-            const tagMatchModeBtns = document.querySelectorAll('.toggle-btn');
+            const filterInput = document.getElementById('filter-input')
+            const filterHelpToggle = document.getElementById('filter-help-toggle')
+            const filterHelp = document.getElementById('filter-help')
 
             if (filterInput) {
                 // Update filters on input
-                filterInput.addEventListener('input', handleFilterInput);
+                filterInput.addEventListener('input', handleFilterInput)
 
                 // Help toggle
                 if (filterHelpToggle && filterHelp) {
                     filterHelpToggle.addEventListener('click', () => {
-                        const isVisible = filterHelp.style.display !== 'none';
-                        filterHelp.style.display = isVisible ? 'none' : 'block';
-                    });
+                        const isVisible = filterHelp.style.display !== 'none'
+                        filterHelp.style.display = isVisible ? 'none' : 'block'
+                    })
                 }
-
-                // Tag match mode toggle
-                tagMatchModeBtns.forEach(btn => {
-                    btn.addEventListener('click', () => {
-                        // Update active state
-                        tagMatchModeBtns.forEach(b => b.classList.remove('active'));
-                        btn.classList.add('active');
-
-                        // Update state
-                        state.filterParams.tagMatchMode = btn.dataset.mode;
-                        saveState();
-
-                        // Re-filter results
-                        if (state.rawResults.length > 0) {
-                            remixAndRender();
-                        }
-                    });
-                });
             }
         }
 
@@ -2167,216 +2186,625 @@
         // Filter Parsing & Application
         // ========================================
 
-        function parseFilterSyntax(input) {
-            // Parse Obsidian-style filter syntax
-            // Returns: {queryText: string, filters: {...}}
+        // ========================================
+        // Filter Lexer - Tokenization
+        // ========================================
 
-            const filters = {
-                tags: [],
-                types: [],
-                statuses: [],
-                paths: [],
-                files: []
-            };
-
-            let remainingText = input;
-
-            // Extract tag: filters
-            const tagRegex = /tag:([^\s]+)/g;
-            let match;
-            while ((match = tagRegex.exec(input)) !== null) {
-                filters.tags.push(...match[1].split(','));
-                remainingText = remainingText.replace(match[0], '');
+        class FilterLexer {
+            constructor(input) {
+                this.input = input
+                this.pos = 0
+                this.tokens = []
             }
 
-            // Extract type: filters (server-side, but we parse them)
-            const typeRegex = /type:([^\s]+)/g;
-            while ((match = typeRegex.exec(input)) !== null) {
-                filters.types.push(...match[1].split(','));
-                remainingText = remainingText.replace(match[0], '');
+            tokenize() {
+                while (this.pos < this.input.length) {
+                    this.skipWhitespace()
+                    if (this.pos >= this.input.length) break
+
+                    const ch = this.input[this.pos]
+
+                    // Quoted string
+                    if (ch === '"' || ch === "'") {
+                        this.tokens.push(this.readQuotedString(ch))
+                        continue
+                    }
+
+                    // Special characters
+                    if (ch === '(') {
+                        this.tokens.push({ type: 'LPAREN', value: '(' })
+                        this.pos++
+                        continue
+                    }
+                    if (ch === ')') {
+                        this.tokens.push({ type: 'RPAREN', value: ')' })
+                        this.pos++
+                        continue
+                    }
+                    if (ch === '[') {
+                        this.tokens.push({ type: 'LBRACKET', value: '[' })
+                        this.pos++
+                        continue
+                    }
+                    if (ch === ']') {
+                        this.tokens.push({ type: 'RBRACKET', value: ']' })
+                        this.pos++
+                        continue
+                    }
+                    if (ch === ':') {
+                        this.tokens.push({ type: 'COLON', value: ':' })
+                        this.pos++
+                        continue
+                    }
+                    if (ch === ',') {
+                        this.tokens.push({ type: 'COMMA', value: ',' })
+                        this.pos++
+                        continue
+                    }
+
+                    // Minus sign (potential NOT operator)
+                    if (ch === '-' && (this.pos + 1 < this.input.length) && !this.isWhitespace(this.input[this.pos + 1])) {
+                        this.tokens.push({ type: 'NOT', value: '-' })
+                        this.pos++
+                        continue
+                    }
+
+                    // Word (could be OR, AND, or regular text)
+                    const word = this.readWord()
+                    if (word) {
+                        const upper = word.toUpperCase()
+                        if (upper === 'OR') {
+                            this.tokens.push({ type: 'OR', value: word })
+                        } else if (upper === 'AND') {
+                            this.tokens.push({ type: 'AND', value: word })
+                        } else {
+                            this.tokens.push({ type: 'TEXT', value: word })
+                        }
+                    }
+                }
+
+                this.tokens.push({ type: 'EOF', value: '' })
+                return this.tokens
             }
 
-            // Extract status: filters (server-side, but we parse them)
-            const statusRegex = /status:([^\s]+)/g;
-            while ((match = statusRegex.exec(input)) !== null) {
-                filters.statuses.push(...match[1].split(','));
-                remainingText = remainingText.replace(match[0], '');
+            readQuotedString(quoteChar) {
+                this.pos++ // Skip opening quote
+                let value = ''
+                let escaped = false
+
+                while (this.pos < this.input.length) {
+                    const ch = this.input[this.pos]
+
+                    if (escaped) {
+                        value += ch
+                        escaped = false
+                        this.pos++
+                        continue
+                    }
+
+                    if (ch === '\\') {
+                        escaped = true
+                        this.pos++
+                        continue
+                    }
+
+                    if (ch === quoteChar) {
+                        this.pos++ // Skip closing quote
+                        break
+                    }
+
+                    value += ch
+                    this.pos++
+                }
+
+                return { type: 'QUOTED_STRING', value: value }
             }
 
-            // Extract path: filters
-            const pathRegex = /path:([^\s]+)/g;
-            while ((match = pathRegex.exec(input)) !== null) {
-                filters.paths.push(match[1]);
-                remainingText = remainingText.replace(match[0], '');
+            readWord() {
+                let word = ''
+                while (this.pos < this.input.length && !this.isWhitespace(this.input[this.pos]) && !this.isSpecialChar(this.input[this.pos])) {
+                    word += this.input[this.pos]
+                    this.pos++
+                }
+                return word
             }
 
-            // Extract file: filters
-            const fileRegex = /file:([^\s]+)/g;
-            while ((match = fileRegex.exec(input)) !== null) {
-                filters.files.push(match[1]);
-                remainingText = remainingText.replace(match[0], '');
+            skipWhitespace() {
+                while (this.pos < this.input.length && this.isWhitespace(this.input[this.pos])) {
+                    this.pos++
+                }
             }
 
-            return {
-                queryText: remainingText.trim(),
-                filters: filters
-            };
+            isWhitespace(ch) {
+                return ch === ' ' || ch === '\t' || ch === '\n' || ch === '\r'
+            }
+
+            isSpecialChar(ch) {
+                return ch === '(' || ch === ')' || ch === '[' || ch === ']' || ch === ':' || ch === ',' || ch === '"' || ch === "'"
+            }
         }
 
-        function applyFilters(results, filters, tagMatchMode) {
-            // Apply client-side filters to results
+        // ========================================
+        // Filter Parser - AST Building
+        // ========================================
+
+        class FilterParser {
+            constructor(tokens) {
+                this.tokens = tokens
+                this.pos = 0
+            }
+
+            parse() {
+                return this.parseExpression()
+            }
+
+            current() {
+                return this.tokens[this.pos]
+            }
+
+            peek(offset = 1) {
+                return this.tokens[this.pos + offset]
+            }
+
+            consume(expectedType) {
+                const token = this.current()
+                if (token.type !== expectedType) {
+                    throw new Error(`Expected ${expectedType}, got ${token.type}`)
+                }
+                this.pos++
+                return token
+            }
+
+            consumeIf(type) {
+                if (this.current().type === type) {
+                    return this.consume(type)
+                }
+                return null
+            }
+
+            parseExpression() {
+                // Expression → OrTerm (OR OrTerm)*
+                let left = this.parseOrTerm()
+
+                while (this.current().type === 'OR') {
+                    this.consume('OR')
+                    const right = this.parseOrTerm()
+                    left = {
+                        type: 'OR',
+                        left: left,
+                        right: right
+                    }
+                }
+
+                return left
+            }
+
+            parseOrTerm() {
+                // OrTerm → AndTerm (AND AndTerm)*
+                let left = this.parseAndTerm()
+
+                while (this.current().type === 'AND' || this.isImplicitAnd()) {
+                    if (this.current().type === 'AND') {
+                        this.consume('AND')
+                    }
+                    const right = this.parseAndTerm()
+                    left = {
+                        type: 'AND',
+                        left: left,
+                        right: right
+                    }
+                }
+
+                return left
+            }
+
+            isImplicitAnd() {
+                // Implicit AND when we see a primary expression (not OR, EOF, RPAREN)
+                const curr = this.current()
+                return (
+                    curr.type !== 'OR' &&
+                    curr.type !== 'EOF' &&
+                    curr.type !== 'RPAREN' &&
+                    curr.type !== 'RBRACKET' &&
+                    (curr.type === 'NOT' || curr.type === 'TEXT' || curr.type === 'LPAREN' || curr.type === 'LBRACKET')
+                )
+            }
+
+            parseAndTerm() {
+                // AndTerm → NOT? Primary
+                if (this.current().type === 'NOT') {
+                    this.consume('NOT')
+                    const expr = this.parsePrimary()
+                    return {
+                        type: 'NOT',
+                        expr: expr
+                    }
+                }
+
+                return this.parsePrimary()
+            }
+
+            parsePrimary() {
+                // Primary → Property | Filter | Group | Text
+                const curr = this.current()
+
+                // Property: [property:value]
+                if (curr.type === 'LBRACKET') {
+                    return this.parseProperty()
+                }
+
+                // Group: (expression)
+                if (curr.type === 'LPAREN') {
+                    this.consume('LPAREN')
+                    const expr = this.parseExpression()
+                    this.consume('RPAREN')
+                    return expr
+                }
+
+                // Filter: text:value or text:value,value,value
+                if (curr.type === 'TEXT' && this.peek() && this.peek().type === 'COLON') {
+                    return this.parseFilter()
+                }
+
+                // Plain text (becomes part of query text)
+                if (curr.type === 'TEXT' || curr.type === 'QUOTED_STRING') {
+                    const token = this.consume(curr.type)
+                    return {
+                        type: 'TEXT',
+                        value: token.value
+                    }
+                }
+
+                throw new Error(`Unexpected token: ${curr.type} (${curr.value})`)
+            }
+
+            parseProperty() {
+                // Property → [ TEXT : value ]
+                this.consume('LBRACKET')
+                const filterType = this.consume('TEXT').value
+                this.consume('COLON')
+                const value = this.parseValue()
+                this.consume('RBRACKET')
+
+                return {
+                    type: 'FILTER',
+                    filterType: filterType,
+                    value: value,
+                    isProperty: true
+                }
+            }
+
+            parseFilter() {
+                // Filter → TEXT : value
+                const filterType = this.consume('TEXT').value
+                this.consume('COLON')
+
+                // Check for comma-separated values (backward compatibility)
+                const values = []
+                values.push(this.parseValue())
+
+                while (this.current().type === 'COMMA') {
+                    this.consume('COMMA')
+                    values.push(this.parseValue())
+                }
+
+                // If multiple values, convert to OR chain
+                if (values.length === 1) {
+                    return {
+                        type: 'FILTER',
+                        filterType: filterType,
+                        value: values[0],
+                        isProperty: false
+                    }
+                } else {
+                    // Create OR chain: tag:a,b,c → tag:a OR tag:b OR tag:c
+                    let orChain = {
+                        type: 'FILTER',
+                        filterType: filterType,
+                        value: values[0],
+                        isProperty: false
+                    }
+
+                    for (let i = 1; i < values.length; i++) {
+                        orChain = {
+                            type: 'OR',
+                            left: orChain,
+                            right: {
+                                type: 'FILTER',
+                                filterType: filterType,
+                                value: values[i],
+                                isProperty: false
+                            }
+                        }
+                    }
+
+                    return orChain
+                }
+            }
+
+            parseValue() {
+                const curr = this.current()
+                if (curr.type === 'QUOTED_STRING') {
+                    return this.consume('QUOTED_STRING').value
+                }
+                if (curr.type === 'TEXT') {
+                    return this.consume('TEXT').value
+                }
+                throw new Error(`Expected value, got ${curr.type}`)
+            }
+        }
+
+        // ========================================
+        // AST Evaluation
+        // ========================================
+
+        function extractServerFilters(ast) {
+            // Walk AST and extract type/status filters for server-side filtering
+            const filters = {
+                include_types: [],
+                exclude_types: [],
+                include_statuses: [],
+                exclude_statuses: []
+            }
+
+            function walk(node, negated = false) {
+                if (!node) return
+
+                switch (node.type) {
+                    case 'OR':
+                    case 'AND':
+                        walk(node.left, negated)
+                        walk(node.right, negated)
+                        break
+
+                    case 'NOT':
+                        walk(node.expr, !negated)
+                        break
+
+                    case 'FILTER':
+                        if (node.filterType === 'type') {
+                            if (negated) {
+                                filters.exclude_types.push(node.value)
+                            } else {
+                                filters.include_types.push(node.value)
+                            }
+                        } else if (node.filterType === 'status') {
+                            if (negated) {
+                                filters.exclude_statuses.push(node.value)
+                            } else {
+                                filters.include_statuses.push(node.value)
+                            }
+                        }
+                        break
+
+                    case 'TEXT':
+                        // Ignore plain text
+                        break
+                }
+            }
+
+            walk(ast)
+            return filters
+        }
+
+        function extractQueryText(ast) {
+            // Extract plain text nodes from AST (non-filter terms)
+            const textParts = []
+
+            function walk(node) {
+                if (!node) return
+
+                switch (node.type) {
+                    case 'OR':
+                    case 'AND':
+                        walk(node.left)
+                        walk(node.right)
+                        break
+
+                    case 'NOT':
+                        walk(node.expr)
+                        break
+
+                    case 'TEXT':
+                        textParts.push(node.value)
+                        break
+
+                    case 'FILTER':
+                        // Ignore filters
+                        break
+                }
+            }
+
+            walk(ast)
+            return textParts.join(' ').trim()
+        }
+
+        function evaluateAST(node, result, queryText) {
+            // Recursively evaluate AST against a result object
+            if (!node) return true
+
+            switch (node.type) {
+                case 'OR':
+                    return evaluateAST(node.left, result, queryText) || evaluateAST(node.right, result, queryText)
+
+                case 'AND':
+                    return evaluateAST(node.left, result, queryText) && evaluateAST(node.right, result, queryText)
+
+                case 'NOT':
+                    return !evaluateAST(node.expr, result, queryText)
+
+                case 'FILTER':
+                    return evaluateFilter(node, result)
+
+                case 'TEXT':
+                    // Plain text doesn't filter (it's part of the search query)
+                    return true
+
+                default:
+                    return true
+            }
+        }
+
+        function evaluateFilter(filterNode, result) {
+            // Evaluate a single filter against a result
+            const filterType = filterNode.filterType
+            const filterValue = filterNode.value.toLowerCase()
+            const fm = result.frontmatter || {}
+
+            switch (filterType) {
+                case 'tag': {
+                    const resultTags = (fm.tags || []).map(t => t.toLowerCase())
+                    return resultTags.includes(filterValue)
+                }
+
+                case 'path': {
+                    const path = (result.file_path || '').toLowerCase()
+                    return path.includes(filterValue)
+                }
+
+                case 'file': {
+                    const filename = (result.title || '').toLowerCase()
+                    return filename.includes(filterValue)
+                }
+
+                case 'type': {
+                    const resultType = (fm.type || '').toLowerCase()
+                    return resultType === filterValue
+                }
+
+                case 'status': {
+                    const resultStatus = (fm.status || '').toLowerCase()
+                    return resultStatus === filterValue
+                }
+
+                default:
+                    return true
+            }
+        }
+
+        function parseFilterSyntax(input) {
+            // Parse Obsidian-style filter syntax using lexer + parser
+            // Returns: {ast: ASTNode, queryText: string, error: string|null}
+
+            if (!input || input.trim() === '') {
+                return {
+                    ast: null,
+                    queryText: '',
+                    error: null
+                }
+            }
+
+            try {
+                const lexer = new FilterLexer(input)
+                const tokens = lexer.tokenize()
+                const parser = new FilterParser(tokens)
+                const ast = parser.parse()
+
+                // Extract query text (non-filter TEXT nodes)
+                const queryText = extractQueryText(ast)
+
+                return {
+                    ast: ast,
+                    queryText: queryText,
+                    error: null
+                }
+            } catch (err) {
+                // User-friendly error messages
+                console.error('Filter parse error:', err)
+                return {
+                    ast: null,
+                    queryText: input,
+                    error: `Parse error: ${err.message}`
+                }
+            }
+        }
+
+        function applyFilters(results, ast, queryText) {
+            // Apply AST-based filters to results
             // Returns filtered array
 
-            if (!results || results.length === 0) return results;
+            if (!results || results.length === 0) return results
+            if (!ast) return results
 
-            return results.filter(result => {
-                const fm = result.frontmatter || {};
-
-                // Tag filtering
-                if (filters.tags.length > 0) {
-                    const resultTags = fm.tags || [];
-                    const hasTag = tagMatchMode === 'any'
-                        ? filters.tags.some(tag => resultTags.includes(tag))
-                        : filters.tags.every(tag => resultTags.includes(tag));
-                    if (!hasTag) return false;
-                }
-
-                // Path filtering
-                if (filters.paths.length > 0) {
-                    const path = result.file_path || '';
-                    const matchesPath = filters.paths.some(p =>
-                        path.toLowerCase().includes(p.toLowerCase())
-                    );
-                    if (!matchesPath) return false;
-                }
-
-                // File filtering
-                if (filters.files.length > 0) {
-                    const filename = result.title || '';
-                    const matchesFile = filters.files.some(f =>
-                        filename.toLowerCase().includes(f.toLowerCase())
-                    );
-                    if (!matchesFile) return false;
-                }
-
-                return true;
-            });
+            return results.filter(result => evaluateAST(ast, result, queryText))
         }
 
-        function updateFilterChips(filters) {
-            // Render active filters as chips
-            const chipsContainer = document.getElementById('filter-chips');
-            if (!chipsContainer) return;
+        function updateFilterChips(filterText) {
+            // Render active filter text as chip
+            const chipsContainer = document.getElementById('filter-chips')
+            if (!chipsContainer) return
 
-            const chips = [];
-
-            // Tag chips
-            filters.tags.forEach(tag => {
-                chips.push({
-                    type: 'tag',
-                    value: tag,
-                    label: `tag:${tag}`
-                });
-            });
-
-            // Path chips
-            filters.paths.forEach(path => {
-                chips.push({
-                    type: 'path',
-                    value: path,
-                    label: `path:${path}`
-                });
-            });
-
-            // File chips
-            filters.files.forEach(file => {
-                chips.push({
-                    type: 'file',
-                    value: file,
-                    label: `file:${file}`
-                });
-            });
-
-            // Type chips (informational only, handled server-side)
-            filters.types.forEach(type => {
-                chips.push({
-                    type: 'type',
-                    value: type,
-                    label: `type:${type}`
-                });
-            });
-
-            // Status chips (informational only, handled server-side)
-            filters.statuses.forEach(status => {
-                chips.push({
-                    type: 'status',
-                    value: status,
-                    label: `status:${status}`
-                });
-            });
-
-            if (chips.length === 0) {
-                chipsContainer.innerHTML = '';
-                return;
+            if (!filterText || filterText.trim() === '') {
+                chipsContainer.innerHTML = ''
+                return
             }
 
-            chipsContainer.innerHTML = chips.map(chip => `
-                <div class="filter-chip" data-type="${chip.type}" data-value="${chip.value}">
-                    ${chip.label}
-                    <span class="filter-chip-remove" onclick="removeFilterChip('${chip.type}', '${chip.value}')">×</span>
+            // Escape HTML to prevent XSS
+            const escaped = filterText
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;')
+
+            chipsContainer.innerHTML = `
+                <div class="filter-chip">
+                    ${escaped}
                 </div>
-            `).join('');
+            `
         }
 
-        function removeFilterChip(type, value) {
-            // Remove a specific filter chip
-            const filterInput = document.getElementById('filter-input');
-            if (!filterInput) return;
-
-            const filterText = filterInput.value;
-            const pattern = `${type}:${value}`;
-
-            // Remove the filter from the input
-            let newText = filterText;
-
-            // Handle comma-separated values
-            const regex = new RegExp(`${type}:([^\\s]+)`, 'g');
-            let match;
-            while ((match = regex.exec(filterText)) !== null) {
-                const fullMatch = match[0];
-                const values = match[1].split(',');
-                const newValues = values.filter(v => v !== value);
-
-                if (newValues.length === 0) {
-                    // Remove entire filter
-                    newText = newText.replace(fullMatch, '');
-                } else {
-                    // Update with remaining values
-                    newText = newText.replace(fullMatch, `${type}:${newValues.join(',')}`);
-                }
-            }
-
-            // Clean up extra spaces
-            newText = newText.replace(/\s+/g, ' ').trim();
-
-            filterInput.value = newText;
-            handleFilterInput();
-        }
 
         function handleFilterInput() {
             // Parse filter input and update state
-            const filterInput = document.getElementById('filter-input');
-            if (!filterInput) return;
+            const filterInput = document.getElementById('filter-input')
+            if (!filterInput) return
 
-            const filterText = filterInput.value;
-            const parsed = parseFilterSyntax(filterText);
+            const filterText = filterInput.value
+            const parsed = parseFilterSyntax(filterText)
 
-            state.filterParams.filterText = filterText;
-            state.filterParams.parsedFilters = parsed.filters;
+            if (parsed.error) {
+                // Show error message
+                console.error('Filter parse error:', parsed.error)
+                // TODO: Show user-friendly error in UI
+                updateFilterChips(filterText)
+                return
+            }
 
-            updateFilterChips(parsed.filters);
-            saveState();
-            remixAndRender();
+            state.filterParams.filterText = filterText
+            state.filterParams.ast = parsed.ast
+
+            // Extract server filters
+            const newServerFilters = parsed.ast ? extractServerFilters(parsed.ast) : {
+                include_types: [],
+                exclude_types: [],
+                include_statuses: [],
+                exclude_statuses: []
+            }
+
+            // Check if server filters changed (would require new fetch)
+            const oldServerFilters = state.filterParams.serverFilters || {}
+            const serverFiltersChanged =
+                JSON.stringify(newServerFilters.include_types) !== JSON.stringify(oldServerFilters.include_types) ||
+                JSON.stringify(newServerFilters.exclude_types) !== JSON.stringify(oldServerFilters.exclude_types) ||
+                JSON.stringify(newServerFilters.include_statuses) !== JSON.stringify(oldServerFilters.include_statuses) ||
+                JSON.stringify(newServerFilters.exclude_statuses) !== JSON.stringify(oldServerFilters.exclude_statuses)
+
+            state.filterParams.serverFilters = newServerFilters
+
+            updateFilterChips(filterText)
+            saveState()
+
+            if (serverFiltersChanged && state.rawResults.length > 0) {
+                // Server filters changed, need to re-fetch
+                console.log('Server filters changed, re-fetching results')
+                // TODO: Trigger new search with server filters
+                // For now, just re-evaluate client-side
+                remixAndRender()
+            } else {
+                // Just re-evaluate client-side filters
+                remixAndRender()
+            }
         }
 
         function remixAndRender() {
@@ -2417,8 +2845,8 @@
             remixed.sort((a, b) => b.final_score - a.final_score);
 
             // Apply client-side filters
-            const { parsedFilters, tagMatchMode } = state.filterParams;
-            const filtered = applyFilters(remixed, parsedFilters, tagMatchMode);
+            const { ast } = state.filterParams
+            const filtered = applyFilters(remixed, ast, '')
 
             state.remixedResults = filtered;
 

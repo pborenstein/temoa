@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Filter Parser Test</title>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        .test { margin: 20px 0; padding: 10px; border: 1px solid #ccc; }
+        .pass { background: #e8f5e9; }
+        .fail { background: #ffebee; }
+        pre { background: #f5f5f5; padding: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Filter Parser Tests</h1>
+    <div id="results"></div>
+
+    <script>
+        // Copy the lexer and parser classes from search.html
+        class FilterLexer {
+            constructor(input) {
+                this.input = input
+                this.pos = 0
+                this.tokens = []
+            }
+
+            tokenize() {
+                while (this.pos < this.input.length) {
+                    this.skipWhitespace()
+                    if (this.pos >= this.input.length) break
+
+                    const ch = this.input[this.pos]
+
+                    // Quoted string
+                    if (ch === '"' || ch === "'") {
+                        this.tokens.push(this.readQuotedString(ch))
+                        continue
+                    }
+
+                    // Special characters
+                    if (ch === '(') {
+                        this.tokens.push({ type: 'LPAREN', value: '(' })
+                        this.pos++
+                        continue
+                    }
+                    if (ch === ')') {
+                        this.tokens.push({ type: 'RPAREN', value: ')' })
+                        this.pos++
+                        continue
+                    }
+                    if (ch === '[') {
+                        this.tokens.push({ type: 'LBRACKET', value: '[' })
+                        this.pos++
+                        continue
+                    }
+                    if (ch === ']') {
+                        this.tokens.push({ type: 'RBRACKET', value: ']' })
+                        this.pos++
+                        continue
+                    }
+                    if (ch === ':') {
+                        this.tokens.push({ type: 'COLON', value: ':' })
+                        this.pos++
+                        continue
+                    }
+                    if (ch === ',') {
+                        this.tokens.push({ type: 'COMMA', value: ',' })
+                        this.pos++
+                        continue
+                    }
+
+                    // Minus sign (potential NOT operator)
+                    if (ch === '-' && (this.pos + 1 < this.input.length) && !this.isWhitespace(this.input[this.pos + 1])) {
+                        this.tokens.push({ type: 'NOT', value: '-' })
+                        this.pos++
+                        continue
+                    }
+
+                    // Word (could be OR, AND, or regular text)
+                    const word = this.readWord()
+                    if (word) {
+                        const upper = word.toUpperCase()
+                        if (upper === 'OR') {
+                            this.tokens.push({ type: 'OR', value: word })
+                        } else if (upper === 'AND') {
+                            this.tokens.push({ type: 'AND', value: word })
+                        } else {
+                            this.tokens.push({ type: 'TEXT', value: word })
+                        }
+                    }
+                }
+
+                this.tokens.push({ type: 'EOF', value: '' })
+                return this.tokens
+            }
+
+            readQuotedString(quoteChar) {
+                this.pos++ // Skip opening quote
+                let value = ''
+                let escaped = false
+
+                while (this.pos < this.input.length) {
+                    const ch = this.input[this.pos]
+
+                    if (escaped) {
+                        value += ch
+                        escaped = false
+                        this.pos++
+                        continue
+                    }
+
+                    if (ch === '\\') {
+                        escaped = true
+                        this.pos++
+                        continue
+                    }
+
+                    if (ch === quoteChar) {
+                        this.pos++ // Skip closing quote
+                        break
+                    }
+
+                    value += ch
+                    this.pos++
+                }
+
+                return { type: 'QUOTED_STRING', value: value }
+            }
+
+            readWord() {
+                let word = ''
+                while (this.pos < this.input.length && !this.isWhitespace(this.input[this.pos]) && !this.isSpecialChar(this.input[this.pos])) {
+                    word += this.input[this.pos]
+                    this.pos++
+                }
+                return word
+            }
+
+            skipWhitespace() {
+                while (this.pos < this.input.length && this.isWhitespace(this.input[this.pos])) {
+                    this.pos++
+                }
+            }
+
+            isWhitespace(ch) {
+                return ch === ' ' || ch === '\t' || ch === '\n' || ch === '\r'
+            }
+
+            isSpecialChar(ch) {
+                return ch === '(' || ch === ')' || ch === '[' || ch === ']' || ch === ':' || ch === ',' || ch === '"' || ch === "'"
+            }
+        }
+
+        class FilterParser {
+            constructor(tokens) {
+                this.tokens = tokens
+                this.pos = 0
+            }
+
+            parse() {
+                return this.parseExpression()
+            }
+
+            current() {
+                return this.tokens[this.pos]
+            }
+
+            peek(offset = 1) {
+                return this.tokens[this.pos + offset]
+            }
+
+            consume(expectedType) {
+                const token = this.current()
+                if (token.type !== expectedType) {
+                    throw new Error(`Expected ${expectedType}, got ${token.type}`)
+                }
+                this.pos++
+                return token
+            }
+
+            parseExpression() {
+                let left = this.parseOrTerm()
+
+                while (this.current().type === 'OR') {
+                    this.consume('OR')
+                    const right = this.parseOrTerm()
+                    left = {
+                        type: 'OR',
+                        left: left,
+                        right: right
+                    }
+                }
+
+                return left
+            }
+
+            parseOrTerm() {
+                let left = this.parseAndTerm()
+
+                while (this.current().type === 'AND' || this.isImplicitAnd()) {
+                    if (this.current().type === 'AND') {
+                        this.consume('AND')
+                    }
+                    const right = this.parseAndTerm()
+                    left = {
+                        type: 'AND',
+                        left: left,
+                        right: right
+                    }
+                }
+
+                return left
+            }
+
+            isImplicitAnd() {
+                const curr = this.current()
+                return (
+                    curr.type !== 'OR' &&
+                    curr.type !== 'EOF' &&
+                    curr.type !== 'RPAREN' &&
+                    curr.type !== 'RBRACKET' &&
+                    (curr.type === 'NOT' || curr.type === 'TEXT' || curr.type === 'LPAREN' || curr.type === 'LBRACKET')
+                )
+            }
+
+            parseAndTerm() {
+                if (this.current().type === 'NOT') {
+                    this.consume('NOT')
+                    const expr = this.parsePrimary()
+                    return {
+                        type: 'NOT',
+                        expr: expr
+                    }
+                }
+
+                return this.parsePrimary()
+            }
+
+            parsePrimary() {
+                const curr = this.current()
+
+                if (curr.type === 'LBRACKET') {
+                    return this.parseProperty()
+                }
+
+                if (curr.type === 'LPAREN') {
+                    this.consume('LPAREN')
+                    const expr = this.parseExpression()
+                    this.consume('RPAREN')
+                    return expr
+                }
+
+                if (curr.type === 'TEXT' && this.peek() && this.peek().type === 'COLON') {
+                    return this.parseFilter()
+                }
+
+                if (curr.type === 'TEXT' || curr.type === 'QUOTED_STRING') {
+                    const token = this.consume(curr.type)
+                    return {
+                        type: 'TEXT',
+                        value: token.value
+                    }
+                }
+
+                throw new Error(`Unexpected token: ${curr.type} (${curr.value})`)
+            }
+
+            parseProperty() {
+                this.consume('LBRACKET')
+                const filterType = this.consume('TEXT').value
+                this.consume('COLON')
+                const value = this.parseValue()
+                this.consume('RBRACKET')
+
+                return {
+                    type: 'FILTER',
+                    filterType: filterType,
+                    value: value,
+                    isProperty: true
+                }
+            }
+
+            parseFilter() {
+                const filterType = this.consume('TEXT').value
+                this.consume('COLON')
+
+                const values = []
+                values.push(this.parseValue())
+
+                while (this.current().type === 'COMMA') {
+                    this.consume('COMMA')
+                    values.push(this.parseValue())
+                }
+
+                if (values.length === 1) {
+                    return {
+                        type: 'FILTER',
+                        filterType: filterType,
+                        value: values[0],
+                        isProperty: false
+                    }
+                } else {
+                    let orChain = {
+                        type: 'FILTER',
+                        filterType: filterType,
+                        value: values[0],
+                        isProperty: false
+                    }
+
+                    for (let i = 1; i < values.length; i++) {
+                        orChain = {
+                            type: 'OR',
+                            left: orChain,
+                            right: {
+                                type: 'FILTER',
+                                filterType: filterType,
+                                value: values[i],
+                                isProperty: false
+                            }
+                        }
+                    }
+
+                    return orChain
+                }
+            }
+
+            parseValue() {
+                const curr = this.current()
+                if (curr.type === 'QUOTED_STRING') {
+                    return this.consume('QUOTED_STRING').value
+                }
+                if (curr.type === 'TEXT') {
+                    return this.consume('TEXT').value
+                }
+                throw new Error(`Expected value, got ${curr.type}`)
+            }
+        }
+
+        // Test cases
+        const tests = [
+            { input: 'tag:python', desc: 'Basic tag filter' },
+            { input: 'path:Gleanings', desc: 'Basic path filter' },
+            { input: '[type:gleaning]', desc: 'Property syntax' },
+            { input: 'tag:python OR tag:javascript', desc: 'Explicit OR' },
+            { input: 'tag:ai path:research', desc: 'Implicit AND' },
+            { input: '-tag:draft', desc: 'Negation' },
+            { input: '(tag:ai OR tag:ml) path:research', desc: 'Grouped OR with AND' },
+            { input: 'path:"Daily notes/2022"', desc: 'Quoted value with spaces' },
+            { input: 'tag:python,javascript', desc: 'Comma syntax (backward compat)' },
+            { input: '[type:gleaning] -[type:daily]', desc: 'Property with negation' },
+            { input: '(tag:python OR tag:rust) path:L/Gleanings -tag:wip', desc: 'Complex query' },
+        ]
+
+        const resultsDiv = document.getElementById('results')
+
+        tests.forEach(test => {
+            const testDiv = document.createElement('div')
+            testDiv.className = 'test'
+
+            try {
+                const lexer = new FilterLexer(test.input)
+                const tokens = lexer.tokenize()
+                const parser = new FilterParser(tokens)
+                const ast = parser.parse()
+
+                testDiv.classList.add('pass')
+                testDiv.innerHTML = `
+                    <h3>✓ ${test.desc}</h3>
+                    <p><strong>Input:</strong> <code>${test.input}</code></p>
+                    <details>
+                        <summary>AST (click to expand)</summary>
+                        <pre>${JSON.stringify(ast, null, 2)}</pre>
+                    </details>
+                `
+            } catch (err) {
+                testDiv.classList.add('fail')
+                testDiv.innerHTML = `
+                    <h3>✗ ${test.desc}</h3>
+                    <p><strong>Input:</strong> <code>${test.input}</code></p>
+                    <p><strong>Error:</strong> ${err.message}</p>
+                `
+            }
+
+            resultsDiv.appendChild(testDiv)
+        })
+    </script>
+</body>
+</html>
