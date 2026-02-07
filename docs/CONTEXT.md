@@ -1,8 +1,8 @@
 ---
 phase: "Experimentation"
-phase_name: "Filter Debugging & Fixes"
+phase_name: "Filter UX Polish"
 updated: 2026-02-07
-last_commit: 9f08dd3
+last_commit: 5cfc60e
 branch: filters-and-combs
 ---
 
@@ -10,14 +10,14 @@ branch: filters-and-combs
 
 ## Current Focus
 
-Fixed critical filter bugs! Filters now work correctly - empty results display properly, UI clarity improved.
+Filter implementation complete with reset/clear controls! All mixer controls and filters can be reset to defaults.
 
 ## Active Tasks
 
-- [x] Fix render fallback logic (empty filter results now show correctly)
-- [x] Fix invalid filter handling (parse errors show zero results)
-- [x] Improve filter help text (clarify AND behavior, add examples)
-- [x] Rename "Filters" to "Results Filter" (clearer purpose)
+- [x] Enhanced Reset Mix button (now resets all controls)
+- [x] Added Clear Filter button (✕ icon next to help)
+- [x] Filter bugs fixed (empty results display, invalid syntax handling)
+- [x] UI clarity improvements (renamed, better help text)
 
 ## Blockers
 
@@ -25,11 +25,11 @@ None.
 
 ## Context
 
-- **Critical bug fixed**: `renderExplorerResults()` and `renderListResults()` checked `.length > 0` which caused empty filtered results to fall back to showing all unfiltered results
-- **Invalid filter handling**: Parse errors now set `hasError` flag, show red error chip, return empty results
-- **Filter help improved**: Added "(results without this tag excluded)", clarified implicit AND, added multi-condition examples
-- **Filters working**: `tag:dj` correctly returns 0 results when no documents have that tag
+- **Reset Mix button**: Resets all fetch params, live params, and filter params to defaults
+- **Clear Filter button**: ✕ icon positioned next to ? button, clears filter and refreshes results
+- **Filters working correctly**: Empty results show "No results found", invalid syntax shows red error chip
+- **Complete reset capability**: Users can easily return to default state for all controls
 
 ## Next Session
 
-Consider: Server-side type/status filtering implementation, or move to next feature.
+Obsidian filter syntax complete and polished. Ready for production use or next feature.

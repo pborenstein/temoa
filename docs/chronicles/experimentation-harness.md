@@ -751,3 +751,33 @@ Transformed 342 GitHub gleanings to clean, consistent format with short titles a
 **Files**: src/temoa/ui/search.html
 
 **Commits**: 184f0f9 (UI clarity), 8f582f2 (invalid filter fix), 48e8bdf (render fallback fix), 89b7d7c (debug), 1fa6b76 (UI debug), 9f08dd3 (cleanup)
+
+---
+
+## Entry 72: Reset and Clear Controls (2026-02-07)
+
+**What**: Enhanced Reset Mix button to reset all controls and added Clear Filter button.
+
+**Why**: Users needed easy way to return to default state and clear filters without manual deletion.
+
+**How**:
+
+1. **Enhanced Reset Mix button** (`resetMix()` function)
+   - Now resets **all** controls, not just Live params:
+     - Fetch params: hybrid_weight=0.5, limit=20, rerank=true, expand=false
+     - Live params: mix_balance=0.5, tag_multiplier=5.0, time_weight=1.0
+     - Filter params: clears filterText, ast, hasError
+   - Updates all UI elements: sliders, textboxes, checkboxes
+   - Clears dirty marker, saves to localStorage
+   - Re-renders results if available
+
+2. **Added Clear Filter button**
+   - ✕ icon positioned next to ? button (right: 32px)
+   - Clears filter input, AST, error state
+   - Re-renders to show unfiltered results
+   - Saves cleared state to localStorage
+   - Independent from Reset Mix (can clear just filter)
+
+**Files**: src/temoa/ui/search.html
+
+**Commit**: 5cfc60e
