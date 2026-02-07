@@ -2919,7 +2919,11 @@
         function renderListResults() {
             const mainEl = document.querySelector('.list-main');
 
-            const results = state.remixedResults.length > 0 ? state.remixedResults : state.rawResults;
+            // Use remixedResults if available (even if empty array from filtering),
+            // otherwise fall back to rawResults
+            const results = state.remixedResults !== null && state.remixedResults !== undefined
+                ? state.remixedResults
+                : state.rawResults;
 
             if (!results || results.length === 0) {
                 mainEl.innerHTML = `
@@ -3051,7 +3055,11 @@
             const resultsEl = document.querySelector('#results-pane .pane-content');
             const resultCount = document.getElementById('result-count');
 
-            const results = state.remixedResults.length > 0 ? state.remixedResults : state.rawResults;
+            // Use remixedResults if available (even if empty array from filtering),
+            // otherwise fall back to rawResults
+            const results = state.remixedResults !== null && state.remixedResults !== undefined
+                ? state.remixedResults
+                : state.rawResults;
 
             if (!results || results.length === 0) {
                 resultsEl.innerHTML = `
