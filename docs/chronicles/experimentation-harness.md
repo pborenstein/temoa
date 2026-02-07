@@ -718,3 +718,36 @@ Transformed 342 GitHub gleanings to clean, consistent format with short titles a
 - OBSIDIAN-FILTER-IMPLEMENTATION.md (full docs)
 
 **Commit**: 4ba9053
+
+---
+
+## Entry 71: Filter Bug Fixes (2026-02-07)
+
+**What**: Fixed two critical bugs preventing filters from working correctly.
+
+**Why**: User reported `tag:dj` was returning all results instead of filtering. Debug output showed filter logic was correct (returning 0 results) but UI was showing unfiltered results.
+
+**How**:
+
+1. **Bug 1: Render fallback logic** (lines 2922, 3054)
+   - Both `renderListResults()` and `renderExplorerResults()` had:
+     `const results = state.remixedResults.length > 0 ? state.remixedResults : state.rawResults`
+   - When filter returned empty array (0 matches), `.length > 0` was false, so it fell back to rawResults
+   - Fixed: Check for null/undefined instead: `state.remixedResults !== null && state.remixedResults !== undefined`
+
+2. **Bug 2: Invalid filter handling**
+   - Parse errors (like `tag:` with no value) returned `ast: null` but `handleFilterInput()` returned early without calling `remixAndRender()`
+   - UI kept showing old results, making it appear filter was ignored
+   - Fixed: Set `hasError` flag, show red error chip, call `remixAndRender()` to clear results
+   - Updated `applyFilters()` to return empty array when `hasError=true`
+
+3. **UI Improvements**:
+   - Renamed "Filters" → "Results Filter" (clearer purpose)
+   - Updated help text: clarified implicit AND, added "(results without this tag excluded)"
+   - Added Examples section with multi-condition filters
+
+**Debug Process**: Added visible UI debug output (AST, before/after counts, tag matches) since console not accessible on iPad. Removed after fix confirmed.
+
+**Files**: src/temoa/ui/search.html
+
+**Commits**: 184f0f9 (UI clarity), 8f582f2 (invalid filter fix), 48e8bdf (render fallback fix), 89b7d7c (debug), 1fa6b76 (UI debug), 9f08dd3 (cleanup)

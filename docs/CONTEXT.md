@@ -1,8 +1,8 @@
 ---
 phase: "Experimentation"
-phase_name: "Obsidian Filter Syntax"
+phase_name: "Filter Debugging & Fixes"
 updated: 2026-02-07
-last_commit: 4ba9053
+last_commit: 9f08dd3
 branch: filters-and-combs
 ---
 
@@ -10,16 +10,14 @@ branch: filters-and-combs
 
 ## Current Focus
 
-Obsidian-compatible filter syntax implemented! Full lexer+parser with property syntax, boolean operators, and backward compatibility.
+Fixed critical filter bugs! Filters now work correctly - empty results display properly, UI clarity improved.
 
 ## Active Tasks
 
-- [x] Implement FilterLexer (tokenization)
-- [x] Implement FilterParser (AST building)
-- [x] AST evaluation (evaluateAST, evaluateFilter)
-- [x] Update UI (remove ANY/ALL toggle, new help panel)
-- [x] State migration (comma syntax → OR)
-- [x] Testing (11 unit tests, 30 manual test cases)
+- [x] Fix render fallback logic (empty filter results now show correctly)
+- [x] Fix invalid filter handling (parse errors show zero results)
+- [x] Improve filter help text (clarify AND behavior, add examples)
+- [x] Rename "Filters" to "Results Filter" (clearer purpose)
 
 ## Blockers
 
@@ -27,12 +25,11 @@ None.
 
 ## Context
 
-- **Property syntax**: `[type:gleaning]`, `[status:active]`
-- **Boolean operators**: `OR`, implicit `AND`, `-` (NOT)
-- **Grouping**: `(tag:a OR tag:b) path:c`
-- **Performance**: <2ms parse, <10ms eval, no regression
-- **Backward compat**: Comma syntax auto-converts to OR
+- **Critical bug fixed**: `renderExplorerResults()` and `renderListResults()` checked `.length > 0` which caused empty filtered results to fall back to showing all unfiltered results
+- **Invalid filter handling**: Parse errors now set `hasError` flag, show red error chip, return empty results
+- **Filter help improved**: Added "(results without this tag excluded)", clarified implicit AND, added multi-condition examples
+- **Filters working**: `tag:dj` correctly returns 0 results when no documents have that tag
 
 ## Next Session
 
-Optional: Manual testing with vault, server-side type/status filtering, UI error display.
+Consider: Server-side type/status filtering implementation, or move to next feature.
