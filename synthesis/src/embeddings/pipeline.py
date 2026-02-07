@@ -153,16 +153,19 @@ class EmbeddingPipeline:
         return True
     
     def find_similar(
-        self, 
-        query_text: str, 
-        top_k: int = 10
+        self,
+        query_text: str,
+        top_k: int = 10,
+        file_filter: Optional[List[str]] = None
     ) -> List[Dict]:
         """Find content similar to query text.
-        
+
         Args:
             query_text: Text to search for
             top_k: Number of results to return
-            
+            file_filter: Optional list of relative paths to search.
+                        If provided, only search these files.
+
         Returns:
             List of result dicts with similarity scores and metadata
         """
@@ -170,24 +173,45 @@ class EmbeddingPipeline:
         if embeddings is None:
             logger.error("No embeddings found. Run process_vault() first.")
             return []
-        
+
+        # NEW: Apply file filter if provided
+        if file_filter is not None:
+            # Convert file_filter to set for O(1) lookup
+            allowed_paths = set(file_filter)
+
+            # Filter embeddings and metadata
+            filtered_indices = [
+                i for i, meta in enumerate(metadata)
+                if meta.get('relative_path') in allowed_paths
+            ]
+
+            if not filtered_indices:
+                logger.warning(f"File filter matched 0 files out of {len(metadata)} total")
+                return []
+
+            logger.info(f"File filter: searching {len(filtered_indices)} files (filtered from {len(metadata)} total)")
+
+            # Create filtered views
+            embeddings = embeddings[filtered_indices]
+            metadata = [metadata[i] for i in filtered_indices]
+
         query_embedding = self.engine.embed_text(query_text)
-        
+
         similar_indices = self.engine.find_most_similar(
             query_embedding, embeddings, top_k
         )
-        
+
         results = []
         for idx, similarity in similar_indices:
             result = metadata[idx].copy()
             result["similarity_score"] = float(similarity)
-            
+
             # Add description by reading the file content
             description = self._get_content_description(result["relative_path"])
             result["description"] = description
-            
+
             results.append(result)
-        
+
         return results
     
     def _get_content_description(self, relative_path: str, max_length: int = 150) -> str:

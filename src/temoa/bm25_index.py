@@ -121,7 +121,14 @@ class BM25Index:
 
         logger.info(f"✓ BM25 index built: {len(documents)} documents")
 
-    def search(self, query: str, limit: int = 10, min_score: float = 0.0, tag_boost: float = 5.0) -> List[Dict[str, Any]]:
+    def search(
+        self,
+        query: str,
+        limit: int = 10,
+        min_score: float = 0.0,
+        tag_boost: float = 5.0,
+        file_filter: Optional[List[str]] = None
+    ) -> List[Dict[str, Any]]:
         """
         Search using BM25 ranking with tag-aware boosting.
 
@@ -130,6 +137,8 @@ class BM25Index:
             limit: Maximum number of results
             min_score: Minimum BM25 score threshold
             tag_boost: Multiplier for scores when query terms match tags (default: 5.0)
+            file_filter: Optional list of relative paths to search.
+                        If provided, only search these files.
 
         Returns:
             List of results with BM25 scores
@@ -149,9 +158,21 @@ class BM25Index:
         # Get BM25 scores for all documents
         scores = self.bm25.get_scores(query_tokens)
 
+        # NEW: Apply file filter if provided
+        allowed_paths_set = None
+        if file_filter is not None:
+            allowed_paths_set = set(file_filter)
+            logger.info(f"BM25 file filter: limiting to {len(allowed_paths_set)} files")
+
         # Create results with scores and apply tag boosting
         results = []
         for idx, score in enumerate(scores):
+            # Apply file filter first (before min_score check for efficiency)
+            if allowed_paths_set is not None:
+                doc_path = self.documents[idx].get('relative_path')
+                if doc_path not in allowed_paths_set:
+                    continue  # Skip this document
+
             if score > min_score:
                 result = self.documents[idx].copy()
                 base_score = float(score)

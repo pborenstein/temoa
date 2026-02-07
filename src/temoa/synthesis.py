@@ -337,7 +337,8 @@ class SynthesisClient:
     def search(
         self,
         query: str,
-        limit: Optional[int] = None
+        limit: Optional[int] = None,
+        file_filter: Optional[List[str]] = None
     ) -> Dict[str, Any]:
         """
         Perform semantic search using loaded model.
@@ -347,6 +348,8 @@ class SynthesisClient:
         Args:
             query: Search query string
             limit: Optional result limit (default: return all)
+            file_filter: Optional list of relative paths to search.
+                        If provided, only search these files.
 
         Returns:
             Dict with 'results' key containing search matches:
@@ -379,8 +382,12 @@ class SynthesisClient:
             # Default to 10 if no limit specified
             top_k = limit if limit else 10
 
-            # Perform search
-            results = self.pipeline.find_similar(query, top_k=top_k)
+            # Perform search with optional file filter
+            results = self.pipeline.find_similar(
+                query,
+                top_k=top_k,
+                file_filter=file_filter
+            )
 
             if not results:
                 logger.warning(f"No results found for query: {query}")
@@ -507,7 +514,8 @@ class SynthesisClient:
         self,
         query: str,
         limit: Optional[int] = None,
-        semantic_weight: float = 0.5
+        semantic_weight: float = 0.5,
+        file_filter: Optional[List[str]] = None
     ) -> Dict[str, Any]:
         """
         Perform hybrid search combining semantic and keyword (BM25) search.
@@ -523,6 +531,8 @@ class SynthesisClient:
             limit: Optional result limit (default: 10)
             semantic_weight: Weight for semantic vs keyword (0.0-1.0, default: 0.5)
                             0.0 = keyword only, 1.0 = semantic only
+            file_filter: Optional list of relative paths to search.
+                        If provided, only search these files.
 
         Returns:
             Dict with merged results:
@@ -558,7 +568,7 @@ class SynthesisClient:
 
             # Semantic search (if weight > 0)
             if semantic_weight > 0.0:
-                semantic_data = self.search(query, limit=fetch_limit)
+                semantic_data = self.search(query, limit=fetch_limit, file_filter=file_filter)
                 semantic_results = semantic_data.get('results', [])
                 logger.debug(f"Semantic search found {len(semantic_results)} results")
 
@@ -568,7 +578,7 @@ class SynthesisClient:
                 if self.bm25_index.bm25 is None:
                     self.bm25_index.load()
 
-                bm25_results = self.bm25_index.search(query, limit=fetch_limit)
+                bm25_results = self.bm25_index.search(query, limit=fetch_limit, file_filter=file_filter)
                 logger.debug(f"BM25 search found {len(bm25_results)} results")
 
                 # Enhance BM25 results with same format as semantic results

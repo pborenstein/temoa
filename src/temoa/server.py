@@ -3,6 +3,7 @@ import logging
 import os
 import sys
 import threading
+import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Optional
@@ -663,6 +664,132 @@ def filter_by_files(
     return filtered, num_filtered
 
 
+def build_file_filter(
+    synthesis,
+    vault_path: Path,
+    include_props: list[dict] | None = None,
+    include_tags: list[str] | None = None,
+    include_paths: list[str] | None = None,
+    include_files: list[str] | None = None
+) -> list[str] | None:
+    """
+    Build a file filter list from Query Filter parameters.
+
+    This enables pre-filtering BEFORE semantic search, which dramatically
+    improves performance for inclusive filters (e.g., [type:daily]).
+
+    Without pre-filtering:
+        - Search ALL 3,000 vault files (30+ seconds)
+        - Filter to 50 matching files
+        - Return 20 results
+
+    With pre-filtering:
+        - Determine 50 files match filter criteria (1-2 seconds)
+        - Search ONLY those 50 files (2-3 seconds)
+        - Return 20 results
+        Total: 3-5 seconds (6-10x faster!)
+
+    Args:
+        synthesis: SynthesisClient instance with access to VaultReader
+        vault_path: Path to vault root
+        include_props: Property filters (e.g., [{"prop": "type", "value": "daily"}])
+        include_tags: Tag filters (e.g., ["python", "ai"])
+        include_paths: Path filters (e.g., ["Gleanings", "Projects"])
+        include_files: Filename filters (e.g., ["README", "index"])
+
+    Returns:
+        List of relative file paths to search, or None if no filters applied
+    """
+    # Only build filter if we have INCLUSIVE filters
+    # Exclusive filters are fast (search limited set → filter), no need to pre-filter
+    if not any([include_props, include_tags, include_paths, include_files]):
+        return None
+
+    logger.info(f"Building file filter from Query Filter parameters...")
+    filter_start = time.time()
+
+    # Get all vault files via VaultReader
+    vault_reader = synthesis.pipeline.reader
+    all_files = vault_reader.discover_files()
+
+    if not all_files:
+        logger.warning("No vault files found, cannot build file filter")
+        return None
+
+    logger.info(f"Filtering {len(all_files)} vault files...")
+
+    # Apply filters to build allowed file list
+    file_filter = []
+
+    for file_path in all_files:
+        # Read file to get frontmatter and metadata
+        # Note: VaultReader caches frontmatter, so this should be fast
+        try:
+            content = vault_reader.read_file(file_path)
+            if not content:
+                continue
+
+            frontmatter = content.frontmatter or {}
+            tags = content.tags or []
+            relative_path = str(file_path.relative_to(vault_path))
+            filename = file_path.name
+
+            # Apply property filters
+            if include_props:
+                match_found = False
+                for prop_filter in include_props:
+                    prop_name = prop_filter.get("prop")
+                    prop_value = prop_filter.get("value")
+                    if not prop_name or not prop_value:
+                        continue
+
+                    fm_value = frontmatter.get(prop_name)
+                    if fm_value is None:
+                        continue
+
+                    if str(fm_value).lower() == str(prop_value).lower():
+                        match_found = True
+                        break
+
+                if not match_found:
+                    continue
+
+            # Apply tag filters
+            if include_tags:
+                if not tags:
+                    continue
+                tags_lower = [str(tag).lower() for tag in tags]
+                if not any(tag.lower() in tags_lower for tag in include_tags):
+                    continue
+
+            # Apply path filters
+            if include_paths:
+                if not any(pattern in relative_path for pattern in include_paths):
+                    continue
+
+            # Apply file filters
+            if include_files:
+                if not any(pattern in filename for pattern in include_files):
+                    continue
+
+            # All filters passed, include this file
+            file_filter.append(relative_path)
+
+        except Exception as e:
+            logger.debug(f"Error reading file {file_path} for filter: {e}")
+            continue
+
+    filter_duration = time.time() - filter_start
+    logger.info(f"File filter built: {len(file_filter)} files (from {len(all_files)} total) in {filter_duration:.2f}s")
+
+    # Return None if no files matched (let search handle empty results)
+    if not file_filter:
+        logger.warning("File filter matched 0 files")
+        return []
+
+    return file_filter
+
+
 # Determine CORS allowed origins
 # Priority: 1. Environment variable, 2. Config file, 3. Safe defaults
 cors_origins_env = os.getenv("TEMOA_CORS_ORIGINS", "").strip()
@@ -1247,24 +1374,79 @@ async def search(
             )
             pipeline_state["stages"].append(stage_state)
 
+        # Stage 0.5: Build file filter from Query Filter (if inclusive filters present)
+        # This enables pre-filtering BEFORE semantic search for dramatic performance improvement
+        file_filter = None
+        file_filter_metadata = {
+            "enabled": False,
+            "file_count": 0,
+            "total_files": 0,
+            "build_time": 0
+        }
+
+        if include_props_list or include_tags_list or include_paths_list or include_files_list:
+            try:
+                file_filter = build_file_filter(
+                    synthesis=synthesis,
+                    vault_path=vault_path,
+                    include_props=include_props_list,
+                    include_tags=include_tags_list,
+                    include_paths=include_paths_list,
+                    include_files=include_files_list
+                )
+
+                if file_filter is not None:
+                    file_filter_metadata["enabled"] = True
+                    file_filter_metadata["file_count"] = len(file_filter)
+                    # Note: total_files would require counting vault_files, skip for now
+
+                    # CRITICAL: If file filter is empty (0 matches), return empty results immediately
+                    if len(file_filter) == 0:
+                        logger.info("File filter matched 0 files, returning empty results")
+                        return JSONResponse(
+                            content={
+                                "query": q,
+                                "results": [],
+                                "total": 0,
+                                "model": synthesis.model_name,
+                                "search_mode": "hybrid" if use_hybrid else "semantic",
+                                "message": "No files matched the filter criteria",
+                                "file_filter": {
+                                    "enabled": True,
+                                    "file_count": 0,
+                                    "filters_applied": {
+                                        "include_props": include_props_list,
+                                        "include_tags": include_tags_list,
+                                        "include_paths": include_paths_list,
+                                        "include_files": include_files_list
+                                    }
+                                }
+                            }
+                        )
+
+            except Exception as e:
+                # Fail-open: if file filter building fails, continue without it
+                logger.warning(f"File filter building failed, proceeding without pre-filtering: {e}")
+                file_filter = None
+
         # Stage 1: Primary retrieval (semantic + BM25 hybrid or semantic-only)
         # Stage 2: Chunk deduplication (happens inside hybrid_search)
         stage_start = time.time()
         search_limit = limit * 2 if limit else 50
 
-        logger.info(f"Stage 1: Starting primary retrieval (limit={search_limit}, hybrid={use_hybrid})")
+        logger.info(f"Stage 1: Starting primary retrieval (limit={search_limit}, hybrid={use_hybrid}, file_filter={'enabled' if file_filter else 'disabled'})")
 
         # Choose search method
         if use_hybrid:
             try:
-                data = synthesis.hybrid_search(query=q, limit=search_limit)
+                data = synthesis.hybrid_search(query=q, limit=search_limit, file_filter=file_filter)
             except SynthesisError as e:
                 # Fall back to semantic search if hybrid fails
                 logger.warning(f"Hybrid search failed, falling back to semantic: {e}")
-                data = synthesis.search(query=q, limit=search_limit)
+                data = synthesis.search(query=q, limit=search_limit, file_filter=file_filter)
                 data["search_mode"] = "semantic (hybrid fallback)"
         else:
-            data = synthesis.search(query=q, limit=search_limit)
+            data = synthesis.search(query=q, limit=search_limit, file_filter=file_filter)
 
         # Get results
         results = data.get("results", [])

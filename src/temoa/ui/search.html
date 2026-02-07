@@ -3172,7 +3172,16 @@
 
         function remixAndRender() {
             // Client-side remix: re-blend semantic/BM25, apply tag/time multipliers
-            if (!state.rawResults || state.rawResults.length === 0) return;
+            if (!state.rawResults || state.rawResults.length === 0) {
+                // Handle empty results - still need to render the empty state
+                state.remixedResults = [];
+                if (state.viewMode === 'list') {
+                    renderListResults();
+                } else {
+                    renderExplorerResults();
+                }
+                return;
+            }
 
             const { mix_balance, tag_multiplier, time_weight } = state.liveParams;
 
@@ -3563,8 +3572,21 @@
             const dropdown = document.getElementById('history-dropdown');
 
             // Show dropdown on focus (if there's history)
+            // BUT: Don't show on programmatic/automatic focus (e.g., returning to page on iOS)
+            let lastUserInteraction = Date.now();
+
+            // Track user interactions
+            ['mousedown', 'touchstart', 'keydown'].forEach(eventType => {
+                input.addEventListener(eventType, () => {
+                    lastUserInteraction = Date.now();
+                }, { passive: true });
+            });
+
             input.addEventListener('focus', () => {
-                if (state.searchHistory.length > 0) {
+                // Only show dropdown if focus happened within 100ms of a user interaction
+                const wasUserInitiated = (Date.now() - lastUserInteraction) < 100;
+
+                if (wasUserInitiated && state.searchHistory.length > 0) {
                     renderHistoryDropdown();
                     dropdown.classList.add('visible');
                 }
