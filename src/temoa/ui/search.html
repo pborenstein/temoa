@@ -3181,6 +3181,59 @@
             }
         }
 
+        function scrollToKeepVisible(container, element, oldPositions) {
+            // Scroll container to keep element visible during reordering
+            // Called synchronously after DOM reorder but before FLIP animation
+
+            // Get element's NEW position (after reorder, before animation)
+            const containerRect = container.getBoundingClientRect();
+            const elementRect = element.getBoundingClientRect();
+
+            // Calculate where element will be in its final position (absolute coords)
+            const elementNewTop = elementRect.top;
+            const elementNewBottom = elementRect.bottom;
+            const elementHeight = elementRect.height;
+
+            // Container viewport bounds
+            const containerTop = containerRect.top;
+            const containerBottom = containerRect.bottom;
+            const containerHeight = containerRect.height;
+
+            // Define padding from edges
+            const topPadding = 20;
+            const bottomPadding = 20;
+
+            // Check if element's NEW position is outside visible viewport
+            const isAboveView = elementNewTop < containerTop + topPadding;
+            const isBelowView = elementNewBottom > containerBottom - bottomPadding;
+
+            if (isAboveView) {
+                // Element will be above viewport - scroll up to show top of card
+                const scrollDelta = elementNewTop - containerTop - topPadding;
+                container.scrollBy({
+                    top: scrollDelta,
+                    behavior: 'instant'
+                });
+            } else if (isBelowView) {
+                // Element will be below viewport
+                if (elementHeight < containerHeight - topPadding - bottomPadding) {
+                    // Card fits - scroll to show top of card
+                    const scrollDelta = elementNewTop - containerTop - topPadding;
+                    container.scrollBy({
+                        top: scrollDelta,
+                        behavior: 'instant'
+                    });
+                } else {
+                    // Card too tall - just show top
+                    const scrollDelta = elementNewTop - containerTop - topPadding;
+                    container.scrollBy({
+                        top: scrollDelta,
+                        behavior: 'instant'
+                    });
+                }
+            }
+        }
+
         function remixAndRender() {
             // Client-side remix: re-blend semantic/BM25, apply tag/time multipliers
             if (!state.rawResults || state.rawResults.length === 0) {
@@ -3322,6 +3375,16 @@
 
             // Animate if reordering
             if (isReordering && oldPositions.size > 0) {
+                // Check if we need to scroll to keep selected item visible
+                const selectedCard = state.selectedResult
+                    ? newCards.find(card => card.dataset.path === state.selectedResult.relative_path)
+                    : null;
+
+                // Scroll first if needed, then animate FLIP
+                if (selectedCard) {
+                    scrollToKeepVisible(mainEl, selectedCard, oldPositions);
+                }
+
                 requestAnimationFrame(() => {
                     newCards.forEach(card => {
                         const path = card.dataset.path;
@@ -3528,6 +3591,16 @@
 
             // Animate if reordering
             if (isReordering && oldPositions.size > 0) {
+                // Check if we need to scroll to keep selected item visible
+                const selectedCard = state.selectedResult
+                    ? newCards.find(card => card.dataset.path === state.selectedResult.relative_path)
+                    : null;
+
+                // Scroll first if needed, then animate FLIP
+                if (selectedCard) {
+                    scrollToKeepVisible(resultsEl, selectedCard, oldPositions);
+                }
+
                 requestAnimationFrame(() => {
                     newCards.forEach(card => {
                         const path = card.dataset.path;
@@ -3888,7 +3961,7 @@
             // Visual feedback
             const cards = document.querySelectorAll('.result-row');
             cards.forEach(c => c.classList.remove('selected'));
-            const selectedCard = document.querySelector(`[data-result-id="${result.relative_path}"]`);
+            const selectedCard = document.querySelector(`[data-path="${result.relative_path}"]`);
             if (selectedCard) {
                 selectedCard.classList.add('selected');
             }

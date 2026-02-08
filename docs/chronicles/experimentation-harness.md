@@ -999,3 +999,41 @@ Transformed 342 GitHub gleanings to clean, consistent format with short titles a
 **Next**: Implement viewport auto-scroll to keep selected item visible during FLIP reordering when adjusting sliders
 
 ---
+
+## Entry 80: Viewport Scrolling for Selected Items (2026-02-08)
+
+**What**: Keep selected item visible during FLIP reordering animations when adjusting search parameter sliders.
+
+**Why**:
+- When adjusting sliders with Inspector open, selected item could reorder out of viewport
+- User loses track of selected item during extreme slider movements (semantic → BM25)
+- Selection highlighting wasn't working (wrong data attribute selector)
+
+**How**:
+
+1. **Fixed Selection Highlighting**:
+   - Changed selectResult() to use `data-path` instead of `data-result-id`
+   - Cards now highlight immediately when clicked
+
+2. **Viewport Scrolling Function**:
+   - Added scrollToKeepVisible() helper before remixAndRender()
+   - Calculates element's new position after DOM reorder
+   - Checks if top of card is outside viewport (20px padding)
+   - Scrolls instantly to show top of card before FLIP animation starts
+   - No competing smooth animations - FLIP provides visual smoothness
+
+3. **Integration with FLIP**:
+   - Both renderListResults() and renderExplorerResults() call scroll helper
+   - Scroll happens synchronously after DOM reorder, before FLIP requestAnimationFrame
+   - Works for extreme movements (top to bottom, bottom to top)
+
+**Files**:
+- src/temoa/ui/search.html (scrollToKeepVisible, renderListResults, renderExplorerResults, selectResult)
+
+**Impact**:
+- Selected items stay visible through slider adjustments
+- Smooth experience even with extreme reordering
+- Top-of-card priority ensures visibility
+- Works in both list and explorer views
+
+---
