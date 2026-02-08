@@ -52,7 +52,55 @@ class EmbeddingPipeline:
         self.store = EmbeddingStore(actual_storage_dir)
         
         logger.info(f"Pipeline initialized: {vault_root} -> {actual_storage_dir} (model: {model_name})")
-    
+
+    def clean_stale_entries(self) -> int:
+        """
+        Remove index entries for files that no longer exist on disk.
+
+        Returns:
+            Number of stale entries removed
+        """
+        if not self.store.exists():
+            return 0
+
+        embeddings, metadata, index_info = self.store.load_embeddings()
+        if embeddings is None or metadata is None:
+            return 0
+
+        # Check which files still exist
+        existing_indices = []
+        stale_paths = []
+
+        for i, meta in enumerate(metadata):
+            file_path = self.vault_root / meta['relative_path']
+            if file_path.exists():
+                existing_indices.append(i)
+            else:
+                stale_paths.append(meta['relative_path'])
+
+        stale_count = len(stale_paths)
+
+        if stale_count == 0:
+            logger.debug("No stale entries found in index")
+            return 0
+
+        # Log stale files
+        logger.info(f"Found {stale_count} stale entries in index:")
+        for path in stale_paths[:10]:  # Show first 10
+            logger.info(f"  - {path}")
+        if stale_count > 10:
+            logger.info(f"  ... and {stale_count - 10} more")
+
+        # Filter embeddings and metadata to keep only existing files
+        filtered_embeddings = embeddings[existing_indices]
+        filtered_metadata = [metadata[i] for i in existing_indices]
+
+        # Save filtered index
+        self.store.save_embeddings(filtered_embeddings, filtered_metadata, index_info)
+
+        logger.info(f"Cleaned {stale_count} stale entries from index ({len(filtered_metadata)} entries remaining)")
+        return stale_count
+
     def process_vault(self, force_rebuild: bool = False, limit: Optional[int] = None,
                      use_strategic_subset: bool = False, enable_chunking: bool = False,
                      chunk_size: int = 2000, chunk_overlap: int = 400,
@@ -71,6 +119,12 @@ class EmbeddingPipeline:
         Returns:
             True if processing completed successfully
         """
+        # Clean stale entries before checking if we need to rebuild
+        if self.store.exists():
+            stale_count = self.clean_stale_entries()
+            if stale_count > 0:
+                logger.info(f"Removed {stale_count} stale file(s) from index")
+
         if self.store.exists() and not force_rebuild:
             logger.info("Embeddings already exist. Use force_rebuild=True to regenerate.")
             return True
@@ -217,21 +271,27 @@ class EmbeddingPipeline:
     def _get_content_description(self, relative_path: str, max_length: int = 150) -> str:
         """
         Get a description snippet from file content.
-        
+
         Args:
             relative_path: Path to the file relative to vault root
             max_length: Maximum length of description
-            
+
         Returns:
             Content description or empty string if unavailable
         """
         try:
             from .vault_reader import VaultReader
             reader = VaultReader(self.vault_root)
-            
+
             full_path = Path(self.vault_root) / relative_path
+
+            # Check if file exists before attempting to read
+            if not full_path.exists():
+                logger.debug(f"Skipping description for missing file: {relative_path}")
+                return ""
+
             content_obj = reader.read_file(full_path)
-            
+
             if content_obj and content_obj.content:
                 content = content_obj.content.strip()
                 if len(content) <= max_length:

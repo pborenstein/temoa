@@ -3830,9 +3830,12 @@
                     if (e.target.classList.contains('delete-btn')) return;
                     e.preventDefault();
                     const query = item.dataset.query;
-                    document.getElementById('query-input').value = query;
+                    const input = document.getElementById('query-input');
+                    input.value = query;
                     dropdown.classList.remove('visible');
-                    runSearch();
+                    // Focus input so user can edit before running
+                    input.focus();
+                    // Don't auto-run - let user edit and press Enter/Run
                 });
             });
 
@@ -4097,7 +4100,9 @@
                 label.textContent = 'Time Boost';
                 const value = document.createElement('div');
                 value.className = 'inspector-value';
-                value.textContent = `+${(result.time_boost * 100).toFixed(0)}%`;
+                // Show effective boost: time_boost * time_weight
+                const effectiveBoost = result.time_boost * state.liveParams.time_weight;
+                value.textContent = `+${(effectiveBoost * 100).toFixed(0)}%`;
                 value.style.color = '#88aa88';
                 row.appendChild(label);
                 row.appendChild(value);
@@ -4375,7 +4380,9 @@
                 label.textContent = 'Time Boost';
                 const value = document.createElement('div');
                 value.className = 'inspector-value';
-                value.textContent = `+${(result.time_boost * 100).toFixed(0)}%`;
+                // Show effective boost: time_boost * time_weight
+                const effectiveBoost = result.time_boost * state.liveParams.time_weight;
+                value.textContent = `+${(effectiveBoost * 100).toFixed(0)}%`;
                 value.style.color = '#88aa88';
                 row.appendChild(label);
                 row.appendChild(value);

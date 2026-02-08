@@ -1,8 +1,8 @@
 ---
 phase: "Experimentation"
-phase_name: "UI Polish"
-updated: 2026-02-07
-last_commit: f22a222
+phase_name: "Stale Index Cleanup + UX Polish"
+updated: 2026-02-08
+last_commit: 613b6b4
 branch: main
 ---
 
@@ -10,15 +10,15 @@ branch: main
 
 ## Current Focus
 
-UI polish improvements: clear results on vault change, smooth FLIP animations for slider-driven reordering with throttling.
+Fixed stale index entries (auto-cleanup on reindex) and UX improvements: search history now fills input without auto-running, Time Boost display shows effective boost with time_weight multiplier.
 
 ## Active Tasks
 
-- [x] Clear results when switching vaults
-- [x] Add FLIP animation for result reordering
-- [x] Throttle slider updates (50ms) to prevent animation jank
-- [x] Add stable identity tracking (data-path attributes)
-- [x] Implement card reuse for better performance
+- [x] Detect and skip missing files during search (graceful handling)
+- [x] Auto-clean stale index entries on reindex
+- [x] Fix Time Boost display to show effective boost (time_boost × time_weight)
+- [x] Fix search history auto-run behavior (now fills input for editing)
+- [ ] Keep selected item in viewport during reordering (scroll to keep visible)
 
 ## Blockers
 
@@ -26,12 +26,11 @@ None
 
 ## Context
 
-- **Vault Switching**: Now clears results, query, and selected result to prevent confusion
-- **FLIP Animation**: First-Last-Invert-Play technique for smooth reordering in both list and explorer views
-- **Throttled Updates**: Slider input throttled to 50ms (~20fps) with final remix on release
-- **Card Reuse**: Existing DOM elements reused during reorder for better performance
-- **Animation Duration**: 0.3s ease-out transition, skips moves < 1px
+- **Stale Index Cleanup**: VaultReader now checks file existence before reading, EmbeddingPipeline.clean_stale_entries() runs on every reindex
+- **Time Boost Display**: Inspector shows effective boost = time_boost × time_weight (e.g., 0.09 × 2.0 = 18%)
+- **Search History UX**: Clicking history item fills input and focuses it for editing, no auto-run
+- **Next Feature**: Viewport auto-scroll to keep selected item visible during FLIP reordering animations
 
 ## Next Session
 
-Continue experimentation. Consider testing animation performance with larger result sets, or explore other UI polish opportunities.
+Implement viewport scrolling to keep selected item visible during slider-driven reordering. When user adjusts sliders with Inspector open, smoothly scroll results container so selected item stays in view through FLIP animation. See search.html lines 3184-3254 (remixAndRender function) and lines 3905+ (renderInspector).

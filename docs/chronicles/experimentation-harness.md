@@ -953,3 +953,49 @@ Transformed 342 GitHub gleanings to clean, consistent format with short titles a
 **Commit**: f22a222
 
 ---
+
+## Entry 79: Stale Index Cleanup + UX Refinements (2026-02-08)
+
+**What**: Fixed stale index entries causing errors during search, improved Time Boost display to show effective multiplier, and fixed search history auto-run behavior.
+
+**Why**:
+- Index contained references to 8 deleted files → "Failed to read file" errors in logs
+- Time Boost display showed raw server value (9%) instead of effective boost with time_weight multiplier (18% when weight=2.0)
+- Search history auto-ran on selection, preventing users from editing before search
+
+**How**:
+
+1. **Stale Index Detection & Cleanup**:
+   - Modified VaultReader.read_file() and read_file_chunked() to check file.exists() before opening
+   - Changed error level from logger.error to logger.debug for missing files (graceful degradation)
+   - Added EmbeddingPipeline.clean_stale_entries() method to detect and remove stale index entries
+   - Hooked cleanup into process_vault() - runs before early return on incremental reindex
+   - Result: Auto-removes deleted files from index, logs what was cleaned
+
+2. **Time Boost Effective Display**:
+   - Modified Inspector Time Boost calculation in both renderInspector() and updateInspectorScores()
+   - Changed from: `result.time_boost * 100` (raw server value)
+   - Changed to: `result.time_boost * state.liveParams.time_weight * 100` (effective boost)
+   - Example: time_boost=0.09, time_weight=2.0 → displays "+18%" instead of "+9%"
+   - Now updates in real-time when Time Weight slider changes
+
+3. **Search History UX Fix**:
+   - Modified history dropdown click handler to NOT call runSearch()
+   - Now fills input and focuses it for editing
+   - User must press Enter or click Run button to execute search
+   - Preserves ability to modify saved searches before running
+
+**Files**:
+- synthesis/src/embeddings/vault_reader.py (read_file, read_file_chunked)
+- synthesis/src/embeddings/pipeline.py (clean_stale_entries, process_vault, _get_content_description)
+- src/temoa/ui/search.html (Time Boost display, search history handler)
+
+**Impact**:
+- No more "Failed to read file" errors in logs during search
+- Automatic cleanup on reindex (incremental or full)
+- Time Boost values accurately reflect time_weight setting
+- Search history supports edit-before-run workflow
+
+**Next**: Implement viewport auto-scroll to keep selected item visible during FLIP reordering when adjusting sliders
+
+---

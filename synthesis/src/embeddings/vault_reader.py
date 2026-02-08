@@ -169,27 +169,32 @@ class VaultReader:
 
     def read_file(self, file_path: Path) -> Optional[VaultContent]:
         """Read a single vault file and extract content.
-        
+
         Returns:
             VaultContent object or None if file cannot be read
         """
         try:
+            # Check if file exists first
+            if not file_path.exists():
+                logger.debug(f"Skipping missing file: {file_path}")
+                return None
+
             with open(file_path, 'r', encoding='utf-8') as f:
                 raw_content = f.read()
-            
+
             frontmatter, content = self.parse_frontmatter(raw_content, file_path)
-            
+
             title = file_path.stem
             if frontmatter and 'title' in frontmatter:
                 title = frontmatter['title']
-            
+
             tags = []
             if frontmatter and 'tags' in frontmatter:
                 if isinstance(frontmatter['tags'], list):
                     tags.extend(frontmatter['tags'])
                 elif isinstance(frontmatter['tags'], str):
                     tags.append(frontmatter['tags'])
-            
+
             # Only use frontmatter tags, skip inline tags
             tags = list(set(tags))
 
@@ -214,6 +219,10 @@ class VaultReader:
                 tags=tags
             )
 
+        except FileNotFoundError:
+            # File was deleted between exists() check and open() - race condition
+            logger.debug(f"File disappeared during read: {file_path}")
+            return None
         except Exception as e:
             logger.error(f"Failed to read file {file_path}: {e}")
             return None
@@ -237,6 +246,11 @@ class VaultReader:
             List of VaultContent objects (one per chunk, or single item if no chunking needed)
         """
         try:
+            # Check if file exists first
+            if not file_path.exists():
+                logger.debug(f"Skipping missing file: {file_path}")
+                return []
+
             with open(file_path, 'r', encoding='utf-8') as f:
                 raw_content = f.read()
 
@@ -307,6 +321,10 @@ class VaultReader:
             logger.debug(f"Chunked {file_path.name}: {len(embedding_content)} chars -> {len(chunks)} chunks")
             return vault_contents
 
+        except FileNotFoundError:
+            # File was deleted between exists() check and open() - race condition
+            logger.debug(f"File disappeared during read: {file_path}")
+            return []
         except Exception as e:
             logger.error(f"Failed to read/chunk file {file_path}: {e}")
             return []
