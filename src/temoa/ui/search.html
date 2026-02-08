@@ -1965,6 +1965,18 @@
             // Vault selector
             document.getElementById('vault-select').addEventListener('change', (e) => {
                 state.vault = e.target.value;
+                // Clear results when switching vaults
+                state.rawResults = [];
+                state.remixedResults = [];
+                state.selectedResult = null;
+                state.query = '';
+                document.getElementById('query-input').value = '';
+                // Re-render to show empty state
+                if (state.viewMode === 'list') {
+                    renderListResults();
+                } else {
+                    renderExplorerResults();
+                }
                 saveState();
             });
 
@@ -2023,14 +2035,36 @@
             });
 
             // Live controls (instant remix when results exist)
+            // Throttle remix to prevent animation jank during slider drag
+            let remixTimeout = null;
             liveBalance.addEventListener('input', () => {
                 const val = parseInt(liveBalance.value);
                 liveBalanceValue.textContent = `${100-val}/${val}`;
                 state.liveParams.mix_balance = val / 100;
+
+                if (state.rawResults.length > 0) {
+                    // Clear pending remix
+                    if (remixTimeout) {
+                        clearTimeout(remixTimeout);
+                    }
+                    // Schedule remix with small delay for smooth dragging
+                    remixTimeout = setTimeout(() => {
+                        remixAndRender();
+                        remixTimeout = null;
+                    }, 50); // 50ms = ~20fps, smooth enough while preventing jank
+                }
+                saveState();
+            });
+
+            // When slider released, do final remix immediately
+            liveBalance.addEventListener('change', () => {
+                if (remixTimeout) {
+                    clearTimeout(remixTimeout);
+                    remixTimeout = null;
+                }
                 if (state.rawResults.length > 0) {
                     remixAndRender();
                 }
-                saveState();
             });
 
             liveTags.addEventListener('change', () => {
@@ -3238,21 +3272,87 @@
                 return;
             }
 
-            // Create results table
-            const table = document.createElement('div');
-            table.className = 'results-table';
+            // Get existing table or create new one
+            let table = mainEl.querySelector('.results-table');
+            const isReordering = table && table.children.length > 0;
 
-            results.forEach(result => {
-                const card = createListResultCard(result);
-                table.appendChild(card);
+            if (!table) {
+                table = document.createElement('div');
+                table.className = 'results-table';
+                mainEl.replaceChildren(table);
+            }
+
+            // FLIP animation for reordering
+            const oldPositions = new Map();
+            if (isReordering) {
+                // First: record current positions
+                Array.from(table.children).forEach(card => {
+                    const path = card.dataset.path;
+                    if (path) {
+                        oldPositions.set(path, card.getBoundingClientRect());
+                    }
+                });
+            }
+
+            // Build new card list (reuse existing cards where possible)
+            const existingCards = new Map();
+            Array.from(table.children).forEach(card => {
+                const path = card.dataset.path;
+                if (path) {
+                    existingCards.set(path, card);
+                }
             });
 
-            mainEl.replaceChildren(table);
+            const newCards = results.map(result => {
+                const existing = existingCards.get(result.relative_path);
+                if (existing) {
+                    // Update existing card's selection state
+                    if (state.selectedResult?.relative_path === result.relative_path) {
+                        existing.classList.add('selected');
+                    } else {
+                        existing.classList.remove('selected');
+                    }
+                    return existing;
+                }
+                return createListResultCard(result);
+            });
+
+            // Replace table contents
+            table.replaceChildren(...newCards);
+
+            // Animate if reordering
+            if (isReordering && oldPositions.size > 0) {
+                requestAnimationFrame(() => {
+                    newCards.forEach(card => {
+                        const path = card.dataset.path;
+                        const oldPos = oldPositions.get(path);
+                        if (oldPos) {
+                            // Last: get new position
+                            const newPos = card.getBoundingClientRect();
+
+                            // Invert: calculate delta
+                            const deltaY = oldPos.top - newPos.top;
+
+                            if (Math.abs(deltaY) > 1) { // Only animate if moved
+                                // Play: animate from old to new position
+                                card.style.transform = `translateY(${deltaY}px)`;
+                                card.style.transition = 'none';
+
+                                requestAnimationFrame(() => {
+                                    card.style.transform = '';
+                                    card.style.transition = 'transform 0.3s ease-out';
+                                });
+                            }
+                        }
+                    });
+                });
+            }
         }
 
         function createListResultCard(result) {
             const card = document.createElement('div');
             card.className = 'result-row';
+            card.dataset.path = result.relative_path; // For stable identity during reordering
 
             // Title row with badges
             const titleRow = document.createElement('div');
@@ -3378,22 +3478,87 @@
             // Update result count
             if (resultCount) resultCount.textContent = `(${results.length})`;
 
-            // Create results table
-            const table = document.createElement('div');
-            table.className = 'results-table';
+            // Get existing table or create new one
+            let table = resultsEl.querySelector('.results-table');
+            const isReordering = table && table.children.length > 0;
 
-            results.forEach(result => {
-                const card = createExplorerResultCard(result);
-                table.appendChild(card);
+            if (!table) {
+                table = document.createElement('div');
+                table.className = 'results-table';
+                resultsEl.replaceChildren(table);
+            }
+
+            // FLIP animation for reordering
+            const oldPositions = new Map();
+            if (isReordering) {
+                // First: record current positions
+                Array.from(table.children).forEach(card => {
+                    const path = card.dataset.path;
+                    if (path) {
+                        oldPositions.set(path, card.getBoundingClientRect());
+                    }
+                });
+            }
+
+            // Build new card list (reuse existing cards where possible)
+            const existingCards = new Map();
+            Array.from(table.children).forEach(card => {
+                const path = card.dataset.path;
+                if (path) {
+                    existingCards.set(path, card);
+                }
             });
 
-            resultsEl.replaceChildren(table);
+            const newCards = results.map(result => {
+                const existing = existingCards.get(result.relative_path);
+                if (existing) {
+                    // Update existing card's selection state
+                    if (state.selectedResult?.relative_path === result.relative_path) {
+                        existing.classList.add('selected');
+                    } else {
+                        existing.classList.remove('selected');
+                    }
+                    return existing;
+                }
+                return createExplorerResultCard(result);
+            });
+
+            // Replace table contents
+            table.replaceChildren(...newCards);
+
+            // Animate if reordering
+            if (isReordering && oldPositions.size > 0) {
+                requestAnimationFrame(() => {
+                    newCards.forEach(card => {
+                        const path = card.dataset.path;
+                        const oldPos = oldPositions.get(path);
+                        if (oldPos) {
+                            // Last: get new position
+                            const newPos = card.getBoundingClientRect();
+
+                            // Invert: calculate delta
+                            const deltaY = oldPos.top - newPos.top;
+
+                            if (Math.abs(deltaY) > 1) { // Only animate if moved
+                                // Play: animate from old to new position
+                                card.style.transform = `translateY(${deltaY}px)`;
+                                card.style.transition = 'none';
+
+                                requestAnimationFrame(() => {
+                                    card.style.transform = '';
+                                    card.style.transition = 'transform 0.3s ease-out';
+                                });
+                            }
+                        }
+                    });
+                });
+            }
         }
 
         function createExplorerResultCard(result) {
             const card = document.createElement('div');
             card.className = 'result-row';
-            card.dataset.resultId = result.relative_path;
+            card.dataset.path = result.relative_path; // For stable identity during reordering
 
             // Click handler for inspector
             card.addEventListener('click', () => {

@@ -1,8 +1,8 @@
 ---
 phase: "Experimentation"
-phase_name: "Documentation Maintenance"
+phase_name: "UI Polish"
 updated: 2026-02-07
-last_commit: d38931a
+last_commit: 5f5e10b
 branch: main
 ---
 
@@ -10,18 +10,15 @@ branch: main
 
 ## Current Focus
 
-Completed comprehensive review and update of all project tracking documents. Created TRACKING-SYSTEM.md to document Temoa's hybrid tracking approach.
+UI polish improvements: clear results on vault change, smooth FLIP animations for slider-driven reordering with throttling.
 
 ## Active Tasks
 
-- [x] Audited all tracking documents (IMPLEMENTATION, DECISIONS, CLAUDE, chronicles)
-- [x] Decided on standardization approach (keep hybrid format)
-- [x] Updated stale dates across 7 tracking documents
-- [x] Added DEC-097 (Two-Phase Filtering Architecture)
-- [x] Added Entry 75 (Query Filter speedup) to chronicles
-- [x] Created TRACKING-SYSTEM.md (300+ lines)
-- [x] Validated all updates (consistency, codebase, grep-friendliness)
-- [x] Commit documentation updates
+- [x] Clear results when switching vaults
+- [x] Add FLIP animation for result reordering
+- [x] Throttle slider updates (50ms) to prevent animation jank
+- [x] Add stable identity tracking (data-path attributes)
+- [x] Implement card reuse for better performance
 
 ## Blockers
 
@@ -29,12 +26,12 @@ None
 
 ## Context
 
-- **Documentation Review Complete**: All tracking docs now current (2026-02-07), no contradictions found
-- **TRACKING-SYSTEM.md**: New file explains hybrid approach (table format, topical chronicles, comprehensive CLAUDE.md)
-- **DEC-097 Added**: Two-Phase Filtering (Query Filter + Results Filter) fully documented
-- **Entry 75 Added**: Query Filter performance optimization (15-20x speedup with exclude filters)
-- **Validation Passed**: Session pickup ~4 minutes, all features exist in codebase, git history reflected
+- **Vault Switching**: Now clears results, query, and selected result to prevent confusion
+- **FLIP Animation**: First-Last-Invert-Play technique for smooth reordering in both list and explorer views
+- **Throttled Updates**: Slider input throttled to 50ms (~20fps) with final remix on release
+- **Card Reuse**: Existing DOM elements reused during reorder for better performance
+- **Animation Duration**: 0.3s ease-out transition, skips moves < 1px
 
 ## Next Session
 
-Resume experimentation work. Test Option B workflow (verify BM25 scores, LIVE slider re-sorting, Inspector optimization). Consider investigating RRF smoothing effect on semantic/BM25 differences.
+Continue experimentation. Consider testing animation performance with larger result sets, or explore other UI polish opportunities.

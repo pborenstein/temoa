@@ -925,6 +925,31 @@ Transformed 342 GitHub gleanings to clean, consistent format with short titles a
 
 **See Also**: DEC-097, docs/TRACKING-SYSTEM.md
 
+**Commit**: d38931a
+
+---
+
+## Entry 78: UI Polish - Smooth Animations and Vault Switching (2026-02-07)
+
+**What**: Added two UX improvements: clear results when switching vaults, and smooth FLIP animations for slider-driven reordering.
+
+**Why**: Vault switching left stale results visible (confusing), and slider adjustments caused janky reordering with 101 discrete steps triggering rapid re-renders.
+
+**How**:
+1. **Vault switching**: Modified vault selector handler to clear rawResults, remixedResults, selectedResult, and query input
+2. **FLIP animation**: Implemented First-Last-Invert-Play technique in both renderListResults() and renderExplorerResults()
+3. **Throttling**: Added 50ms setTimeout to slider 'input' event to batch updates (~20fps instead of 60fps+)
+4. **Final remix**: Added 'change' event handler to ensure accurate final state when slider released
+5. **Card reuse**: Modified rendering to reuse existing DOM elements with data-path attributes for stable identity
+
+**Technical Details**:
+- FLIP: Record old positions → update DOM → calculate deltas → animate from old to new
+- Animation: 0.3s ease-out CSS transition, skips moves < 1px
+- Throttle: clearTimeout/setTimeout pattern prevents animation overlap
+- Performance: Reusing cards avoids DOM creation overhead during reorder
+
+**Files**: src/temoa/ui/search.html
+
 **Commit**: (pending)
 
 ---
