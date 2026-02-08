@@ -2,7 +2,7 @@
 phase: "Experimentation"
 phase_name: "Stale Index Cleanup + UX Polish"
 updated: 2026-02-08
-last_commit: 81cc171
+last_commit: 413db30
 branch: main
 ---
 
