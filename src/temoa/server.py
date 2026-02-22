@@ -1,5 +1,6 @@
 """FastAPI server for Temoa semantic search"""
 import logging
+import math
 import os
 import sys
 import threading
@@ -40,14 +41,19 @@ except ImportError as e:
 
 def sanitize_unicode(obj):
     """
-    Recursively sanitize Unicode surrogates in strings.
+    Recursively sanitize Unicode surrogates in strings and non-finite floats.
 
     Replaces invalid surrogate pairs with replacement character.
-    This prevents UnicodeEncodeError when serializing to JSON.
+    Replaces NaN/inf float values with None (not JSON-serializable).
+    This prevents UnicodeEncodeError and ValueError when serializing to JSON.
     """
     if isinstance(obj, str):
         # Replace surrogates with Unicode replacement character
         return obj.encode('utf-8', errors='replace').decode('utf-8')
+    elif isinstance(obj, float):
+        if math.isnan(obj) or math.isinf(obj):
+            return None
+        return obj
     elif isinstance(obj, dict):
         return {k: sanitize_unicode(v) for k, v in obj.items()}
     elif isinstance(obj, list):
@@ -306,11 +312,12 @@ def get_client_for_vault(request, vault_identifier: Optional[str] = None) -> tup
             config.storage_dir
         )
 
-        # Get or create cached client
+        # Get or create cached client (vault-specific model takes priority)
+        vault_model = vault_config.get("model") or config.default_model
         client = client_cache.get(
             vault_path=vault_path,
             synthesis_path=config.synthesis_path,
-            model=config.default_model,
+            model=vault_model,
             storage_dir=storage_dir
         )
 
@@ -2492,7 +2499,7 @@ async def extract_gleanings(
 async def mark_gleaning_status(
     request: Request,
     gleaning_id: str,
-    status: str = Query(..., regex="^(active|inactive)$", description="Status to set"),
+    status: str = Query(..., pattern="^(active|inactive)$", description="Status to set"),
     reason: Optional[str] = Query(None, description="Optional reason for status change")
 ):
     """
@@ -2537,7 +2544,7 @@ async def list_gleanings(
     request: Request,
     status: Optional[str] = Query(
         None,
-        regex="^(active|inactive)$",
+        pattern="^(active|inactive)$",
         description="Filter by status (omit for all)"
     )
 ):

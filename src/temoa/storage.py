@@ -45,7 +45,8 @@ def validate_storage_safe(
     storage_dir: Path,
     vault_path: Path,
     operation: str,
-    force: bool = False
+    force: bool = False,
+    model: Optional[str] = None
 ) -> None:
     """
     Validate that storage directory is safe for operation on vault.
@@ -58,6 +59,8 @@ def validate_storage_safe(
         vault_path: Vault being operated on
         operation: Operation name (for error messages)
         force: If True, skip validation (dangerous!)
+        model: Model name used for indexing; when provided, looks for index
+               at storage_dir/model/index.json (the actual Synthesis layout)
 
     Raises:
         ConfigError: If vault mismatch detected and force=False
@@ -66,7 +69,8 @@ def validate_storage_safe(
         logger.warning(f"⚠️  Force mode: Skipping vault validation for {operation}")
         return
 
-    index_file = storage_dir / "index.json"
+    # Synthesis stores indexes in model-specific subdirectory
+    index_file = (storage_dir / model / "index.json") if model else (storage_dir / "index.json")
 
     if not index_file.exists():
         # No index yet - safe to proceed
@@ -174,8 +178,11 @@ def get_vault_metadata(storage_dir: Path, model: str) -> Optional[Dict[str, Any]
         with open(index_file) as f:
             index_data = json.load(f)
 
+        if "vault_path" not in index_data:
+            return None
+
         return {
-            "vault_path": Path(index_data.get("vault_path", "")),
+            "vault_path": Path(index_data["vault_path"]),
             "vault_name": index_data.get("vault_name"),
             "indexed_at": index_data.get("created_at"),  # Synthesis uses 'created_at' not 'indexed_at'
             "file_count": len(index_data.get("file_tracking", {}))

@@ -95,7 +95,7 @@ class TestValidateStorageSafe:
         }))
 
         # Should not raise
-        validate_storage_safe(storage, vault, "index", force=False)
+        validate_storage_safe(storage, vault, "index", force=False, model="all-mpnet-base-v2")
 
     def test_mismatched_vault_raises_error(self, tmp_path):
         """Index for different vault raises ConfigError"""
@@ -117,7 +117,7 @@ class TestValidateStorageSafe:
 
         # Try to validate for vault2 - should raise
         with pytest.raises(ConfigError) as exc_info:
-            validate_storage_safe(storage, vault2, "index", force=False)
+            validate_storage_safe(storage, vault2, "index", force=False, model="all-mpnet-base-v2")
 
         assert "Storage directory mismatch" in str(exc_info.value)
         assert "vault1" in str(exc_info.value)
@@ -142,7 +142,7 @@ class TestValidateStorageSafe:
         }))
 
         # With force=True, should not raise
-        validate_storage_safe(storage, vault2, "index", force=True)
+        validate_storage_safe(storage, vault2, "index", force=True, model="all-mpnet-base-v2")
 
     def test_old_index_without_metadata_migrates(self, tmp_path):
         """Index without vault_path gets auto-migrated"""
@@ -161,7 +161,7 @@ class TestValidateStorageSafe:
         }))
 
         # Should not raise, and should add metadata
-        validate_storage_safe(storage, vault, "index", force=False)
+        validate_storage_safe(storage, vault, "index", force=False, model="all-mpnet-base-v2")
 
         # Check metadata was added
         updated_data = json.loads(index_file.read_text())
@@ -185,7 +185,7 @@ class TestValidateStorageSafe:
         index_file.write_text("{ invalid json }")
 
         # Should not raise (can't validate, so let it proceed)
-        validate_storage_safe(storage, vault, "index", force=False)
+        validate_storage_safe(storage, vault, "index", force=False, model="all-mpnet-base-v2")
 
 
 class TestGetVaultMetadata:
@@ -199,10 +199,11 @@ class TestGetVaultMetadata:
         model_dir = storage / "all-mpnet-base-v2"
         model_dir.mkdir(parents=True)
         index_file = model_dir / "index.json"
+        # Synthesis uses 'created_at', not 'indexed_at'
         index_file.write_text(json.dumps({
             "vault_path": "/Users/test/vault",
             "vault_name": "vault",
-            "indexed_at": "2025-11-26T12:00:00"
+            "created_at": "2025-11-26T12:00:00"
         }))
 
         metadata = get_vault_metadata(storage, "all-mpnet-base-v2")

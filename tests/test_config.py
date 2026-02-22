@@ -65,39 +65,35 @@ def test_config_expands_tilde_paths(tmp_path):
     """Test that ~ in paths is expanded"""
     config_file = tmp_path / "config.json"
 
-    # Use actual home directory for this test
-    home = Path.home()
-    vault_path = home / "test-vault"
-    synthesis_path = home / "test-synthesis"
+    # Use tmp_path subdirectories — no touching the real home dir
+    vault_path = tmp_path / "vault"
+    synthesis_path = tmp_path / "synthesis"
+    vault_path.mkdir()
+    synthesis_path.mkdir()
 
-    # Create test directories
-    vault_path.mkdir(exist_ok=True)
-    synthesis_path.mkdir(exist_ok=True)
+    # Build tilde-relative paths by replacing the home prefix with ~
+    home = str(Path.home())
+    vault_tilde = "~" + str(vault_path).removeprefix(home) if str(vault_path).startswith(home) else str(vault_path)
+    synthesis_tilde = "~" + str(synthesis_path).removeprefix(home) if str(synthesis_path).startswith(home) else str(synthesis_path)
 
-    try:
-        config_data = {
-            "vault_path": "~/test-vault",
-            "synthesis_path": "~/test-synthesis",
-            "index_path": None,
-            "default_model": "all-MiniLM-L6-v2",
-            "server": {"host": "0.0.0.0", "port": 8080},
-            "search": {"default_limit": 10, "max_limit": 50, "timeout": 10}
-        }
+    config_data = {
+        "vault_path": vault_tilde,
+        "synthesis_path": synthesis_tilde,
+        "index_path": None,
+        "default_model": "all-MiniLM-L6-v2",
+        "server": {"host": "0.0.0.0", "port": 8080},
+        "search": {"default_limit": 10, "max_limit": 50, "timeout": 10}
+    }
 
-        with open(config_file, "w") as f:
-            json.dump(config_data, f)
+    with open(config_file, "w") as f:
+        json.dump(config_data, f)
 
-        config = Config(config_file)
+    config = Config(config_file)
 
-        # Verify paths are expanded
-        assert config.vault_path == vault_path.resolve()
-        assert config.synthesis_path == synthesis_path.resolve()
-        assert "~" not in str(config.vault_path)
-
-    finally:
-        # Cleanup
-        vault_path.rmdir()
-        synthesis_path.rmdir()
+    # Verify paths are expanded and ~ is gone
+    assert config.vault_path == vault_path.resolve()
+    assert config.synthesis_path == synthesis_path.resolve()
+    assert "~" not in str(config.vault_path)
 
 
 def test_config_default_index_path(tmp_path):

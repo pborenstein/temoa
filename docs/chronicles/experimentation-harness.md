@@ -4,6 +4,26 @@ Chronicle entries for the Search Harness implementation - an interactive score m
 
 ---
 
+## Entry 82: CODEX-SPEAKS Bug Fixes — P0/P1 Correctness (2026-02-21)
+
+**What**: Addressed four bug categories from fresh-eyes code review (CODEX-SPEAKS.md): two P0 data-safety bugs, two P1 behavioral bugs, and one P2 deprecation.
+
+**Why**: `sanitize_unicode()` silently let NaN/inf floats through to JSON (causing `ValueError`). `validate_storage_safe()` checked a path that never exists (`storage_dir/index.json` instead of `storage_dir/model/index.json`), making vault mismatch protection silently broken. Server ignored vault-specific model config. Tests had import hacks and home-dir side effects.
+
+**How**:
+- Added `math.isnan/isinf` branch to `sanitize_unicode()` → returns `None`
+- Added `model` param to `validate_storage_safe()`; CLI callers now determine model first
+- `get_vault_metadata()` returns `None` when `vault_path` key absent (was returning partial dict)
+- Server `get_client_for_vault()` checks `vault_config.get("model")` before falling back to default
+- `test_gleanings.py`: `from temoa.scripts.extract_gleanings import GleaningsExtractor` (removed sys.path hack)
+- `test_synthesis.py`: `pytest.skip` when `config.json` absent (both fixture and standalone test)
+- `test_config.py`: tilde test uses `tmp_path` subdirs instead of `~/test-vault`
+- Replaced `regex=` with `pattern=` in two `Query()` calls
+
+**Files**: `src/temoa/server.py`, `src/temoa/storage.py`, `src/temoa/cli.py`, `tests/test_gleanings.py`, `tests/test_synthesis.py`, `tests/test_config.py`, `tests/test_storage.py`
+
+---
+
 ## Entry 81: Fix Double Vault Scan in Incremental Reindex (2026-02-21)
 
 **What**: Eliminated redundant full vault scan during incremental extract+reindex.

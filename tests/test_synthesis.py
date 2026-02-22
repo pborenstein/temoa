@@ -7,8 +7,11 @@ from temoa.config import Config
 
 @pytest.fixture
 def config():
-    """Load config for testing"""
-    return Config(Path("config.json"))
+    """Load config for testing — skip if config.json not present"""
+    config_path = Path("config.json")
+    if not config_path.exists():
+        pytest.skip("config.json not found; skipping integration tests")
+    return Config(config_path)
 
 
 @pytest.fixture
@@ -91,7 +94,10 @@ def test_synthesis_get_stats(synthesis_client):
 
 def test_synthesis_invalid_model():
     """Test that invalid model raises error"""
-    config = Config(Path("config.json"))
+    config_path = Path("config.json")
+    if not config_path.exists():
+        pytest.skip("config.json not found; skipping integration tests")
+    config = Config(config_path)
 
     with pytest.raises(SynthesisError) as exc_info:
         SynthesisClient(

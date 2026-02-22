@@ -1,6 +1,5 @@
 """Tests for gleaning status management and extraction"""
 import json
-import sys
 import tempfile
 from datetime import datetime
 from pathlib import Path
@@ -11,10 +10,7 @@ from temoa.gleanings import (
     GleaningStatusManager,
     parse_frontmatter_status
 )
-
-# Add scripts to path for testing extraction
-sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
-from extract_gleanings import GleaningsExtractor
+from temoa.scripts.extract_gleanings import GleaningsExtractor
 
 
 @pytest.fixture
