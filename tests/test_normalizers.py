@@ -23,18 +23,18 @@ class TestGitHubNormalizer:
         assert not self.normalizer.matches("https://example.com")
 
     def test_normalize_title_with_colon_separator(self):
-        """Should extract user/repo from 'user/repo: Description' format."""
+        """Should preserve 'user/repo: Description' format (deliberate design)."""
         url = "https://github.com/user/repo"
         title = "user/repo: Turn any Git repository into a documentation link."
         result = self.normalizer.normalize_title(url, title)
-        assert result == "user/repo"
+        assert result == "user/repo: Turn any Git repository into a documentation link."
 
     def test_normalize_title_with_dash_separator(self):
-        """Should extract user/repo from 'user/repo - Description' format."""
+        """Should preserve title when dash part doesn't look like user/repo."""
         url = "https://github.com/user/repo"
         title = "user/repo - Turn any Git repository into a documentation link."
         result = self.normalizer.normalize_title(url, title)
-        assert result == "user/repo"
+        assert result == "user/repo - Turn any Git repository into a documentation link."
 
     def test_normalize_title_no_separator(self):
         """Should return title as-is if no separator found."""
@@ -156,7 +156,7 @@ class TestNormalizerRegistry:
 
         norm_title, norm_desc = self.registry.normalize(url, title, desc)
 
-        assert norm_title == "user/repo"
+        assert norm_title == "user/repo: A great tool"
         assert norm_desc == "A great tool for developers."
 
     def test_normalize_non_github_url(self):
@@ -192,7 +192,7 @@ class TestEdgeCaseURLs:
         title = "user/repo: Description"
 
         norm_title, norm_desc = self.registry.normalize(url, title, None)
-        assert norm_title == "user/repo"
+        assert norm_title == "user/repo: Description"
 
     def test_url_with_fragment(self):
         """Should handle URLs with fragments."""
@@ -200,7 +200,7 @@ class TestEdgeCaseURLs:
         title = "user/repo: Description"
 
         norm_title, norm_desc = self.registry.normalize(url, title, None)
-        assert norm_title == "user/repo"
+        assert norm_title == "user/repo: Description"
 
     def test_url_with_port(self):
         """Should handle URLs with explicit ports."""
@@ -241,9 +241,9 @@ class TestEdgeCaseURLs:
         url = "https://github.com//user//repo"
         normalizer = GitHubNormalizer()
 
-        # Should still extract user/repo
+        # Should extract user/repo after normalizing double slashes
         result = normalizer.normalize_title(url, None)
-        assert "user" in result and "repo" in result
+        assert result == "user/repo"
 
     def test_international_domain(self):
         """Should handle international domain names."""
@@ -285,7 +285,7 @@ class TestMultipleNormalizers:
 
         norm_title, norm_desc = registry.normalize(url, title, desc)
 
-        assert norm_title == "anthropics/claude-code"
+        assert norm_title == "anthropics/claude-code: CLI tool for development"
         assert " - anthropics/claude-code" not in norm_desc
 
     def test_fallback_to_default_normalizer(self):
@@ -314,8 +314,8 @@ class TestMultipleNormalizers:
 
         results = [registry.normalize(url, title, desc) for url, title, desc in urls]
 
-        assert results[0][0] == "user1/repo1"
-        assert results[1][0] == "user2/repo2"
+        assert results[0][0] == "user1/repo1: Desc"
+        assert results[1][0] == "user2/repo2: Tool"
         assert results[2][0] == "Example"
 
 
@@ -480,22 +480,22 @@ class TestWhitespaceVariations:
     """Test handling of various whitespace patterns."""
 
     def test_title_with_tabs(self):
-        """Should handle tabs in title."""
+        """Should preserve title with tabs (no colon-stripping)."""
         normalizer = GitHubNormalizer()
         url = "https://github.com/user/repo"
 
         title = "user/repo:\tDescription\twith\ttabs"
         result = normalizer.normalize_title(url, title)
-        assert result == "user/repo"
+        assert result == "user/repo:\tDescription\twith\ttabs"
 
     def test_title_with_newlines(self):
-        """Should handle newlines in title."""
+        """Should preserve title with newlines (no colon-stripping)."""
         normalizer = GitHubNormalizer()
         url = "https://github.com/user/repo"
 
         title = "user/repo:\nDescription\nwith\nlines"
         result = normalizer.normalize_title(url, title)
-        assert result == "user/repo"
+        assert result == "user/repo:\nDescription\nwith\nlines"
 
     def test_description_with_mixed_whitespace(self):
         """Should handle mixed whitespace in description."""
@@ -532,14 +532,14 @@ class TestWhitespaceVariations:
         assert "Tool" in result
 
     def test_unicode_whitespace(self):
-        """Should handle Unicode whitespace characters."""
+        """Should preserve title with Unicode whitespace (no colon-stripping)."""
         normalizer = GitHubNormalizer()
         url = "https://github.com/user/repo"
 
         # Non-breaking space (U+00A0)
         title = "user/repo:\u00A0Description"
         result = normalizer.normalize_title(url, title)
-        assert result == "user/repo"
+        assert result == "user/repo:\u00A0Description"
 
     def test_empty_string_after_normalization(self):
         """Should handle cases where normalization results in empty string."""

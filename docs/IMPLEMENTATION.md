@@ -149,7 +149,12 @@ See: chronicles/phase-3-implementation.md (Entries 20-32)
 - [x] Phase 5: Architecture Improvements (SKIPPED - optional, working well as-is)
 - [x] Phase 6: Documentation & Polish (TESTING.md, ARCHITECTURE.md, CLAUDE.md, IMPLEMENTATION.md updated)
 
-See: chronicles/production-hardening.md (Entries 33-46), docs/PRODUCTION-HARDENING-ROADMAP.md, docs/TESTING.md
+**Part 6: Test Hygiene** - 🔵 IN PROGRESS (2026-02-21)
+- [x] Fix 33 failing tests → 0 failures (196 passed, 0 failed, 15 skipped)
+- [x] Fix 2 real bugs in `normalizers.py` (case-insensitive domain, double-slash paths)
+- [ ] Resolve 15 skipped tests (duplicates, fixture problems, dead tests)
+
+See: chronicles/test-hygiene.md, docs/TESTING.md
 
 ---
 

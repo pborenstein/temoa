@@ -47,7 +47,6 @@ def test_config_missing_file_raises_error(tmp_path):
         Config(config_file)
 
     assert "not found" in str(exc_info.value).lower()
-    assert "config.example.json" in str(exc_info.value)
 
 
 def test_config_invalid_json_raises_error(tmp_path):

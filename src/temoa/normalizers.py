@@ -40,7 +40,7 @@ class GitHubNormalizer(URLNormalizer):
 
     def matches(self, url: str) -> bool:
         """Match github.com URLs."""
-        return "github.com" in urlparse(url).netloc
+        return "github.com" in urlparse(url).netloc.lower()
 
     def normalize_title(self, url: str, fetched_title: Optional[str]) -> str:
         """
@@ -71,6 +71,9 @@ class GitHubNormalizer(URLNormalizer):
 
         # Fallback: extract user/repo from URL
         path = urlparse(url).path.strip("/")
+        # Normalize double slashes before splitting
+        while "//" in path:
+            path = path.replace("//", "/")
         parts = path.split("/")
         if len(parts) >= 2:
             return f"{parts[0]}/{parts[1]}"
