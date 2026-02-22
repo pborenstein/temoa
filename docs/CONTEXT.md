@@ -2,7 +2,7 @@
 phase: "Experimentation"
 phase_name: "Performance Fix: Eliminate Double Vault Scan"
 updated: 2026-02-21
-last_commit: c35f847
+last_commit: 584bd7f
 branch: main
 ---
 
