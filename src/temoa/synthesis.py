@@ -856,13 +856,15 @@ class SynthesisClient:
         with file_tracking from the last index.
 
         Returns:
-            Dict with keys "new", "modified", "deleted" containing lists of files,
-            or None if no previous index exists (should do full rebuild).
+            Dict with keys "new", "modified", "deleted", "vault_content" containing
+            lists of files and the full vault content read during the scan, or None
+            if no previous index exists (should do full rebuild).
 
         Implementation notes:
             - Uses modification dates to detect changes
             - Deleted files are detected by absence from current vault
             - New files are detected by absence from file_tracking
+            - vault_content is included so callers can reuse the read without a second scan
         """
         # Load existing index to get file tracking
         _, _, index_info = self.pipeline.store.load_embeddings()
@@ -911,7 +913,8 @@ class SynthesisClient:
         return {
             "new": new_files,
             "modified": modified_files,
-            "deleted": deleted_paths
+            "deleted": deleted_paths,
+            "vault_content": list(current_files.values())
         }
 
     def _merge_embeddings(
@@ -1213,12 +1216,10 @@ class SynthesisClient:
                     logger.info(f"Chunking enabled: size={chunk_size}, overlap={chunk_overlap}, threshold={chunk_threshold}")
 
                 # Rebuild BM25 index (always full rebuild - it's fast)
-                vault_content = self.pipeline.reader.read_vault(
-                    enable_chunking=enable_chunking,
-                    chunk_size=chunk_size,
-                    chunk_overlap=chunk_overlap,
-                    chunk_threshold=chunk_threshold
-                )
+                # Reuse vault_content from _find_changed_files to avoid a second full vault scan.
+                # Note: chunking is not applied here since _find_changed_files reads without chunking;
+                # BM25 uses whole-file content regardless.
+                vault_content = changes["vault_content"]
 
                 if self.bm25_index is not None:
                     logger.info("Rebuilding BM25 keyword index...")

@@ -4,6 +4,18 @@ Chronicle entries for the Search Harness implementation - an interactive score m
 
 ---
 
+## Entry 81: Fix Double Vault Scan in Incremental Reindex (2026-02-21)
+
+**What**: Eliminated redundant full vault scan during incremental extract+reindex.
+
+**Why**: User observed two "Reading vault files: 100%" progress bars (5967 files each) during a single incremental extract+reindex operation — wasting ~30s and memory.
+
+**How**: `_find_changed_files()` already reads the full vault to build the changeset. It now includes `"vault_content"` in its return dict. The incremental reindex path (`reindex()` in `synthesis.py`) assigns `vault_content = changes["vault_content"]` instead of calling `self.pipeline.reader.read_vault()` again.
+
+**Files**: `src/temoa/synthesis.py` — `_find_changed_files()` and `reindex()` incremental path
+
+---
+
 ## Entry 50: Search Harness Foundation (2026-01-15)
 
 **What**: Fixed bugs and implemented `?harness=true` API parameter for structured score output.
