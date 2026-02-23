@@ -55,3 +55,18 @@ The next session should resolve each group: delete duplicates, either make the r
 ## Result
 
 Target: 0 failed. Every test either passes or is explicitly skipped with a reason explaining what infrastructure is needed.
+
+## Entry 84 — Skipped Tests Resolved (2026-02-22)
+
+**What**: Eliminated all 15 skipped tests. Final state: 196 passed, 0 failed, 0 skipped.
+
+**Why**: "A test that never runs is not a test." Skipped tests give false confidence in coverage.
+
+**How**:
+- Deleted `test_multi_vault_integration.py` — entire file was module-level skipped; logic already covered by `test_storage.py`
+- Deleted `test_synthesis.py` — all 8 tests skipped (7 need `config.json`, 1 hardcoded skip); search behavior covered by HTTP server tests
+- Deleted `TestDiskFullScenarios` from `test_edge_cases.py` — 2 hardcoded `pytest.skip()` calls, untestable without OS mocking
+
+**Also**: Consolidated top-level `archive/` into `docs/archive/`. Committed GLM-5 and Codex assessment files to `docs/archive/`.
+
+**Commit**: `2e91722`
