@@ -175,25 +175,6 @@ class TestUnicodeEdgeCases:
 
 
 
-class TestDiskFullScenarios:
-    """Test handling of disk full during operations."""
-
-    def test_reindex_with_no_disk_space(self):
-        """Should handle disk full during reindex gracefully."""
-        # This is hard to test without actually filling disk
-        # Document expected behavior:
-        # - Should catch IOError/OSError
-        # - Should log clear error message
-        # - Should not corrupt existing index
-        # - Should return 500 with helpful message
-        pytest.skip("Disk full scenario requires complex setup")
-
-    def test_gleaning_write_with_no_space(self):
-        """Should handle disk full when writing gleanings."""
-        # Similar to above - hard to test without mocking
-        pytest.skip("Disk full scenario requires complex setup")
-
-
 class TestQueryExtremes:
     """Test extremely long, short, or unusual queries."""
 
