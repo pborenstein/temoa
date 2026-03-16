@@ -2368,3 +2368,18 @@ Just need verification, tests, and documentation.
 
 **Files**: src/temoa/exceptions.py (new), src/temoa/server.py, src/temoa/synthesis.py, src/temoa/config.py, docs/ARCHITECTURE.md (commit 5b18d5a)
 
+
+---
+
+## Entry 88: Part 8 - Reindex Metadata & YAML Surrogate Fix (2026-03-16)
+
+**What**: Fixed two bugs — manage page showing "not indexed" after reindex, and gleaning files with emoji titles containing invalid YAML surrogate pair escapes.
+
+**Why**: Synthesis overwrites `index.json` on full reindex, stripping the `vault_path` field that `get_vault_metadata()` requires. Separately, `json.dumps()` default `ensure_ascii=True` converts emojis to surrogate pairs (`\uD83E\uDDC0`) which YAML parsers reject.
+
+**How**:
+1. After `synthesis.reindex()` in both the `/reindex` endpoint and the auto-reindex path in `/extract`, call `validate_storage_safe()` — its migration path re-injects `vault_path` into the fresh `index.json`.
+2. Changed `json.dumps(title)` → `json.dumps(title, ensure_ascii=False)` in `to_markdown()` for title, description, and reason fields.
+3. Repaired 21 existing gleaning files by regex-decoding surrogate pairs back to proper Unicode. Restored 1 emptied file (`0caac197ccc7.md`) from `extraction_state.json`.
+
+**Files**: `src/temoa/server.py` (2 call sites), `src/temoa/scripts/extract_gleanings.py`, `~/Obsidian/amoxtli/L/Gleanings/*.md` (21 repaired)

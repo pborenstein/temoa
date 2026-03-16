@@ -164,7 +164,11 @@ See: chronicles/phase-3-implementation.md (Entries 20-32)
 - [x] Meta description from HTML for all naked URLs (empty descriptions: 202 → 181)
 - [ ] 181 remaining empty descriptions — floor without LLM, accept or manual
 
-See: chronicles/test-hygiene.md, docs/TESTING.md
+**Part 8: Bug Fixes** - ✅ COMPLETE (2026-03-16)
+- [x] Fix "not indexed / Last Indexed: Never" after reindex — call `validate_storage_safe()` post-reindex to re-inject `vault_path` into `index.json`
+- [x] Fix surrogate pair YAML escapes in gleaning files — `ensure_ascii=False` in `to_markdown()`, 21 existing files repaired
+
+See: chronicles/test-hygiene.md, docs/TESTING.md, chronicles/production-hardening.md
 
 ---
 

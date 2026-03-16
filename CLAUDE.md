@@ -93,14 +93,13 @@ temoa/
 
 **All phases through Phase 3 + Production Hardening complete.** See `docs/IMPLEMENTATION.md` for full history.
 
-### Active Work (Production Hardening Part 7)
+### Active Work (Production Hardening Parts 7-8 complete)
 
-- [x] Diagnose domain-as-title bug (GitHub `<title>` beyond 8KB read limit)
-- [x] Fix: use GitHub API for `github.com` URLs, 64KB read for all others
-- [x] GitHub naked URLs now populate description from API (`github_client.py`)
-- [x] Write `docs/gleanings-history.md`
-- [x] Run full re-extraction to apply fix
-- [ ] Handle remaining domain-fallback titles (YouTube x19, paywalled sites)
+- [x] Run full re-extraction to apply GitHub API fix
+- [x] YouTube titles via oEmbed: 19 → 1 remaining (channel URL, not fixable)
+- [x] Fix "not indexed" after reindex (`validate_storage_safe()` post-reindex)
+- [x] Fix surrogate pair YAML escapes in emoji titles (`ensure_ascii=False`)
+- [ ] 181 remaining empty descriptions — floor without LLM
 
 ### Experimentation Phase (ongoing)
 

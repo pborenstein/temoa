@@ -1,8 +1,8 @@
 ---
-phase: "Experimentation"
-phase_name: "Gleanings Cleanup"
+phase: "Production Hardening"
+phase_name: "Part 8: Bug Fixes"
 updated: 2026-03-16
-last_commit: bbbb927
+last_commit: c36a042
 branch: main
 ---
 
@@ -10,16 +10,15 @@ branch: main
 
 ## Current Focus
 
-Gleaning enrichment complete. YouTube titles and HTML meta descriptions now fetched at extraction time. Reached the floor of what's automatable without LLM.
+Fixed two bugs this session: (1) manage page showing "not indexed / Last Indexed: Never" after reindex, (2) gleaning files with emoji in titles containing invalid surrogate pair YAML escapes.
 
 ## Active Tasks
 
-- [x] Run full re-extraction to apply GitHub API fix
-- [x] Fix YouTube URL-as-title (oEmbed API): 19 → 1 remaining (channel URL, not fixable)
-- [x] Fetch meta description from HTML for naked URLs at extraction time
-- [x] Re-extraction: empty descriptions 202 → 181 (floor without LLM)
-- [ ] Handle channel URL gleaning (`youtube.com/@mcpdevsummit`) — manual title or accept
-- [ ] 181 remaining empty descriptions — needs LLM enrichment or manual, not automatable
+- [x] Fix "not indexed" after reindex: call `validate_storage_safe()` post-reindex to re-inject `vault_path`
+- [x] Fix surrogate pair YAML escapes in gleaning files (21 files repaired, `ensure_ascii=False` in extractor)
+- [x] Restore emptied gleaning file `0caac197ccc7.md` from extraction state
+- [x] Fix broken venv (directory renamed, shebang stale — recreated via `uv sync`)
+- [ ] 181 remaining empty descriptions — floor without LLM, accept or manual
 
 ## Blockers
 
@@ -27,11 +26,11 @@ None
 
 ## Context
 
-- `_fetch_html_title_and_description()` now captures both title + meta description in one read
-- `fetch_youtube_title()` uses oEmbed — works for videos, not channels/playlists
-- 181 empty descriptions are HN threads, paywalled sites, JS-rendered pages — no meta tags
+- `validate_storage_safe()` in `storage.py` handles missing `vault_path` via migration path — called after both reindex and auto-reindex in extract endpoint
+- Surrogate pairs (`\uD83E\uDDC0`) in YAML frontmatter are rejected by obsidiantools/pyyaml; fix is `json.dumps(..., ensure_ascii=False)`
+- `0caac197ccc7.md` was 0 bytes — restored from `extraction_state.json`
 - Test baseline: 196 passed, 0 failed, 0 skipped
 
 ## Next Session
 
-Gleaning cleanup is essentially done. Move to Experimentation phase: document baseline search performance and start parameter tuning with the Search Harness.
+Move to Experimentation phase: document baseline search performance and start parameter tuning with the Search Harness.

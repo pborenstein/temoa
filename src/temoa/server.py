@@ -2281,6 +2281,11 @@ async def reindex(
             chunk_threshold=chunk_threshold
         )
 
+        # Re-inject vault_path into index.json (Synthesis overwrites it on full reindex)
+        from .storage import validate_storage_safe, derive_storage_dir
+        _storage_dir = derive_storage_dir(vault_path, config.vault_path, config.storage_dir)
+        validate_storage_safe(_storage_dir, vault_path, "reindex", model=config.default_model)
+
         # Invalidate cache after reindex to ensure fresh data on next access
         client_cache.invalidate(vault_path, config.default_model)
 
@@ -2456,6 +2461,10 @@ async def extract_gleanings(
             logger.info("Auto-reindexing after extraction (incremental)...")
             try:
                 reindex_result = synthesis.reindex(force=False)
+                # Re-inject vault_path into index.json (Synthesis overwrites it on full reindex)
+                from .storage import validate_storage_safe, derive_storage_dir
+                _storage_dir = derive_storage_dir(vault_path, config.vault_path, config.storage_dir)
+                validate_storage_safe(_storage_dir, vault_path, "reindex", model=config.default_model)
                 # Invalidate cache after reindex
                 client_cache.invalidate(vault_path, config.default_model)
                 result["reindexed"] = True

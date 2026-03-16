@@ -204,13 +204,14 @@ class Gleaning:
     def to_markdown(self) -> str:
         """Convert to markdown note format."""
         # Quote title for YAML safety (handles colons, quotes, etc.)
-        quoted_title = json.dumps(self.title)
+        # ensure_ascii=False keeps emojis as literal Unicode (surrogate pairs break YAML)
+        quoted_title = json.dumps(self.title, ensure_ascii=False)
 
         # Quote description for YAML safety
-        quoted_description = json.dumps(self.description) if self.description else '""'
+        quoted_description = json.dumps(self.description, ensure_ascii=False) if self.description else '""'
 
         # Quote reason for YAML safety
-        quoted_reason = json.dumps(self.reason) if self.reason else '""'
+        quoted_reason = json.dumps(self.reason, ensure_ascii=False) if self.reason else '""'
 
         # Build frontmatter
         frontmatter_lines = [
