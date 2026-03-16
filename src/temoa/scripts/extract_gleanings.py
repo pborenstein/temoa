@@ -72,20 +72,43 @@ def fetch_github_title_and_description(url: str, timeout: int = 5) -> tuple[Opti
         return None, None
 
 
+def fetch_youtube_title(url: str, timeout: int = 5) -> Optional[str]:
+    """
+    Fetch video title for a youtube.com URL via the oEmbed API.
+
+    Returns the video title, or None on failure.
+    """
+    oembed_url = f"https://www.youtube.com/oembed?url={url}&format=json"
+    try:
+        request = urllib.request.Request(
+            oembed_url,
+            headers={"User-Agent": "temoa/0.1"}
+        )
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            data = json.load(response)
+            return data.get("title") or None
+    except Exception:
+        return None
+
+
 def fetch_title_from_url(url: str, timeout: int = 5) -> Optional[str]:
     """
     Fetch page title from URL.
 
     For github.com/user/repo URLs, uses the GitHub API.
+    For youtube.com URLs, uses the oEmbed API.
     For everything else, reads up to 64KB of HTML to find the <title> tag.
 
     Returns the page title, or None if fetch fails.
     """
-    # Use GitHub API for repo URLs — GitHub HTML has too much preamble for 8KB reads
     parsed = urlparse(url)
+    # Use GitHub API for repo URLs — GitHub HTML has too much preamble for 8KB reads
     if "github.com" in parsed.netloc:
         title, _ = fetch_github_title_and_description(url, timeout=timeout)
         return title
+
+    if "youtube.com" in parsed.netloc or "youtu.be" in parsed.netloc:
+        return fetch_youtube_title(url, timeout=timeout)
 
     try:
         headers = {
