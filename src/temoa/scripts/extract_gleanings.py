@@ -28,16 +28,25 @@ from temoa.normalizers import NormalizerRegistry
 
 
 class TitleParser(HTMLParser):
-    """Simple HTML parser to extract <title> tag."""
+    """Simple HTML parser to extract <title> and <meta description> tags."""
 
     def __init__(self):
         super().__init__()
         self.title = None
+        self.description = None
         self.in_title = False
 
     def handle_starttag(self, tag, attrs):
         if tag == 'title':
             self.in_title = True
+        elif tag == 'meta':
+            attrs_dict = dict(attrs)
+            name = attrs_dict.get('name', '').lower()
+            prop = attrs_dict.get('property', '').lower()
+            content = attrs_dict.get('content', '').strip()
+            if content and self.description is None:
+                if name == 'description' or prop == 'og:description':
+                    self.description = content
 
     def handle_data(self, data):
         if self.in_title:
@@ -91,6 +100,22 @@ def fetch_youtube_title(url: str, timeout: int = 5) -> Optional[str]:
         return None
 
 
+def _fetch_html_title_and_description(url: str, timeout: int = 5) -> tuple[Optional[str], Optional[str]]:
+    """Fetch title and meta description from a URL's HTML. Returns (title, description)."""
+    try:
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        }
+        request = urllib.request.Request(url, headers=headers)
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            content = response.read(65536).decode('utf-8', errors='ignore')
+            parser = TitleParser()
+            parser.feed(content)
+            return parser.title or None, parser.description or None
+    except Exception:
+        return None, None
+
+
 def fetch_title_from_url(url: str, timeout: int = 5) -> Optional[str]:
     """
     Fetch page title from URL.
@@ -102,7 +127,6 @@ def fetch_title_from_url(url: str, timeout: int = 5) -> Optional[str]:
     Returns the page title, or None if fetch fails.
     """
     parsed = urlparse(url)
-    # Use GitHub API for repo URLs — GitHub HTML has too much preamble for 8KB reads
     if "github.com" in parsed.netloc:
         title, _ = fetch_github_title_and_description(url, timeout=timeout)
         return title
@@ -110,25 +134,30 @@ def fetch_title_from_url(url: str, timeout: int = 5) -> Optional[str]:
     if "youtube.com" in parsed.netloc or "youtu.be" in parsed.netloc:
         return fetch_youtube_title(url, timeout=timeout)
 
-    try:
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-        }
-        request = urllib.request.Request(url, headers=headers)
+    title, _ = _fetch_html_title_and_description(url, timeout=timeout)
+    return title
 
-        with urllib.request.urlopen(request, timeout=timeout) as response:
-            content = response.read(65536).decode('utf-8', errors='ignore')
 
-            parser = TitleParser()
-            parser.feed(content)
+def fetch_description_from_url(url: str, timeout: int = 5) -> Optional[str]:
+    """
+    Fetch a description for a URL using the best available method.
 
-            if parser.title:
-                return parser.title
+    - github.com: repo description from GitHub API
+    - youtube.com/youtu.be: None (no description in oEmbed)
+    - everything else: <meta name="description"> or <meta property="og:description">
 
-    except Exception:
-        pass
+    Returns the description string, or None if unavailable.
+    """
+    parsed = urlparse(url)
+    if "github.com" in parsed.netloc:
+        _, description = fetch_github_title_and_description(url, timeout=timeout)
+        return description or None
 
-    return None
+    if "youtube.com" in parsed.netloc or "youtu.be" in parsed.netloc:
+        return None
+
+    _, description = _fetch_html_title_and_description(url, timeout=timeout)
+    return description
 
 
 class Gleaning:
@@ -418,11 +447,13 @@ class GleaningsExtractor:
                         title = f"[{parsed.netloc or 'Title will be fetched'}]"
                     else:
                         print(f"  Fetching title for naked URL: {url[:60]}...")
-                        if "github.com" in urlparse(url).netloc:
+                        netloc = urlparse(url).netloc
+                        if "github.com" in netloc:
                             title, prefetched_description = fetch_github_title_and_description(url)
+                        elif "youtube.com" in netloc or "youtu.be" in netloc:
+                            title = fetch_youtube_title(url)
                         else:
-                            title = fetch_title_from_url(url)
-                        # Leave title as None on failure; normalizer will handle fallback
+                            title, prefetched_description = _fetch_html_title_and_description(url)
 
             # Try Pattern 3: Naked URL bare (no bullet) - https://...
             elif re.match(r'^https?://', line):
@@ -441,11 +472,13 @@ class GleaningsExtractor:
                         title = f"[{parsed.netloc or 'Title will be fetched'}]"
                     else:
                         print(f"  Fetching title for naked URL: {url[:60]}...")
-                        if "github.com" in urlparse(url).netloc:
+                        netloc = urlparse(url).netloc
+                        if "github.com" in netloc:
                             title, prefetched_description = fetch_github_title_and_description(url)
+                        elif "youtube.com" in netloc or "youtu.be" in netloc:
+                            title = fetch_youtube_title(url)
                         else:
-                            title = fetch_title_from_url(url)
-                        # Leave title as None on failure; normalizer will handle fallback
+                            title, prefetched_description = _fetch_html_title_and_description(url)
 
             # If we found a gleaning, extract description and create object
             # title may be None for naked URLs where fetch failed; normalizer handles fallback
