@@ -2321,6 +2321,18 @@ Just need verification, tests, and documentation.
 
 ---
 
+## Entry 86: Re-extraction complete + CLAUDE.md slimmed (2026-03-16)
+
+**What**: Ran full re-extraction to apply GitHub API title fix; verified all bare `github.com` titles are gone. Slimmed CLAUDE.md from 719 to 155 lines.
+
+**Why**: The GitHub API fix (Entry 85) needed a real re-extraction to take effect. CLAUDE.md had grown to 719 lines with stale phase histories, completed-feature checklists, and duplicated content.
+
+**How**: Unchecked auto-reindex and incremental in the `/manage` UI, ran full extraction. Spot-checked: GitHub titles now formatted as `"user/repo: repo description"`. Rewrote CLAUDE.md keeping only principles, constraints, structure, current state, quick reference, and doc index.
+
+**Files**: CLAUDE.md (719→155 lines), docs/CONTEXT.md, docs/IMPLEMENTATION.md (commit pending)
+
+---
+
 ## Entry 49: Phase 3 - Error Handling & Observability (2026-01-06)
 
 **What**: Replaced bare exceptions with specific exception types and documented fail-open/fail-closed philosophy.

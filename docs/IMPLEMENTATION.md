@@ -159,7 +159,7 @@ See: chronicles/phase-3-implementation.md (Entries 20-32)
 - [x] Fix: use GitHub API for `github.com` URLs, 64KB read for all others
 - [x] GitHub naked URLs now populate description from API
 - [x] Write `docs/gleanings-history.md` (chronology of gleaning system)
-- [ ] Run full re-extraction to apply fix
+- [x] Run full re-extraction to apply fix (verified: 0 bare github.com titles remain)
 - [ ] Handle remaining domain-fallback titles (YouTube x19, paywalled sites)
 
 See: chronicles/test-hygiene.md, docs/TESTING.md
