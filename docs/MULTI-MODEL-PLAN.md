@@ -134,13 +134,56 @@ This is speculative. Don't build it until Phase B produces enough evidence that 
 
 ---
 
+## The Cross-Encoder Reranker
+
+This is the third model in the pipeline, and it complicates the multi-model question significantly.
+
+### What it is
+
+There are two fundamentally different ways to score relevance:
+
+**Bi-encoder** (what the embedding models do): Encode the query into a vector. Encode the document into a vector. Measure the angle between them. Fast because document vectors are pre-computed and stored in the index — a search is just a vector lookup.
+
+**Cross-encoder** (what the reranker does): Take the query and the document *together* and run them through a model as a single input. The model was trained to output a relevance score for that pair. Much slower — can't be pre-computed — but more accurate because the model sees both at once and can reason about how they relate.
+
+The tradeoff: you can't use a cross-encoder for retrieval (too slow to score every document), but you can use it to *re-rank* a short candidate list that a fast retrieval already found.
+
+### What ours does specifically
+
+The model is `cross-encoder/ms-marco-MiniLM-L-6-v2`, trained on the MS MARCO dataset — a large collection of real Bing search queries with human relevance judgments. It has a notion of "what a good search result looks like" baked into its weights, independently of which bi-encoder found the candidates.
+
+The pipeline:
+
+1. Bi-encoder (your embedding model) retrieves top 100 candidates by cosine similarity
+2. Cross-encoder scores each `(query, document)` pair
+3. Results are re-sorted by cross-encoder score
+4. You get back the top K
+
+The bi-encoder's original scores are preserved in results (`similarity_score`), and the cross-encoder score is added as `cross_encoder_score`. The Pipeline Viewer captures the top 20 results before and after reranking and shows rank changes.
+
+### Turning it off
+
+The rerank checkbox is already in the search UI — you can toggle it per-search today. Turning it off means results come back in pure bi-encoder order (cosine similarity). The interesting comparison isn't on/off in isolation: it's looking at a query where you know what the right answer is and seeing whether the cross-encoder moved the right thing up or down.
+
+The "20-30% precision improvement" figure in the code comments is a benchmark number from MS MARCO, not measured on this vault. Whether it holds for notes, gleanings, and daily entries is an open question.
+
+### Why this matters for multi-model
+
+The cross-encoder is a *third* model, completely separate from the embedding models. It's always `ms-marco-MiniLM-L-6-v2` regardless of which bi-encoder you used. So if you switch from `all-MiniLM-L6-v2` to `all-mpnet-base-v2`, the reranker still runs afterward and may correct whatever ranking differences the switch introduced.
+
+**The key implication**: the cross-encoder can only re-order what the bi-encoder already retrieved. If two embedding models return overlapping candidate sets (say, 80 of the same 100 documents), the reranker will produce nearly identical final results regardless of which model you used. The models would only produce meaningfully different outputs if they retrieve *different candidates* — i.e., one model finds a document in its top 100 that the other misses entirely.
+
+This means the experiment in Phase A needs to compare candidate sets, not just final ranked results. If the top 100 from two models are mostly the same, switching models won't help no matter what.
+
+---
+
 ## Open Questions
 
 1. **Does `multi-qa-mpnet-base-cos-v1` actually outperform `all-mpnet-base-v2` for question queries against this vault?** The vault is not a Q&A dataset — it's notes, gleanings, and daily entries. The QA model's advantage may not transfer.
 
 2. **Is `paraphrase-albert-small-v2` worth it?** Max sequence length of 100 tokens means it truncates most notes. Probably not useful for full-document retrieval.
 
-3. **How much does the cross-encoder reranker offset model quality differences?** The reranker runs after retrieval and often corrects ordering. If it's already doing the heavy lifting, model choice may matter less than expected.
+3. **How much does the cross-encoder reranker offset model quality differences?** See the reranker section above. This is the central unknown — if candidate sets overlap heavily across models, switching models achieves nothing.
 
 4. **Storage cost per model?** Need to measure index size for the vault under each model before committing to multi-model indexing.
 
