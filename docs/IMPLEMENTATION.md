@@ -154,13 +154,15 @@ See: chronicles/phase-3-implementation.md (Entries 20-32)
 - [x] Fix 2 real bugs in `normalizers.py` (case-insensitive domain, double-slash paths)
 - [x] Resolve 15 skipped tests (deleted — all untestable or duplicate)
 
-**Part 7: Gleaning Extractor Fix** - 🔵 IN PROGRESS (2026-03-15)
+**Part 7: Gleaning Extractor Fix** - ✅ COMPLETE (2026-03-16)
 - [x] Diagnose domain-as-title bug (GitHub `<title>` beyond 8KB read limit)
 - [x] Fix: use GitHub API for `github.com` URLs, 64KB read for all others
 - [x] GitHub naked URLs now populate description from API
 - [x] Write `docs/gleanings-history.md` (chronology of gleaning system)
 - [x] Run full re-extraction to apply fix (verified: 0 bare github.com titles remain)
-- [ ] Handle remaining domain-fallback titles (YouTube x19, paywalled sites)
+- [x] YouTube titles via oEmbed API: 19 → 1 remaining (channel URL, not fixable)
+- [x] Meta description from HTML for all naked URLs (empty descriptions: 202 → 181)
+- [ ] 181 remaining empty descriptions — floor without LLM, accept or manual
 
 See: chronicles/test-hygiene.md, docs/TESTING.md
 

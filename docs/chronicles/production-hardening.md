@@ -2321,6 +2321,22 @@ Just need verification, tests, and documentation.
 
 ---
 
+## Entry 87: Gleaning extractor enrichment complete (2026-03-16)
+
+**What**: Added YouTube oEmbed title fetch and HTML meta description fetch to the extractor. Re-extraction brought YouTube URL-as-titles from 19 → 1 (channel URL, not fixable) and empty descriptions from 202 → 181 (floor without LLM).
+
+**Why**: Naked URL gleanings had empty descriptions and URL-as-titles because the old extractor only read 8KB of HTML (missing GitHub's `<title>`) and discarded any description data.
+
+**How**:
+- `fetch_youtube_title()` — calls YouTube oEmbed API, works for videos not channels
+- `_fetch_html_title_and_description()` — single 64KB read returns both title + meta description
+- Both naked URL patterns (bullet and bare) now capture `prefetched_description` from HTML
+- `fetch_description_from_url()` added as standalone utility for future enrichment use
+
+**Files**: src/temoa/scripts/extract_gleanings.py (commits a665aad, bbbb927)
+
+---
+
 ## Entry 86: Re-extraction complete + CLAUDE.md slimmed (2026-03-16)
 
 **What**: Ran full re-extraction to apply GitHub API title fix; verified all bare `github.com` titles are gone. Slimmed CLAUDE.md from 719 to 155 lines.
