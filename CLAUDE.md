@@ -91,24 +91,7 @@ temoa/
 
 ## Current State
 
-**All phases through Phase 3 + Production Hardening complete.** See `docs/IMPLEMENTATION.md` for full history.
-
-### Active Work (Production Hardening Parts 7-8 complete)
-
-- [x] Run full re-extraction to apply GitHub API fix
-- [x] YouTube titles via oEmbed: 19 → 1 remaining (channel URL, not fixable)
-- [x] Fix "not indexed" after reindex (`validate_storage_safe()` post-reindex)
-- [x] Fix surrogate pair YAML escapes in emoji titles (`ensure_ascii=False`)
-- [ ] 181 remaining empty descriptions — floor without LLM
-
-### Experimentation Phase (ongoing)
-
-Tools built: Search Harness (`/harness`), Pipeline Viewer (`/pipeline`), Inspector (`/inspector`).
-
-Pending experiments:
-- [ ] Document baseline performance (latency, relevance)
-- [ ] Define test query suite with expected results
-- [ ] Experiment with parameter combinations and document findings
+**All phases through Phase 3 + Production Hardening complete.** See `docs/IMPLEMENTATION.md` and `docs/CONTEXT.md` for current status.
 
 ### Test Baseline
 
