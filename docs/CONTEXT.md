@@ -1,8 +1,8 @@
 ---
 phase: "Experimentation"
-phase_name: "Test Hygiene Complete"
-updated: 2026-02-22
-last_commit: 2e91722
+phase_name: "Gleanings Cleanup"
+updated: 2026-03-15
+last_commit: d389c66
 branch: main
 ---
 
@@ -10,14 +10,15 @@ branch: main
 
 ## Current Focus
 
-Test Hygiene phase complete. 196 passed, 0 failed, 0 skipped. Deleted all untestable skipped tests (duplicates, infrastructure-dependent, hardcoded skips). Consolidated `archive/` into `docs/archive/`.
+Fixing the gleanings extraction pipeline. A clean re-extraction revealed title-fetch failures for GitHub URLs (domain name written as title). Fixed extractor to use GitHub API for `github.com` URLs and read 64KB instead of 8KB for other sites.
 
 ## Active Tasks
 
-- [x] Fix all 33 failing tests (196 passed, 0 failed, 15 skipped)
-- [x] Fix 2 real bugs in `normalizers.py`
-- [x] Resolve 15 skipped tests (deleted -- all were untestable or duplicate)
-- [x] Consolidate archive/ into docs/archive/
+- [x] Write `docs/gleanings-history.md` — chronology of the gleanings system
+- [x] Fix `extract_gleanings.py`: GitHub URLs use API, not HTML scrape
+- [ ] Run full re-extraction on `~/Obsidian/amoxtli` with fixed extractor
+- [ ] Fix remaining domain-fallback titles (YouTube x19, paywalled sites — likely manual)
+- [ ] Address 210 gleanings with empty descriptions
 
 ## Blockers
 
@@ -25,12 +26,13 @@ None
 
 ## Context
 
-- **Final baseline**: 196 passed, 0 failed, 0 skipped
-- Deleted `test_multi_vault_integration.py` (module-level skip, logic covered by `test_storage.py`)
-- Deleted `test_synthesis.py` (all skipped, behavior covered by HTTP server tests)
-- Deleted `TestDiskFullScenarios` from `test_edge_cases.py` (hardcoded skips, untestable)
-- `docs/archive/` now holds all archived material (assessment files, old scripts, planning docs, testing HTML)
+- 1,146 gleanings total; 49 have domain name as title (fetch failed at extraction time)
+- Root cause for GitHub: `<title>` tag appears beyond 8KB in GitHub HTML
+- Fix: `fetch_github_title_and_description()` calls `/api.github.com/repos/user/repo`
+- Naked URL GitHub gleanings now also get description from API (not just title)
+- YouTube/WaPo/WSJ/NYer domain-fallbacks are expected — those sites block scrapers
+- 0 gleanings have GitHub enrichment data (the old enriched files were wiped by re-extraction)
 
 ## Next Session
 
-Test hygiene is done. Review the GLM-5 and Codex assessments in `docs/archive/` and decide if any recommendations are worth acting on (server.py modularization, stable-vs-experimental surface, production profile).
+Run `temoa extract --full --vault ~/Obsidian/amoxtli` with the fixed extractor and verify the 9 previously bad GitHub gleanings now have correct titles. Then decide how to handle the 19 youtube.com fallbacks.

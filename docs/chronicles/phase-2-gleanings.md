@@ -963,3 +963,22 @@ Clean output, no duplicate processing messages
 
 ---
 
+## Entry 85: Gleaning Extractor — GitHub Title Fetch Fix (2026-03-15)
+
+**What**: Fixed domain-as-title bug in `extract_gleanings.py`. A clean re-extraction revealed 9 GitHub gleanings with `title: "github.com"` and 19 YouTube gleanings with `title: "youtube.com"`.
+
+**Why**: `fetch_title_from_url()` read only the first 8KB of HTML, but GitHub pages put `<title>` well beyond that point. Fetch returned `None`, fallback used `parsed.netloc` → `"github.com"` written to file.
+
+**How**:
+- Added `fetch_github_title_and_description()` — calls GitHub API (`/repos/user/repo`) instead of scraping HTML
+- Bumped HTML read limit from 8KB → 64KB for non-GitHub URLs
+- GitHub naked URLs now also capture API description (not just title)
+- When fetch still fails, `title=None` flows to normalizer which extracts `user/repo` from URL path (existing fallback)
+- YouTube/paywalled-site domain fallbacks are expected — those sites block scrapers
+
+**Files**: `src/temoa/scripts/extract_gleanings.py`
+
+**Also**: Wrote `docs/gleanings-history.md` — narrative chronology of the entire gleanings system for future sessions.
+
+**Remaining**: Run full re-extraction to apply fix; decide how to handle 19 youtube.com fallbacks (likely manual or YouTube Data API).
+

@@ -149,10 +149,18 @@ See: chronicles/phase-3-implementation.md (Entries 20-32)
 - [x] Phase 5: Architecture Improvements (SKIPPED - optional, working well as-is)
 - [x] Phase 6: Documentation & Polish (TESTING.md, ARCHITECTURE.md, CLAUDE.md, IMPLEMENTATION.md updated)
 
-**Part 6: Test Hygiene** - 🔵 IN PROGRESS (2026-02-21)
-- [x] Fix 33 failing tests → 0 failures (196 passed, 0 failed, 15 skipped)
+**Part 6: Test Hygiene** - ✅ COMPLETE (2026-02-22)
+- [x] Fix 33 failing tests → 0 failures (196 passed, 0 failed, 0 skipped)
 - [x] Fix 2 real bugs in `normalizers.py` (case-insensitive domain, double-slash paths)
-- [ ] Resolve 15 skipped tests (duplicates, fixture problems, dead tests)
+- [x] Resolve 15 skipped tests (deleted — all untestable or duplicate)
+
+**Part 7: Gleaning Extractor Fix** - 🔵 IN PROGRESS (2026-03-15)
+- [x] Diagnose domain-as-title bug (GitHub `<title>` beyond 8KB read limit)
+- [x] Fix: use GitHub API for `github.com` URLs, 64KB read for all others
+- [x] GitHub naked URLs now populate description from API
+- [x] Write `docs/gleanings-history.md` (chronology of gleaning system)
+- [ ] Run full re-extraction to apply fix
+- [ ] Handle remaining domain-fallback titles (YouTube x19, paywalled sites)
 
 See: chronicles/test-hygiene.md, docs/TESTING.md
 

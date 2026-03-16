@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Dict, List, Optional
 from urllib.parse import urlparse
 from html.parser import HTMLParser
+import urllib.error
 
 # Add src to path so we can import gleanings module
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
@@ -44,26 +45,56 @@ class TitleParser(HTMLParser):
             self.in_title = False
 
 
+def fetch_github_title_and_description(url: str, timeout: int = 5) -> tuple[Optional[str], Optional[str]]:
+    """
+    Fetch title and description for a github.com/user/repo URL via the GitHub API.
+
+    Returns (title, description) where title is 'user/repo' and description is
+    the repo description from the API, or (None, None) on failure.
+    """
+    path = urlparse(url).path.strip("/")
+    parts = [p for p in path.split("/") if p]
+    if len(parts) < 2:
+        return None, None
+
+    api_url = f"https://api.github.com/repos/{parts[0]}/{parts[1]}"
+    try:
+        request = urllib.request.Request(
+            api_url,
+            headers={"User-Agent": "temoa/0.1", "Accept": "application/vnd.github+json"}
+        )
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            data = json.load(response)
+            title = data.get("full_name") or f"{parts[0]}/{parts[1]}"
+            description = data.get("description") or ""
+            return title, description
+    except Exception:
+        return None, None
+
+
 def fetch_title_from_url(url: str, timeout: int = 5) -> Optional[str]:
     """
     Fetch page title from URL.
 
-    Args:
-        url: URL to fetch title from
-        timeout: Request timeout in seconds
+    For github.com/user/repo URLs, uses the GitHub API.
+    For everything else, reads up to 64KB of HTML to find the <title> tag.
 
-    Returns:
-        Page title or None if fetch fails
+    Returns the page title, or None if fetch fails.
     """
+    # Use GitHub API for repo URLs — GitHub HTML has too much preamble for 8KB reads
+    parsed = urlparse(url)
+    if "github.com" in parsed.netloc:
+        title, _ = fetch_github_title_and_description(url, timeout=timeout)
+        return title
+
     try:
         headers = {
-            'User-Agent': 'Mozilla/5.0 (compatible; TemoaGleaningExtractor/0.1)'
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
         }
         request = urllib.request.Request(url, headers=headers)
 
         with urllib.request.urlopen(request, timeout=timeout) as response:
-            # Only read first 8KB to find <title> tag
-            content = response.read(8192).decode('utf-8', errors='ignore')
+            content = response.read(65536).decode('utf-8', errors='ignore')
 
             parser = TitleParser()
             parser.feed(content)
@@ -72,7 +103,6 @@ def fetch_title_from_url(url: str, timeout: int = 5) -> Optional[str]:
                 return parser.title
 
     except Exception:
-        # Silently fail - we'll use URL as title fallback
         pass
 
     return None
@@ -335,6 +365,7 @@ class GleaningsExtractor:
             title = None
             url = None
             timestamp = None
+            prefetched_description = None  # Set when API fetch returns a description
 
             # Try Pattern 1: Markdown link - [Title](URL)
             markdown_match = re.match(r'^-\s+\[([^\]]+)\]\(([^)]+)\)', line)
@@ -364,11 +395,11 @@ class GleaningsExtractor:
                         title = f"[{parsed.netloc or 'Title will be fetched'}]"
                     else:
                         print(f"  Fetching title for naked URL: {url[:60]}...")
-                        title = fetch_title_from_url(url)
-                        if not title:
-                            # Fallback: use domain or path
-                            parsed = urlparse(url)
-                            title = parsed.netloc or url
+                        if "github.com" in urlparse(url).netloc:
+                            title, prefetched_description = fetch_github_title_and_description(url)
+                        else:
+                            title = fetch_title_from_url(url)
+                        # Leave title as None on failure; normalizer will handle fallback
 
             # Try Pattern 3: Naked URL bare (no bullet) - https://...
             elif re.match(r'^https?://', line):
@@ -387,14 +418,15 @@ class GleaningsExtractor:
                         title = f"[{parsed.netloc or 'Title will be fetched'}]"
                     else:
                         print(f"  Fetching title for naked URL: {url[:60]}...")
-                        title = fetch_title_from_url(url)
-                        if not title:
-                            # Fallback: use domain or path
-                            parsed = urlparse(url)
-                            title = parsed.netloc or url
+                        if "github.com" in urlparse(url).netloc:
+                            title, prefetched_description = fetch_github_title_and_description(url)
+                        else:
+                            title = fetch_title_from_url(url)
+                        # Leave title as None on failure; normalizer will handle fallback
 
             # If we found a gleaning, extract description and create object
-            if title and url:
+            # title may be None for naked URLs where fetch failed; normalizer handles fallback
+            if url:
                 # Collect ALL consecutive description lines (lines starting with >)
                 description_lines = []
                 j = i + 1
@@ -418,6 +450,10 @@ class GleaningsExtractor:
                         break
 
                 description = '\n'.join(description_lines)
+
+                # If no user-written description but API gave us one, use it
+                if not description and prefetched_description:
+                    description = prefetched_description
 
                 # Build date with timestamp if available
                 date = base_date
