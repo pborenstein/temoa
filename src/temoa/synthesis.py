@@ -408,6 +408,7 @@ class SynthesisClient:
                 title = result.get('title', path_no_ext.split('/')[-1])
 
                 enhanced_result = dict(result)  # Copy original result
+
                 enhanced_result.update({
                     "obsidian_uri": f"obsidian://vault/{self.vault_name}/{quote(path_no_ext)}",
                     "wiki_link": f"[[{title}]]",
@@ -719,6 +720,20 @@ class SynthesisClient:
 
             # Limit final results
             deduplicated_results = deduplicated_results[:limit]
+
+            # Add descriptions (frontmatter if available, otherwise content snippet)
+            for result in deduplicated_results:
+                if 'description' not in result or not result['description']:
+                    frontmatter = result.get('frontmatter', {})
+                    if frontmatter and frontmatter.get('description'):
+                        result['description'] = frontmatter['description']
+                    elif 'content' in result and result['content']:
+                        try:
+                            result['description'] = extract_relevant_snippet(
+                                result['content'], query, snippet_length=200
+                            )
+                        except Exception:
+                            pass
 
             response = {
                 "query": query,

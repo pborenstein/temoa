@@ -301,12 +301,9 @@ class VaultReader:
             # Convert chunks to VaultContent objects
             vault_contents = []
             for chunk in chunks:
-                # For multi-chunk files, include chunk info in title
-                chunk_title = f"{title} (part {chunk.chunk_index + 1}/{chunk.chunk_total})"
-
                 vault_contents.append(VaultContent(
                     file_path=file_path,
-                    title=chunk_title,
+                    title=title,
                     content=chunk.content,
                     vault_root=self.vault_root,
                     frontmatter=frontmatter,

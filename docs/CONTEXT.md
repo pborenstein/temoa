@@ -1,8 +1,8 @@
 ---
 phase: "Production Hardening"
-phase_name: "Part 8: Bug Fixes"
-updated: 2026-03-16
-last_commit: c36a042
+phase_name: "Part 9: Chunking UX"
+updated: 2026-03-17
+last_commit: f80ee0b
 branch: main
 ---
 
@@ -10,15 +10,14 @@ branch: main
 
 ## Current Focus
 
-Fixed two bugs this session: (1) manage page showing "not indexed / Last Indexed: Never" after reindex, (2) gleaning files with emoji in titles containing invalid surrogate pair YAML escapes.
+Fixed chunking display issues: clean titles (no "part N/M" suffix baked in), tasteful N/M badge in UI, and hybrid search now returns descriptions.
 
 ## Active Tasks
 
-- [x] Fix "not indexed" after reindex: call `validate_storage_safe()` post-reindex to re-inject `vault_path`
-- [x] Fix surrogate pair YAML escapes in gleaning files (21 files repaired, `ensure_ascii=False` in extractor)
-- [x] Restore emptied gleaning file `0caac197ccc7.md` from extraction state
-- [x] Fix broken venv (directory renamed, shebang stale — recreated via `uv sync`)
-- [ ] 181 remaining empty descriptions — floor without LLM, accept or manual
+- [x] Remove "(part N/M)" from chunk titles in `vault_reader.py`
+- [x] Add small N/M chunk badge to search result cards (list + explorer views)
+- [x] Fix hybrid search missing descriptions (frontmatter + snippet fallback)
+- [ ] 181 remaining empty gleaning descriptions — accept or manual
 
 ## Blockers
 
@@ -26,9 +25,10 @@ None
 
 ## Context
 
-- `validate_storage_safe()` in `storage.py` handles missing `vault_path` via migration path — called after both reindex and auto-reindex in extract endpoint
-- Surrogate pairs (`\uD83E\uDDC0`) in YAML frontmatter are rejected by obsidiantools/pyyaml; fix is `json.dumps(..., ensure_ascii=False)`
-- `0caac197ccc7.md` was 0 bytes — restored from `extraction_state.json`
+- Chunk title suffix was baked in Synthesis `vault_reader.py:305` — removed, title is now clean
+- Chunk badge uses `result.chunk_index + 1 / result.chunk_total`, only shown when `chunk_total > 1`
+- Hybrid search skipped description enrichment that semantic-only search had — fixed in `synthesis.py`
+- Tried Obsidian `?line=N` URI for chunk jump-to-line — didn't work, reverted
 - Test baseline: 196 passed, 0 failed, 0 skipped
 
 ## Next Session

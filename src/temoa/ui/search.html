@@ -1067,6 +1067,17 @@
             color: #aaaacc;
         }
 
+        .chunk-badge {
+            font-size: 9px;
+            padding: 2px 6px;
+            border-radius: 3px;
+            background: #2a2a2a;
+            color: #666666;
+            border: 1px solid #333333;
+            white-space: nowrap;
+            font-family: 'Monaco', 'Menlo', monospace;
+        }
+
         /* ========================================
            INSPECTOR PANE
            ======================================== */
@@ -3460,6 +3471,13 @@
                 badgesDiv.appendChild(badge);
             }
 
+            if (result.chunk_index != null && result.chunk_total > 1) {
+                const badge = document.createElement('span');
+                badge.className = 'chunk-badge';
+                badge.textContent = `${result.chunk_index + 1}/${result.chunk_total}`;
+                badgesDiv.appendChild(badge);
+            }
+
             if (badgesDiv.children.length > 0) {
                 titleRow.appendChild(badgesDiv);
             }
@@ -3684,6 +3702,13 @@
                 badge.addEventListener('click', (e) => {
                     e.stopPropagation();
                 });
+                badgesDiv.appendChild(badge);
+            }
+
+            if (result.chunk_index != null && result.chunk_total > 1) {
+                const badge = document.createElement('span');
+                badge.className = 'chunk-badge';
+                badge.textContent = `${result.chunk_index + 1}/${result.chunk_total}`;
                 badgesDiv.appendChild(badge);
             }
 

@@ -2383,3 +2383,22 @@ Just need verification, tests, and documentation.
 3. Repaired 21 existing gleaning files by regex-decoding surrogate pairs back to proper Unicode. Restored 1 emptied file (`0caac197ccc7.md`) from `extraction_state.json`.
 
 **Files**: `src/temoa/server.py` (2 call sites), `src/temoa/scripts/extract_gleanings.py`, `~/Obsidian/amoxtli/L/Gleanings/*.md` (21 repaired)
+
+
+---
+
+## Entry 89: Part 9 - Chunking UX Fixes (2026-03-17)
+
+**What**: Cleaned up chunking display — removed "(part N/M)" from titles, added a small N/M badge in the UI, fixed hybrid search missing descriptions.
+
+**Why**: Synthesis baked chunk position into the title string, so results showed "My Note (part 3/3)" as the title. Chunk metadata fields already carry position info so the title didn't need it. Separately, hybrid search returned results without descriptions because it bypassed the enrichment loop that semantic-only search ran.
+
+**How**:
+1. Removed `chunk_title = f"{title} (part ...)"` from `vault_reader.py:305` — title stays clean.
+2. Added `.chunk-badge` CSS + JS badge in both list and explorer card views in `search.html`, showing `chunk_index+1/chunk_total` when `chunk_total > 1`.
+3. Added description enrichment loop to `hybrid_search()` in `synthesis.py` (mirrors the one in `search()`).
+4. Attempted Obsidian `?line=N` URI for jump-to-line on chunk open — didn't work, reverted cleanly.
+
+**Decisions**: None new — follows established patterns.
+
+**Files**: `synthesis/src/embeddings/vault_reader.py`, `src/temoa/ui/search.html`, `src/temoa/synthesis.py`
