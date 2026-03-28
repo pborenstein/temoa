@@ -39,11 +39,12 @@ if [[ ! $REPLY =~ ^[Yy]$ ]]; then
     exit 0
 fi
 
-# Check if service is running
+# Stop service if registered
 echo -e "${BLUE}Checking service status...${NC}"
-if launchctl list | grep -q "dev.pborenstein.temoa"; then
+GUI_DOMAIN="gui/$(id -u)"
+if launchctl print "$GUI_DOMAIN/dev.pborenstein.temoa" &>/dev/null; then
     echo -e "${YELLOW}Service is running. Stopping...${NC}"
-    launchctl unload "$SERVICE_PLIST" 2>/dev/null || true
+    launchctl bootout "$GUI_DOMAIN/dev.pborenstein.temoa" 2>/dev/null || true
     echo -e "${GREEN}✓${NC} Service stopped"
 else
     echo -e "${BLUE}Service is not running${NC}"

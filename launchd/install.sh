@@ -55,15 +55,16 @@ cat "$PROJECT_DIR/launchd/temoa.plist.template" | \
 
 echo -e "${GREEN}✓${NC} Created $SERVICE_PLIST"
 
-# Unload existing service if running
+# Stop existing service if registered
 echo
-echo -e "${BLUE}Unloading any existing service...${NC}"
-launchctl unload "$SERVICE_PLIST" 2>/dev/null || true
+GUI_DOMAIN="gui/$(id -u)"
+echo -e "${BLUE}Stopping any existing service...${NC}"
+launchctl bootout "$GUI_DOMAIN/dev.pborenstein.temoa" 2>/dev/null || true
 
-# Load service
-echo -e "${BLUE}Loading service...${NC}"
-launchctl load "$SERVICE_PLIST"
-echo -e "${GREEN}✓${NC} Loaded temoa service"
+# Start service
+echo -e "${BLUE}Starting service...${NC}"
+launchctl bootstrap "$GUI_DOMAIN" "$SERVICE_PLIST"
+echo -e "${GREEN}✓${NC} Started temoa service"
 
 # Give it a moment to start
 sleep 2
@@ -73,7 +74,7 @@ echo
 echo -e "${GREEN}✓ Installation complete!${NC}"
 echo
 echo -e "${BLUE}Service status:${NC}"
-launchctl list | grep "dev.pborenstein.temoa" || echo "  No service found"
+launchctl print "$GUI_DOMAIN/dev.pborenstein.temoa" 2>/dev/null | grep -E "state|pid" | head -3 || echo "  No service found"
 
 echo
 echo -e "${BLUE}Access temoa at:${NC}"
@@ -90,7 +91,8 @@ echo -e "${BLUE}View logs:${NC}"
 echo "  $PROJECT_DIR/view-logs.sh"
 echo
 echo -e "${BLUE}Manage service:${NC}"
-echo "  Stop:    launchctl unload ~/Library/LaunchAgents/dev.pborenstein.temoa.plist"
-echo "  Start:   launchctl load ~/Library/LaunchAgents/dev.pborenstein.temoa.plist"
-echo "  Restart: launchctl unload ~/Library/LaunchAgents/dev.pborenstein.temoa.plist && launchctl load ~/Library/LaunchAgents/dev.pborenstein.temoa.plist"
+echo "  ./dev.sh stop     Stop the service"
+echo "  ./dev.sh start    Start the service"
+echo "  ./dev.sh status   Show service status"
+echo "  ./dev.sh          Dev mode (stops service, runs with reload)"
 echo

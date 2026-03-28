@@ -2402,3 +2402,20 @@ Just need verification, tests, and documentation.
 **Decisions**: None new — follows established patterns.
 
 **Files**: `synthesis/src/embeddings/vault_reader.py`, `src/temoa/ui/search.html`, `src/temoa/synthesis.py`
+
+## Entry 90: Part 10 - Modern launchd Service Management (2026-03-28)
+
+**What**: Rewrote `dev.sh` with subcommands and modernized all launchd scripts from deprecated `load/unload` to `bootstrap/bootout`.
+
+**Why**: `launchctl unload` didn't reliably stop services when `KeepAlive=true` was set -- launchd could restart the process. The `bootout` command force-removes the service from the domain. Also, the old dev.sh prompted to restart the service on exit, which was never wanted.
+
+**How**:
+1. Rewrote `dev.sh` with subcommands: bare = dev mode, `start`/`stop`/`status` for service management.
+2. Dev mode stops the service, runs with reload, and on Ctrl+C leaves the service stopped (no prompt).
+3. Updated `launchd/install.sh` and `uninstall.sh` to use `bootout`/`bootstrap`/`print`.
+4. Same changes applied to apantli's `dev.sh` and `install.sh`.
+5. Cleaned up stale `dev.philip.*` plist files from ~/Library/LaunchAgents/.
+
+**Decisions**: Service labels use `dev.pborenstein.*` (reverse-domain), not `$(whoami)`. Apantli's tailscale plist handling removed from dev.sh/install.sh (not needed).
+
+**Files**: `dev.sh`, `launchd/install.sh`, `launchd/uninstall.sh`
