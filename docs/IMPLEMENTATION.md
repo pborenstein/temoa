@@ -20,6 +20,7 @@
 |----------|---------|
 | [ARCHITECTURE.md](ARCHITECTURE.md) | System architecture, embeddings explanation, data flow |
 | [CHRONICLES.md](CHRONICLES.md) | Design discussions and decision history |
+| [RESEARCH-NOTES.md](RESEARCH-NOTES.md) | External research, tool comparisons, actionable ideas |
 | [CLAUDE.md](../CLAUDE.md) | Development guide for AI sessions |
 | This file | Implementation progress tracking |
 

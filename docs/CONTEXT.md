@@ -1,8 +1,8 @@
 ---
-phase: "Production Hardening"
-phase_name: "Part 10: Service Management"
-updated: 2026-03-28
-last_commit: 4d2176c
+phase: "Experimentation"
+phase_name: "Knobs & Dials"
+updated: 2026-04-04
+last_commit: 157cffe
 branch: main
 ---
 
@@ -10,14 +10,13 @@ branch: main
 
 ## Current Focus
 
-Rewrote `dev.sh` and launchd scripts to use modern `launchctl bootstrap/bootout` API. Service now reliably stops (even with KeepAlive=true), no exit prompt, subcommands for start/stop/status.
+Research session: reviewed Karpathy's LLM Wiki pattern and tobi/qmd. Wrote `docs/RESEARCH-NOTES.md` with findings, comparisons, and actionable ideas for Temoa.
 
 ## Active Tasks
 
-- [x] Rewrite dev.sh with subcommands (dev/start/stop/status)
-- [x] Modernize launchctl calls in install.sh and uninstall.sh
-- [x] Remove deprecated load/unload from all scripts
-- [ ] 181 remaining empty gleaning descriptions — accept or manual
+- [ ] 181 remaining empty gleaning descriptions — accept or manual (or LLM-generate)
+- [ ] Document baseline search performance (latency, relevance)
+- [ ] Define test query suite with expected results
 
 ## Blockers
 
@@ -25,13 +24,12 @@ None
 
 ## Context
 
-- `launchctl bootout` force-kills the process, unlike deprecated `unload` which KeepAlive could override
-- `launchctl bootstrap` replaces `load`; `launchctl print` replaces `list | grep`
-- Service label is `dev.pborenstein.temoa` (reverse-domain convention, not username)
-- Same changes applied to apantli for consistency
-- Old `dev.philip.*` plist files cleaned up from ~/Library/LaunchAgents/
-- Test baseline: 196 passed, 0 failed, 0 skipped
+- `docs/RESEARCH-NOTES.md` is new — captures external research with provenance
+- qmd (tobi/qmd) does same hybrid search pipeline as Temoa in TypeScript; 17k stars
+- Karpathy's LLM Wiki pattern frames the vault as a persistent compounding wiki — Temoa is its search layer
+- Key idea from qmd: position-aware score blending (varies RRF/reranker ratio by rank position)
+- Gleaning descriptions = wiki page quality; 181 empty = 181 degraded search results
 
 ## Next Session
 
-Move to Experimentation phase: document baseline search performance and start parameter tuning with the Search Harness.
+Start Experimentation phase: either (1) fill gleaning descriptions via LLM generation, or (2) run baseline search benchmarks and test position-aware score blending from the harness.

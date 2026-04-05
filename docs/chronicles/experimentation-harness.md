@@ -1069,3 +1069,28 @@ Transformed 342 GitHub gleanings to clean, consistent format with short titles a
 - Works in both list and explorer views
 
 ---
+
+## Entry 91: Research — LLM Wiki Pattern & qmd Competitor Analysis (2026-04-04)
+
+**What**: Research session reviewing Karpathy's "LLM Wiki" pattern and tobi/qmd (a TypeScript hybrid search tool). Wrote `docs/RESEARCH-NOTES.md` to capture findings with provenance.
+
+**Why**: Orient the Experimentation phase around what peers are doing and identify gaps.
+
+**Key findings**:
+- Karpathy's LLM Wiki pattern: vault = persistent compounding wiki; Temoa is its search layer. Gleaning descriptions are the wiki page quality — 181 empty = 181 degraded results.
+- qmd does the same BM25+semantic+reranker pipeline as Temoa in TypeScript/Node. 17k stars, created Dec 2025.
+- qmd's notable technique: **position-aware score blending** — RRF/reranker ratio varies by rank (75/25 for top-3, 60/40 for 4-10, 40/60 for 11+). Temoa uses fixed ratio.
+
+**Actionable ideas** (details in RESEARCH-NOTES.md Entry 001):
+1. Position-aware score blending — testable with existing harness
+2. Fill 181 gleaning descriptions (LLM-generated)
+3. LLM-based query expansion (qmd uses fine-tuned 1.7B model)
+4. MCP server for Claude Code integration
+5. File synthesized answers back to vault (longer-term)
+
+**Files**:
+- `docs/RESEARCH-NOTES.md` (new)
+- `docs/IMPLEMENTATION.md` (table updated)
+- `CLAUDE.md` (doc index updated)
+
+---

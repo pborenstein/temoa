@@ -149,6 +149,7 @@ launchctl list | grep temoa
 | `docs/DECISIONS.md` | Architectural decision records |
 | `docs/GLEANINGS.md` | Gleaning extraction & management guide |
 | `docs/DEPLOYMENT.md` | Launchd service setup |
+| `docs/RESEARCH-NOTES.md` | External research, tool comparisons, actionable ideas |
 
 ---
 
