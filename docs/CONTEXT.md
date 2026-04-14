@@ -1,8 +1,8 @@
 ---
 phase: "Experimentation"
 phase_name: "Knobs & Dials"
-updated: 2026-04-04
-last_commit: 157cffe
+updated: 2026-04-13
+last_commit: 9dae4cb
 branch: main
 ---
 
@@ -10,13 +10,15 @@ branch: main
 
 ## Current Focus
 
-Research session: reviewed Karpathy's LLM Wiki pattern and tobi/qmd. Wrote `docs/RESEARCH-NOTES.md` with findings, comparisons, and actionable ideas for Temoa.
+Planning session: investigated Miyo/Obsidian Copilot, scoped two improvement tracks, corrected false Synthesis constraint.
 
 ## Active Tasks
 
 - [ ] 181 remaining empty gleaning descriptions — accept or manual (or LLM-generate)
 - [ ] Document baseline search performance (latency, relevance)
 - [ ] Define test query suite with expected results
+- [ ] Phase 1: implement qmd pipeline improvements (see `docs/plans/qmd-pipeline-improvements.md`)
+- [ ] Phase 2: dashboard zeitgeist surface (see `docs/plans/dashboard-zeitgeist-surface.md`)
 
 ## Blockers
 
@@ -24,12 +26,12 @@ None
 
 ## Context
 
-- `docs/RESEARCH-NOTES.md` is new — captures external research with provenance
-- qmd (tobi/qmd) does same hybrid search pipeline as Temoa in TypeScript; 17k stars
-- Karpathy's LLM Wiki pattern frames the vault as a persistent compounding wiki — Temoa is its search layer
-- Key idea from qmd: position-aware score blending (varies RRF/reranker ratio by rank position)
-- Gleaning descriptions = wiki page quality; 181 empty = 181 degraded search results
+- **Synthesis is modifiable** — DEC-012 "do NOT modify" was Phase 1-2 only; CLAUDE.md corrected
+- Two new plans written: pipeline improvements (position-aware blending, smart chunking, zeitgeist chunking) and dashboard surface (snapshot previews, cluster pill links)
+- Claude Code Remote Control (`claude remote-control` + tmux) is the path to iOS vault access — user is on Pro/Max, CC v2.1.105
+- Miyo is Copilot Plus's bundled sidecar (port 8742); Temoa could speak the Miyo API dialect as a compatibility shim if needed
+- Zeitgeist snapshots are high-density signal — Connections/Clusters sections should be chunked separately from the Inventory list noise
 
 ## Next Session
 
-Start Experimentation phase: either (1) fill gleaning descriptions via LLM generation, or (2) run baseline search benchmarks and test position-aware score blending from the harness.
+Start Phase 1 pipeline work: read `synthesis/` chunking internals, implement position-aware score blending in `reranker.py` (self-contained, testable first), then tackle heading-aware chunking.

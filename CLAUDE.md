@@ -53,7 +53,7 @@ temoa/
 │   ├── GLEANINGS.md      # Gleaning extraction & management
 │   ├── TESTING.md        # Test baseline, known failures
 │   └── DEPLOYMENT.md     # Launchd service setup
-├── synthesis/            # Core search engine (do NOT modify)
+├── synthesis/            # Core search engine
 ├── src/temoa/            # Temoa source code
 │   ├── server.py         # FastAPI app, endpoints, main pipeline
 │   ├── synthesis.py      # Synthesis client wrapper, hybrid search
@@ -79,7 +79,7 @@ temoa/
 
 ## Critical Context: Synthesis
 
-**Location**: `synthesis/` (bundled) — do NOT modify
+**Location**: `synthesis/` (bundled) — modifiable; it's Temoa's own code, not a vendor dependency
 **Role**: Local semantic search engine; Temoa imports it directly as a Python module (10x faster than subprocess)
 
 **Models available** (configured per vault):

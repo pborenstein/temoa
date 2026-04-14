@@ -1094,3 +1094,27 @@ Transformed 342 GitHub gleanings to clean, consistent format with short titles a
 - `CLAUDE.md` (doc index updated)
 
 ---
+
+## Entry 92: Planning — Miyo Investigation, Two Improvement Plans, Synthesis Constraint Removed (2026-04-13)
+
+**What**: Research and planning session. Investigated Obsidian Copilot's Miyo sidecar, scoped two phased improvement tracks, corrected a stale architectural constraint.
+
+**Why**: User wanted to understand where to focus effort — semantic search tooling, vault skill elicitation on mobile, and what Temoa could learn from qmd.
+
+**Key findings**:
+- Miyo (Copilot Plus sidecar, port 8742) does hybrid search but requires a Copilot Plus license; on mobile needs a configured remote URL — exactly what Temoa already is. Temoa could speak the Miyo API dialect as a compatibility shim.
+- Claude Code Remote Control (`claude remote-control` in tmux) is the immediate path to iOS vault access. User is on Pro/Max, CC v2.1.105. No coding required.
+- `synthesis/` "do NOT modify" constraint (DEC-012) was scoped to Phase 1-2 only. Phase 3 complete. Constraint was stale; removed from CLAUDE.md.
+- Zeitgeist snapshots contain synthesized connections not present in any individual note — Connections/Clusters sections are high-density signal that should be chunked separately from Inventory noise.
+
+**Plans written**:
+- `docs/plans/qmd-pipeline-improvements.md` — position-aware score blending (reranker.py), heading-aware chunking (synthesis/), zeitgeist-specific chunking
+- `docs/plans/dashboard-zeitgeist-surface.md` — two new server endpoints + landing state with period links and cluster pills
+
+**Files**:
+- `CLAUDE.md` (synthesis constraint removed)
+- `docs/plans/qmd-pipeline-improvements.md` (new)
+- `docs/plans/dashboard-zeitgeist-surface.md` (new)
+- `docs/CONTEXT.md` (updated)
+
+---
