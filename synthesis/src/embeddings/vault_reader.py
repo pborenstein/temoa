@@ -328,7 +328,7 @@ class VaultReader:
 
     def read_vault(self, limit: Optional[int] = None, enable_chunking: bool = False,
                    chunk_size: int = 2000, chunk_overlap: int = 400,
-                   chunk_threshold: int = 4000) -> List[VaultContent]:
+                   chunk_threshold: int = 4000, show_progress: bool = True) -> List[VaultContent]:
         """Read all vault content.
 
         Args:
@@ -349,7 +349,7 @@ class VaultReader:
         content_objects = []
 
         if enable_chunking:
-            for file_path in tqdm(files, desc="Reading vault files (with chunking)"):
+            for file_path in tqdm(files, desc="Reading vault files (with chunking)", disable=not show_progress):
                 chunks = self.read_file_chunked(
                     file_path,
                     chunk_size=chunk_size,
@@ -363,7 +363,7 @@ class VaultReader:
             num_chunked = sum(1 for c in content_objects if c.is_chunk)
             logger.info(f"Successfully read {num_files} files -> {num_chunks} content items ({num_chunked} chunks)")
         else:
-            for file_path in tqdm(files, desc="Reading vault files"):
+            for file_path in tqdm(files, desc="Reading vault files", disable=not show_progress):
                 content = self.read_file(file_path)
                 if content and content.content.strip():
                     content_objects.append(content)

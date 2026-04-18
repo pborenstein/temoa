@@ -582,13 +582,14 @@ class GleaningsExtractor:
 
         print(f"Created: {output_file.relative_to(self.vault_path)}")
 
-    def extract_all(self, incremental: bool = True, dry_run: bool = False):
+    def extract_all(self, incremental: bool = True, dry_run: bool = False, log_format: bool = False):
         """Extract all gleanings from daily notes."""
         output_dir = self.vault_path / "L" / "Gleanings"
 
         # In full mode, clear existing state to start fresh
         if not incremental and not dry_run:
-            print("Full mode: Clearing existing extraction state")
+            if not log_format:
+                print("Full mode: Clearing existing extraction state")
             self.state = {
                 "version": "1.0",
                 "created_at": datetime.now().isoformat(),
@@ -596,18 +597,21 @@ class GleaningsExtractor:
                 "extracted_gleanings": {},
                 "processed_files": []
             }
-            print()
+            if not log_format:
+                print()
 
-        print(f"Vault path: {self.vault_path}")
-        print(f"Output directory: {output_dir.relative_to(self.vault_path)}")
-        print(f"Mode: {'Incremental' if incremental else 'Full (starting fresh)'}")
-        print(f"Dry run: {dry_run}")
-        print()
+        if not log_format:
+            print(f"Vault path: {self.vault_path}")
+            print(f"Output directory: {output_dir.relative_to(self.vault_path)}")
+            print(f"Mode: {'Incremental' if incremental else 'Full (starting fresh)'}")
+            print(f"Dry run: {dry_run}")
+            print()
 
         # Find notes to process
         daily_notes = self.find_daily_notes(incremental=incremental)
-        print(f"Found {len(daily_notes)} daily notes to process")
-        print()
+        if not log_format:
+            print(f"Found {len(daily_notes)} daily notes to process")
+            print()
 
         total_gleanings = 0
         new_gleanings = 0
@@ -616,7 +620,7 @@ class GleaningsExtractor:
         for note_path in daily_notes:
             gleanings = self.extract_from_note(note_path, dry_run=dry_run)
 
-            if gleanings:
+            if gleanings and not log_format:
                 print(f"Processing: {note_path.relative_to(self.vault_path)} ({len(gleanings)} gleanings)")
 
             for gleaning in gleanings:
@@ -625,7 +629,8 @@ class GleaningsExtractor:
                 # Check for duplicates (only in incremental mode or dry-run)
                 if gleaning.gleaning_id in self.state["extracted_gleanings"]:
                     duplicate_gleanings += 1
-                    print(f"  - DUPLICATE: {gleaning.title[:60]}... (ID: {gleaning.gleaning_id})")
+                    if not log_format:
+                        print(f"  - DUPLICATE: {gleaning.title[:60]}... (ID: {gleaning.gleaning_id})")
                     continue
 
                 # Create gleaning note
@@ -646,14 +651,19 @@ class GleaningsExtractor:
             self._save_state()
 
         # Summary
-        print()
-        print("=" * 60)
-        print(f"Extraction {'preview' if dry_run else 'complete'}!")
-        print(f"Total gleanings found: {total_gleanings}")
-        print(f"New gleanings {'would be created' if dry_run else 'created'}: {new_gleanings}")
-        print(f"Duplicates skipped: {duplicate_gleanings}")
-        print(f"Files processed: {len(daily_notes)}")
-        print("=" * 60)
+        if log_format:
+            ts = datetime.now().strftime("%Y-%m-%d %H:%M")
+            mode = "dry-run" if dry_run else ("full" if not incremental else "incremental")
+            print(f"## {ts} | extract | +{new_gleanings} new, {duplicate_gleanings} dupes, {total_gleanings} found, {len(daily_notes)} files | {mode}")
+        else:
+            print()
+            print("=" * 60)
+            print(f"Extraction {'preview' if dry_run else 'complete'}!")
+            print(f"Total gleanings found: {total_gleanings}")
+            print(f"New gleanings {'would be created' if dry_run else 'created'}: {new_gleanings}")
+            print(f"Duplicates skipped: {duplicate_gleanings}")
+            print(f"Files processed: {len(daily_notes)}")
+            print("=" * 60)
 
 
 def main():
@@ -674,17 +684,30 @@ def main():
         action="store_true",
         help="Preview what would be extracted without creating files"
     )
+    parser.add_argument(
+        "--log-format",
+        action="store_true",
+        help="Output a single timestamped markdown line instead of verbose output"
+    )
 
     args = parser.parse_args()
 
     try:
         extractor = GleaningsExtractor(args.vault_path)
-        extractor.extract_all(incremental=not args.full, dry_run=args.dry_run)
+        extractor.extract_all(incremental=not args.full, dry_run=args.dry_run, log_format=args.log_format)
     except (FileNotFoundError, NotADirectoryError) as e:
-        print(f"Error: {e}", file=__import__('sys').stderr)
+        if args.log_format:
+            ts = datetime.now().strftime("%Y-%m-%d %H:%M")
+            print(f"## {ts} | extract | ERROR: {e}")
+        else:
+            print(f"Error: {e}", file=__import__('sys').stderr)
         return 1
     except Exception as e:
-        print(f"Unexpected error: {e}", file=__import__('sys').stderr)
+        if args.log_format:
+            ts = datetime.now().strftime("%Y-%m-%d %H:%M")
+            print(f"## {ts} | extract | ERROR: {e}")
+        else:
+            print(f"Unexpected error: {e}", file=__import__('sys').stderr)
         return 1
 
     return 0

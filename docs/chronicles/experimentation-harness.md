@@ -1118,3 +1118,19 @@ Transformed 342 GitHub gleanings to clean, consistent format with short titles a
 - `docs/CONTEXT.md` (updated)
 
 ---
+
+## Entry 93: Cron-Friendly Log Format — `--log-format` Flag (2026-04-18)
+
+**What**: Added `--log-format` flag to `temoa extract` and `temoa reindex` producing single-line markdown entries for cron log files.
+
+**Why**: Cron output was verbose multi-block noise; needed scannable Obsidian markdown log at `~/Obsidian/amoxtli/log/temoa-log.md`.
+
+**How**:
+- Output format: `## YYYY-MM-DD HH:MM | command | +N new, N dupes, N found, N files | mode`
+- Suppressed all tqdm progress bars and print() via `show_progress` param threaded through synthesis.py → vault_reader.py
+- Graph rebuild skipped when no files changed (saves ~80s); rebuild triggered only when files actually differ
+- `show_progress=False` passed from CLI → `client.reindex()` → `_find_changed_files()` → `read_vault()` → each `tqdm()` call
+
+**Files**: `src/temoa/cli.py`, `src/temoa/synthesis.py`, `src/temoa/scripts/extract_gleanings.py`, `synthesis/src/embeddings/vault_reader.py`
+
+---

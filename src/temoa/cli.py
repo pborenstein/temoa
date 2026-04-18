@@ -559,7 +559,8 @@ def stats(output_json, vault):
               help='Vault path (default: from config)')
 @click.option('--full', is_flag=True, help='Process all files (ignore state tracking)')
 @click.option('--dry-run', is_flag=True, help='Show what would be extracted without writing files')
-def extract(vault, full, dry_run):
+@click.option('--log-format', is_flag=True, help='Output a single timestamped markdown line (for cron logs)')
+def extract(vault, full, dry_run, log_format):
     """Extract gleanings from daily notes.
 
     Parses daily notes looking for ## Gleanings sections and extracts
@@ -587,11 +588,14 @@ def extract(vault, full, dry_run):
         cmd.append("--full")
     if dry_run:
         cmd.append("--dry-run")
+    if log_format:
+        cmd.append("--log-format")
 
-    click.echo(f"Extracting gleanings from: {vault_path}")
-    if dry_run:
-        click.echo(click.style("DRY RUN - No files will be written", fg='yellow'))
-    click.echo()
+    if not log_format:
+        click.echo(f"Extracting gleanings from: {vault_path}")
+        if dry_run:
+            click.echo(click.style("DRY RUN - No files will be written", fg='yellow'))
+        click.echo()
 
     try:
         result = subprocess.run(cmd, check=True)
@@ -776,7 +780,8 @@ def index(vault, force, model, enable_chunking, chunk_size, chunk_overlap, chunk
               help='Number of overlapping characters between chunks (default: 400)')
 @click.option('--chunk-threshold', default=4000, type=int,
               help='Minimum file size before chunking is applied (default: 4000)')
-def reindex(vault, force, model, enable_chunking, chunk_size, chunk_overlap, chunk_threshold):
+@click.option('--log-format', is_flag=True, help='Output a single timestamped markdown line (for cron logs)')
+def reindex(vault, force, model, enable_chunking, chunk_size, chunk_overlap, chunk_threshold, log_format):
     """Re-index the vault incrementally (only new/modified files).
 
     Detects changes since last index and only processes:
@@ -821,12 +826,13 @@ def reindex(vault, force, model, enable_chunking, chunk_size, chunk_overlap, chu
     # Validate storage is safe before proceeding
     validate_storage_safe(storage_dir, vault_path, "reindex", force, model=embedding_model)
 
-    click.echo(f"Re-indexing vault: {vault_path}")
-    click.echo(f"Storage directory: {storage_dir}")
-    click.echo(f"Model: {embedding_model}")
-    click.echo("Running incremental reindex (only changed files)...")
-    if enable_chunking:
-        click.echo(f"Chunking: size={chunk_size}, overlap={chunk_overlap}, threshold={chunk_threshold}")
+    if not log_format:
+        click.echo(f"Re-indexing vault: {vault_path}")
+        click.echo(f"Storage directory: {storage_dir}")
+        click.echo(f"Model: {embedding_model}")
+        click.echo("Running incremental reindex (only changed files)...")
+        if enable_chunking:
+            click.echo(f"Chunking: size={chunk_size}, overlap={chunk_overlap}, threshold={chunk_threshold}")
 
     try:
         client = SynthesisClient(
@@ -836,42 +842,75 @@ def reindex(vault, force, model, enable_chunking, chunk_size, chunk_overlap, chu
             storage_dir=storage_dir
         )
 
-        with click.progressbar(length=100, label='Re-indexing') as bar:
-            # Note: This is a simple progress indicator
-            # Real progress would require Synthesis to support callbacks
+        if log_format:
             result = client.reindex(
                 force=False,
                 enable_chunking=enable_chunking,
                 chunk_size=chunk_size,
                 chunk_overlap=chunk_overlap,
-                chunk_threshold=chunk_threshold
+                chunk_threshold=chunk_threshold,
+                show_progress=False
             )
-            bar.update(100)
-
-        click.echo(f"\n{click.style('✓', fg='green')} Re-indexing complete")
-
-        # Show detailed stats for incremental reindex
-        if 'files_new' in result:
-            click.echo(f"New files: {result.get('files_new', 0)}")
-            click.echo(f"Modified files: {result.get('files_modified', 0)}")
-            click.echo(f"Deleted files: {result.get('files_deleted', 0)}")
         else:
-            click.echo(f"Files indexed: {result.get('files_indexed', 'Unknown')}")
+            with click.progressbar(length=100, label='Re-indexing') as bar:
+                result = client.reindex(
+                    force=False,
+                    enable_chunking=enable_chunking,
+                    chunk_size=chunk_size,
+                    chunk_overlap=chunk_overlap,
+                    chunk_threshold=chunk_threshold,
+                    show_progress=True
+                )
+                bar.update(100)
 
-        # Rebuild vault graph
-        click.echo("\nRebuilding vault graph...")
-        try:
-            from .vault_graph import VaultGraph
-            graph = VaultGraph(vault_path, storage_dir)
-            if graph.rebuild_and_cache():
-                click.echo(f"{click.style('✓', fg='green')} Graph rebuilt: {graph._graph.number_of_nodes()} nodes, {graph._graph.number_of_edges()} edges")
+        # Rebuild vault graph only when files actually changed
+        new_f = result.get('files_new', 0)
+        mod_f = result.get('files_modified', 0)
+        del_f = result.get('files_deleted', 0)
+        files_changed = new_f + mod_f + del_f > 0
+
+        graph_summary = ""
+        if files_changed:
+            try:
+                from .vault_graph import VaultGraph
+                graph = VaultGraph(vault_path, storage_dir)
+                if graph.rebuild_and_cache():
+                    graph_summary = f"{graph._graph.number_of_nodes()} nodes, {graph._graph.number_of_edges()} edges"
+                else:
+                    graph_summary = "graph rebuild failed"
+            except Exception as e:
+                graph_summary = f"graph error: {e}"
+        else:
+            graph_summary = "no changes, graph skipped"
+
+        if log_format:
+            import datetime
+            ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+            if 'files_new' in result:
+                file_stats = f"+{new_f} new, ~{mod_f} modified, -{del_f} deleted"
             else:
-                click.echo(click.style("Graph rebuild failed (obsidiantools may not be installed)", fg='yellow'))
-        except Exception as e:
-            click.echo(click.style(f"Graph rebuild failed: {e}", fg='yellow'))
+                file_stats = f"{result.get('files_indexed', '?')} indexed"
+            click.echo(f"## {ts} | reindex | {file_stats} | {graph_summary}")
+        else:
+            click.echo(f"\n{click.style('✓', fg='green')} Re-indexing complete")
+            if 'files_new' in result:
+                click.echo(f"New files: {new_f}")
+                click.echo(f"Modified files: {mod_f}")
+                click.echo(f"Deleted files: {del_f}")
+            else:
+                click.echo(f"Files indexed: {result.get('files_indexed', 'Unknown')}")
+            if files_changed:
+                click.echo(f"\n{click.style('✓', fg='green')} Graph rebuilt: {graph_summary}")
+            else:
+                click.echo("\nNo changes — graph rebuild skipped")
 
     except Exception as e:
-        click.echo(f"\nError: {e}", err=True)
+        if log_format:
+            import datetime
+            ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+            click.echo(f"## {ts} | reindex | ERROR: {e}")
+        else:
+            click.echo(f"\nError: {e}", err=True)
         sys.exit(1)
 
 

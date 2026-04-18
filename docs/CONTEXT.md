@@ -1,8 +1,8 @@
 ---
 phase: "Experimentation"
 phase_name: "Knobs & Dials"
-updated: 2026-04-13
-last_commit: 9dae4cb
+updated: 2026-04-18
+last_commit: 6bc239a
 branch: main
 ---
 
@@ -10,11 +10,13 @@ branch: main
 
 ## Current Focus
 
-Planning session: investigated Miyo/Obsidian Copilot, scoped two improvement tracks, corrected false Synthesis constraint.
+Implemented `--log-format` flag for `temoa extract` and `temoa reindex` to produce single-line markdown log entries for cron jobs.
 
 ## Active Tasks
 
-- [ ] 181 remaining empty gleaning descriptions — accept or manual (or LLM-generate)
+- [x] 181 remaining empty gleaning descriptions — done via Obsidian vault skill
+- [x] `--log-format` flag for extract and reindex commands
+- [ ] Update crontab to use `--log-format` (user to do manually)
 - [ ] Document baseline search performance (latency, relevance)
 - [ ] Define test query suite with expected results
 - [ ] Phase 1: implement qmd pipeline improvements (see `docs/plans/qmd-pipeline-improvements.md`)
@@ -26,11 +28,11 @@ None
 
 ## Context
 
+- `--log-format` output: `## YYYY-MM-DD HH:MM | command | stats | mode` — appended to `~/Obsidian/amoxtli/log/temoa-log.md`
+- Graph rebuild skipped when no files changed (saves ~80s); rebuilds when files change (~90s, expected for 7897 nodes)
+- `show_progress` threaded through synthesis.py → vault_reader.py; tqdm suppressed via `disable=not show_progress`
 - **Synthesis is modifiable** — DEC-012 "do NOT modify" was Phase 1-2 only; CLAUDE.md corrected
-- Two new plans written: pipeline improvements (position-aware blending, smart chunking, zeitgeist chunking) and dashboard surface (snapshot previews, cluster pill links)
-- Claude Code Remote Control (`claude remote-control` + tmux) is the path to iOS vault access — user is on Pro/Max, CC v2.1.105
-- Miyo is Copilot Plus's bundled sidecar (port 8742); Temoa could speak the Miyo API dialect as a compatibility shim if needed
-- Zeitgeist snapshots are high-density signal — Connections/Clusters sections should be chunked separately from the Inventory list noise
+- Miyo is Copilot Plus's bundled sidecar (port 8742); Temoa could speak the Miyo API dialect if needed
 
 ## Next Session
 

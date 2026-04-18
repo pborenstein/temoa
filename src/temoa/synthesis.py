@@ -865,7 +865,7 @@ class SynthesisClient:
             logger.error(f"Failed to get stats: {e}", exc_info=True)
             raise SynthesisError(f"Failed to get stats: {e}")
 
-    def _find_changed_files(self) -> Optional[Dict[str, List]]:
+    def _find_changed_files(self, show_progress: bool = True) -> Optional[Dict[str, List]]:
         """
         Find new, modified, and deleted files by comparing current vault state
         with file_tracking from the last index.
@@ -893,7 +893,7 @@ class SynthesisClient:
         logger.info(f"Loaded file_tracking with {len(file_tracking)} files")
 
         # Read current vault state
-        vault_content = self.pipeline.reader.read_vault()
+        vault_content = self.pipeline.reader.read_vault(show_progress=show_progress)
         current_files = {c.relative_path: c for c in vault_content}
 
         new_files = []
@@ -1051,7 +1051,8 @@ class SynthesisClient:
         enable_chunking: bool = False,
         chunk_size: int = 2000,
         chunk_overlap: int = 400,
-        chunk_threshold: int = 4000
+        chunk_threshold: int = 4000,
+        show_progress: bool = True
     ) -> Dict[str, Any]:
         """
         Trigger re-indexing of the vault.
@@ -1094,7 +1095,7 @@ class SynthesisClient:
 
             # Check if incremental reindex is possible
             if not force:
-                changes = self._find_changed_files()
+                changes = self._find_changed_files(show_progress=show_progress)
 
                 if changes is None:
                     # No previous index, fall back to full rebuild
@@ -1125,7 +1126,8 @@ class SynthesisClient:
                     enable_chunking=enable_chunking,
                     chunk_size=chunk_size,
                     chunk_overlap=chunk_overlap,
-                    chunk_threshold=chunk_threshold
+                    chunk_threshold=chunk_threshold,
+                    show_progress=show_progress
                 )
 
                 if not vault_content:
@@ -1137,7 +1139,8 @@ class SynthesisClient:
                 # Build BM25 index (fast - takes seconds)
                 if self.bm25_index is not None:
                     logger.info("Building BM25 keyword index...")
-                    print(f"Building BM25 keyword index...")
+                    if show_progress:
+                        print(f"Building BM25 keyword index...")
                     try:
                         documents = []
                         for content_obj in vault_content:
@@ -1152,17 +1155,19 @@ class SynthesisClient:
 
                         self.bm25_index.build(documents)
                         logger.info(f"✓ BM25 index built: {len(documents)} documents")
-                        print(f"✓ BM25 index built")
+                        if show_progress:
+                            print(f"✓ BM25 index built")
                     except Exception as e:
                         logger.warning(f"BM25 indexing failed: {e}")
 
                 # Build semantic embeddings (slow - takes minutes)
                 logger.info("Building semantic embeddings (this may take several minutes)...")
-                print(f"Loading embedding model ({self.model_name}) and preparing {len(vault_content)} items...")
+                if show_progress:
+                    print(f"Loading embedding model ({self.model_name}) and preparing {len(vault_content)} items...")
                 self.pipeline.store.clear()
 
                 texts = [content.content for content in vault_content]
-                embeddings = self.pipeline.engine.embed_texts(texts, show_progress=True)
+                embeddings = self.pipeline.engine.embed_texts(texts, show_progress=show_progress)
 
                 metadata = []
                 for content in vault_content:
@@ -1238,7 +1243,8 @@ class SynthesisClient:
 
                 if self.bm25_index is not None:
                     logger.info("Rebuilding BM25 keyword index...")
-                    print(f"Rebuilding BM25 keyword index...")
+                    if show_progress:
+                        print(f"Rebuilding BM25 keyword index...")
                     try:
                         documents = []
                         for content_obj in vault_content:
@@ -1253,7 +1259,8 @@ class SynthesisClient:
 
                         self.bm25_index.build(documents)
                         logger.info(f"✓ BM25 index rebuilt: {len(documents)} documents")
-                        print(f"✓ BM25 index rebuilt")
+                        if show_progress:
+                            print(f"✓ BM25 index rebuilt")
                     except Exception as e:
                         logger.warning(f"BM25 indexing failed: {e}")
 
@@ -1262,9 +1269,10 @@ class SynthesisClient:
 
                 if changed_files:
                     logger.info(f"Embedding {len(changed_files)} changed files...")
-                    print(f"Loading embedding model ({self.model_name}) and preparing {len(changed_files)} items...")
+                    if show_progress:
+                        print(f"Loading embedding model ({self.model_name}) and preparing {len(changed_files)} items...")
                     texts = [content.content for content in changed_files]
-                    embeddings = self.pipeline.engine.embed_texts(texts, show_progress=True)
+                    embeddings = self.pipeline.engine.embed_texts(texts, show_progress=show_progress)
 
                     metadata = []
                     for content in changed_files:
