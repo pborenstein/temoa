@@ -1134,3 +1134,19 @@ Transformed 342 GitHub gleanings to clean, consistent format with short titles a
 **Files**: `src/temoa/cli.py`, `src/temoa/synthesis.py`, `src/temoa/scripts/extract_gleanings.py`, `synthesis/src/embeddings/vault_reader.py`
 
 ---
+
+## Entry 94: Decouple Graph Rebuild — `temoa build-graph` Command (2026-04-18)
+
+**What**: Extracted vault graph rebuild into a standalone `temoa build-graph` command; `reindex --log-format` never rebuilds the graph.
+
+**Why**: obsidiantools graph rebuild costs ~80s for 7897 nodes. `reindex` was triggering it on every cron run because "deleted" files (real clippings removals) counted as changes. Graph is only needed for similar-notes UI, not search — wrong tool for a fast cron job.
+
+**How**:
+- Deletions alone no longer trigger graph rebuild in `reindex` (only new/modified files do)
+- `reindex --log-format` skips graph entirely, logs `graph skipped`
+- `build-graph` command: standalone, supports `--log-format`, runs obsidiantools and caches to `vault_graph.pkl`
+- Suggested cron: `0 8,20 * * *` (twice daily, independent of reindex schedule)
+
+**Files**: `src/temoa/cli.py`
+
+---

@@ -863,14 +863,16 @@ def reindex(vault, force, model, enable_chunking, chunk_size, chunk_overlap, chu
                 )
                 bar.update(100)
 
-        # Rebuild vault graph only when files actually changed
         new_f = result.get('files_new', 0)
         mod_f = result.get('files_modified', 0)
         del_f = result.get('files_deleted', 0)
-        files_changed = new_f + mod_f + del_f > 0
+        # Only rebuild graph when new/modified files exist and not in log-format mode.
+        # In log-format (cron), skip graph rebuild entirely — it's ~80s and the graph
+        # is used only for the similar-notes UI, not search. Server lazy-loads from cache.
+        files_changed = new_f + mod_f > 0
 
         graph_summary = ""
-        if files_changed:
+        if not log_format and files_changed:
             try:
                 from .vault_graph import VaultGraph
                 graph = VaultGraph(vault_path, storage_dir)
@@ -880,6 +882,8 @@ def reindex(vault, force, model, enable_chunking, chunk_size, chunk_overlap, chu
                     graph_summary = "graph rebuild failed"
             except Exception as e:
                 graph_summary = f"graph error: {e}"
+        elif log_format:
+            graph_summary = "graph skipped"
         else:
             graph_summary = "no changes, graph skipped"
 
@@ -909,6 +913,62 @@ def reindex(vault, force, model, enable_chunking, chunk_size, chunk_overlap, chu
             import datetime
             ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
             click.echo(f"## {ts} | reindex | ERROR: {e}")
+        else:
+            click.echo(f"\nError: {e}", err=True)
+        sys.exit(1)
+
+
+@main.command(name='build-graph')
+@click.option('--vault', default=None, help='Vault name from config (default: first vault)')
+@click.option('--log-format', is_flag=True, help='Output a single timestamped markdown line (for cron logs)')
+def build_graph(vault, log_format):
+    """Rebuild the vault wikilink graph cache.
+
+    \b
+    The graph is used for similar-notes and graph exploration features.
+    It is not required for search. Run once or twice a day via cron.
+
+    \b
+    Examples:
+      temoa build-graph
+      temoa build-graph --log-format >> ~/Obsidian/amoxtli/log/temoa-log.md
+    """
+    from .config import Config
+    from .vault_graph import VaultGraph
+
+    try:
+        cfg = Config()
+        vault_path = cfg.vault_path if vault is None else cfg.find_vault(vault)['path']
+        vault_path = Path(vault_path).expanduser()
+        storage_dir = vault_path / '.temoa'
+
+        if not log_format:
+            click.echo(f"Rebuilding vault graph: {vault_path}")
+
+        graph = VaultGraph(vault_path, storage_dir)
+        if graph.rebuild_and_cache():
+            nodes = graph._graph.number_of_nodes()
+            edges = graph._graph.number_of_edges()
+            if log_format:
+                import datetime
+                ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+                click.echo(f"## {ts} | build-graph | {nodes} nodes, {edges} edges")
+            else:
+                click.echo(f"\n{click.style('✓', fg='green')} Graph rebuilt: {nodes} nodes, {edges} edges")
+        else:
+            if log_format:
+                import datetime
+                ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+                click.echo(f"## {ts} | build-graph | ERROR: rebuild returned false")
+            else:
+                click.echo("Graph rebuild failed", err=True)
+            sys.exit(1)
+
+    except Exception as e:
+        if log_format:
+            import datetime
+            ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+            click.echo(f"## {ts} | build-graph | ERROR: {e}")
         else:
             click.echo(f"\nError: {e}", err=True)
         sys.exit(1)
