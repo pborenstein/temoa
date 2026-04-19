@@ -1150,3 +1150,15 @@ Transformed 342 GitHub gleanings to clean, consistent format with short titles a
 **Files**: `src/temoa/cli.py`
 
 ---
+
+## Entry 95: Log Format — Split Stats to Second Line (2026-04-18)
+
+**What**: Changed `--log-format` output from single long line to heading + detail line.
+
+**Why**: User hand-edited existing log entries to split `## datetime | command` onto its own line with stats on the next line — makes the log more scannable as a Markdown document with real section headings.
+
+**How**: Each `## {ts} | {command} | {stats}` becomes `## {ts} | {command}\n{stats}` in `cli.py` (reindex, build-graph) and `extract_gleanings.py` (extract).
+
+**Files**: `src/temoa/cli.py`, `src/temoa/scripts/extract_gleanings.py`
+
+---

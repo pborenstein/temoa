@@ -894,7 +894,7 @@ def reindex(vault, force, model, enable_chunking, chunk_size, chunk_overlap, chu
                 file_stats = f"+{new_f} new, ~{mod_f} modified, -{del_f} deleted"
             else:
                 file_stats = f"{result.get('files_indexed', '?')} indexed"
-            click.echo(f"## {ts} | reindex | {file_stats} | {graph_summary}")
+            click.echo(f"## {ts} | reindex\n{file_stats} | {graph_summary}")
         else:
             click.echo(f"\n{click.style('✓', fg='green')} Re-indexing complete")
             if 'files_new' in result:
@@ -952,7 +952,7 @@ def build_graph(vault, log_format):
             if log_format:
                 import datetime
                 ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-                click.echo(f"## {ts} | build-graph | {nodes} nodes, {edges} edges")
+                click.echo(f"## {ts} | build-graph\n{nodes} nodes, {edges} edges")
             else:
                 click.echo(f"\n{click.style('✓', fg='green')} Graph rebuilt: {nodes} nodes, {edges} edges")
         else:

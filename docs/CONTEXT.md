@@ -2,7 +2,7 @@
 phase: "Experimentation"
 phase_name: "Knobs & Dials"
 updated: 2026-04-18
-last_commit: de5b5a1
+last_commit: 215ff4f
 branch: main
 ---
 
@@ -29,7 +29,7 @@ None
 
 ## Context
 
-- `--log-format` output: `## YYYY-MM-DD HH:MM | command | stats | extra` — appended to `~/Obsidian/amoxtli/log/temoa-log.md`
+- `--log-format` output: heading line `## YYYY-MM-DD HH:MM | command`, stats on next line — appended to `~/Obsidian/amoxtli/log/temoa-log.md`
 - `reindex --log-format` never rebuilds the graph; graph is only for similar-notes UI, not search
 - `build-graph` runs obsidiantools (~78s for 7897 nodes); deletions alone don't trigger graph rebuild
 - `show_progress` threaded through synthesis.py → vault_reader.py; tqdm suppressed via `disable=not show_progress`

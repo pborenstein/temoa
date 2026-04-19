@@ -654,7 +654,7 @@ class GleaningsExtractor:
         if log_format:
             ts = datetime.now().strftime("%Y-%m-%d %H:%M")
             mode = "dry-run" if dry_run else ("full" if not incremental else "incremental")
-            print(f"## {ts} | extract | +{new_gleanings} new, {duplicate_gleanings} dupes, {total_gleanings} found, {len(daily_notes)} files | {mode}")
+            print(f"## {ts} | extract\n+{new_gleanings} new, {duplicate_gleanings} dupes, {total_gleanings} found, {len(daily_notes)} files | {mode}")
         else:
             print()
             print("=" * 60)
