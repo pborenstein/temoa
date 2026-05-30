@@ -75,6 +75,21 @@ def filter_by_files(results, include_files=None, exclude_files=None):
     return filtered, len(results) - len(filtered)
 
 
+def filter_by_type(results, include_types=None, exclude_types=None):
+    if not include_types and not exclude_types:
+        return results, 0
+    from nahuatl_frontmatter import normalize_type
+    filtered = []
+    for result in results:
+        types = normalize_type(result.get("frontmatter") or {})
+        if include_types and not any(t in include_types for t in types):
+            continue
+        if exclude_types and any(t in exclude_types for t in types):
+            continue
+        filtered.append(result)
+    return filtered, len(results) - len(filtered)
+
+
 def build_file_filter(vault_path: Path, include_paths: list, include_files: list) -> Optional[list[str]]:
     """Pre-filter vault files by path/filename before semantic search.
 

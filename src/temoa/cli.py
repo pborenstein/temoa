@@ -98,6 +98,8 @@ def server(host, port, reload, log_level):
 @click.argument('query')
 @click.option('--limit', '-n', default=10, type=int, help='Number of results (default: 10)')
 @click.option('--min-score', '-s', default=0.3, type=float, help='Minimum similarity score (0.0-1.0, default: 0.3)')
+@click.option('--type', '-t', 'include_types', default=None, help='Include only these types (comma-separated, e.g. "gleaning,article")')
+@click.option('--exclude-type', '-x', 'exclude_types', default=None, help='Exclude these types (comma-separated, e.g. "daily")')
 @click.option('--hybrid', is_flag=True, default=None, help='Use hybrid search (BM25 + semantic)')
 @click.option('--rerank/--no-rerank', default=True, help='Use cross-encoder re-ranking (default: enabled)')
 @click.option('--expand/--no-expand', 'expand_query', default=False, help='Expand short queries with TF-IDF terms')
@@ -105,15 +107,16 @@ def server(host, port, reload, log_level):
 @click.option('--bm25-only', is_flag=True, help='Use BM25 keyword search only')
 @click.option('--json', 'output_json', is_flag=True, help='Output as JSON')
 @click.option('--vault', default=None, type=click.Path(exists=True), help='Vault path (default: from config)')
-def search(query, limit, min_score, hybrid, rerank, expand_query, time_boost, bm25_only, output_json, vault):
+def search(query, limit, min_score, include_types, exclude_types, hybrid, rerank, expand_query, time_boost, bm25_only, output_json, vault):
     """Search the vault by meaning.
 
     \b
     Examples:
       temoa search "semantic search"
-      temoa search "tailscale networking" --limit 5
+      temoa search "tailscale networking" --hybrid
+      temoa search "saved articles" --type gleaning
+      temoa search "topic" --exclude-type daily
       temoa search "AI tools" --min-score 0.5
-      temoa search "Joan Doe" --hybrid
       temoa search "obsidian" --json
     """
     from .config import Config
@@ -182,6 +185,9 @@ def search(query, limit, min_score, hybrid, rerank, expand_query, time_boost, bm
                 from .reranker import CrossEncoderReranker
                 services["reranker"] = CrossEncoderReranker()
 
+            include_types_list = [t.strip() for t in include_types.split(",")] if include_types else []
+            exclude_types_list = [t.strip() for t in exclude_types.split(",")] if exclude_types else []
+
             ctx = SearchContext(
                 query=query,
                 original_query=original_query,
@@ -193,6 +199,8 @@ def search(query, limit, min_score, hybrid, rerank, expand_query, time_boost, bm
                     "min_score": min_score,
                     "rerank": rerank,
                     "time_boost": time_boost,
+                    "include_types": include_types_list,
+                    "exclude_types": exclude_types_list,
                 },
                 services=services,
             )

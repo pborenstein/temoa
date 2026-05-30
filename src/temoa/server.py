@@ -324,6 +324,8 @@ async def search(
     vault: Optional[str] = Query(default=None),
     limit: Optional[int] = Query(default=None, ge=1, le=100),
     min_score: float = Query(default=0.3, ge=0.0, le=1.0),
+    include_types: Optional[str] = Query(default=None, description='JSON array: ["gleaning","article"]'),
+    exclude_types: Optional[str] = Query(default=None, description='JSON array: ["daily"]'),
     include_props: Optional[str] = Query(default=None, description='JSON array: [{"prop":"type","value":"note"}]'),
     exclude_props: Optional[str] = Query(default=None),
     include_tags: Optional[str] = Query(default=None, description='JSON array: ["python","ai"]'),
@@ -353,6 +355,8 @@ async def search(
         except (json.JSONDecodeError, ValueError):
             return []
 
+    include_types_list = _parse_json_list(include_types)
+    exclude_types_list = _parse_json_list(exclude_types)
     include_props_list = _parse_json_list(include_props)
     exclude_props_list = _parse_json_list(exclude_props)
     include_tags_list  = _parse_json_list(include_tags)
@@ -436,6 +440,8 @@ async def search(
             "rerank": rerank,
             "time_boost": time_boost,
             "pipeline_debug": pipeline_debug,
+            "include_types": include_types_list,
+            "exclude_types": exclude_types_list,
             "include_props": include_props_list,
             "exclude_props": exclude_props_list,
             "include_tags": include_tags_list,

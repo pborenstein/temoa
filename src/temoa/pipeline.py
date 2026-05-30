@@ -210,7 +210,8 @@ class QueryFilterStage:
     def applies(self, ctx: SearchContext) -> bool:
         p = ctx.params
         return bool(
-            p.get("include_props") or p.get("exclude_props")
+            p.get("include_types") or p.get("exclude_types")
+            or p.get("include_props") or p.get("exclude_props")
             or p.get("include_tags") or p.get("exclude_tags")
             or p.get("include_paths") or p.get("exclude_paths")
             or p.get("include_files") or p.get("exclude_files")
@@ -222,10 +223,19 @@ class QueryFilterStage:
             filter_by_paths,
             filter_by_properties,
             filter_by_tags,
+            filter_by_type,
         )
         p = ctx.params
         results = ctx.results
         total_removed = 0
+
+        if p.get("include_types") or p.get("exclude_types"):
+            results, n = filter_by_type(
+                results,
+                include_types=p.get("include_types"),
+                exclude_types=p.get("exclude_types"),
+            )
+            total_removed += n
 
         if p.get("include_props") or p.get("exclude_props"):
             results, n = filter_by_properties(
