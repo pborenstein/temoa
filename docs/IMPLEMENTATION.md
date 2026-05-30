@@ -2,12 +2,16 @@
 
 > **Approach**: Plan like waterfall, implement in agile
 >
-> This document tracks progress across all implementation phases. Original planning documents archived in `docs/archive/original-planning/`. Detailed implementation notes in `docs/chronicles/`.
+> This document tracks **phase-level** progress across all implementation phases. Original planning documents archived in `docs/archive/original-planning/`. Detailed implementation notes in `docs/chronicles/`.
+>
+> **Source of truth**: for current session state and day-to-day active tasks,
+> [CONTEXT.md](CONTEXT.md) is the live source — it is updated every session and
+> may be ahead of this file. This file is the durable phase/milestone record.
 
 **Project**: Temoa - Local Semantic Search Server for Obsidian Vault
 **Created**: 2025-11-18
 **Status**: Experimentation Phase 🔵 ACTIVE - Knobs & Dials Tuning
-**Last Updated**: 2026-02-07
+**Last Updated**: 2026-05-30
 **Current Version**: 0.7.0
 **Current Branch**: `main`
 **Estimated Timeline**: 4-6 weeks for Phases 0-2, ongoing for Phases 3-4
@@ -19,7 +23,7 @@
 | Document | Purpose |
 |----------|---------|
 | [ARCHITECTURE.md](ARCHITECTURE.md) | System architecture, embeddings explanation, data flow |
-| [CHRONICLES.md](CHRONICLES.md) | Design discussions and decision history |
+| [chronicles/](chronicles/) | Design discussions and decision history (organized by phase) |
 | [RESEARCH-NOTES.md](RESEARCH-NOTES.md) | External research, tool comparisons, actionable ideas |
 | [CLAUDE.md](../CLAUDE.md) | Development guide for AI sessions |
 | This file | Implementation progress tracking |
@@ -317,12 +321,22 @@ The production hardening is complete. Now we experiment with different combinati
   - [x] Inspector optimized to update only scores section
   - [x] Add "Clear All" button to search history dropdown
 
+**Cron / maintenance tooling** (2026-04, see CONTEXT.md):
+- [x] `--log-format` flag for `extract` and `reindex` (appends to vault log)
+- [x] `temoa build-graph` command — decouples the ~80s graph rebuild from reindex
+- [ ] Add `build-graph` to crontab (manual; suggested `0 8,20 * * *`)
+
 **Experimentation**:
 - [ ] Document baseline performance (latency, relevance)
 - [ ] Define test query suite with expected results
 - [ ] Create A/B comparison framework
 - [ ] Experiment with parameter combinations
 - [ ] Document winning configurations
+
+**Next planned work** (see `docs/plans/`):
+- [ ] qmd pipeline improvements — position-aware score blending, heading-aware chunking (`plans/qmd-pipeline-improvements.md`)
+- [ ] Dashboard zeitgeist surface — landing state with snapshot/cluster links (`plans/dashboard-zeitgeist-surface.md`)
+- [ ] Swappable search behaviors — modular pipeline + config-driven profiles (see `CONTEXT.md` / planning notes)
 
 ### Methodology
 
@@ -342,6 +356,6 @@ Moved to backburner. See [archive/backburner/phase-4-llm.md](archive/backburner/
 
 ---
 
-**Last Updated**: 2026-02-07
+**Last Updated**: 2026-05-30
 **Current Phase**: Experimentation (Knobs & Dials)
-**Next**: See CONTEXT.md for current session state
+**Next**: See [CONTEXT.md](CONTEXT.md) for current session state and active tasks (live source of truth)

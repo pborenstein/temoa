@@ -1,5 +1,10 @@
 # Search Harness Implementation Plan
 
+> **Status**: ✅ Completed & archived. The harness ships as the `?harness=true`
+> response augmentation and the "Explorer" view inside `search.html` (the
+> standalone `harness.html` was merged into `search.html`). Kept for historical
+> context.
+
 ## Goal
 
 Build a "Score Mixer" / "Harness" that lets you:

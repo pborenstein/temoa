@@ -48,7 +48,7 @@ temoa/
 │   ├── ARCHITECTURE.md   # System architecture & embeddings
 │   ├── SEARCH-MECHANISMS.md  # Search algorithms & ranking
 │   ├── IMPLEMENTATION.md # Progress tracking (source of truth for phase status)
-│   ├── CHRONICLES.md     # Design discussions & decision log
+│   ├── chronicles/       # Design discussions & decision log (by phase)
 │   ├── DECISIONS.md      # Architectural decision records
 │   ├── GLEANINGS.md      # Gleaning extraction & management
 │   ├── TESTING.md        # Test baseline, known failures
@@ -145,7 +145,7 @@ launchctl list | grep temoa
 | `docs/ARCHITECTURE.md` | System architecture, data flow, security, performance |
 | `docs/SEARCH-MECHANISMS.md` | All search algorithms, ranking, tag boosting, chunking |
 | `docs/TESTING.md` | Test baseline, known failures, debugging |
-| `docs/CHRONICLES.md` | Design discussions & decision history |
+| `docs/chronicles/` | Design discussions & decision history (organized by phase) |
 | `docs/DECISIONS.md` | Architectural decision records |
 | `docs/GLEANINGS.md` | Gleaning extraction & management guide |
 | `docs/DEPLOYMENT.md` | Launchd service setup |

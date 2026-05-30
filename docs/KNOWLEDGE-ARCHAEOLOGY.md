@@ -230,5 +230,5 @@ Whether it's 500 gleanings, 50 design decisions, or a lifetime of development wo
 
 **Author**: Conversation with Claude (Sonnet 4.5)
 **Type**: Vision Document
-**Related**: CHRONICLES.md, DECISIONS.md, ARCHITECTURE.md
+**Related**: chronicles/, DECISIONS.md, ARCHITECTURE.md
 **Status**: Foundational insight, needs validation through use

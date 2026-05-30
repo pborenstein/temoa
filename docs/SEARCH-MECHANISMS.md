@@ -218,7 +218,7 @@ The search pipeline consists of:
 ```
 
 **See also**:
-- CHRONICLES.md Entry 38 (Frontmatter-Aware Search)
+- chronicles/ Entry 38 (Frontmatter-Aware Search)
 - test-vault/BM25_TAG_BOOSTING_RESULTS.md (experimental validation)
 
 ---
@@ -1153,7 +1153,7 @@ All three tools are interconnected via navigation links in the header.
 - [PHASE-3-PART-2-SEARCH-QUALITY.md](PHASE-3-PART-2-SEARCH-QUALITY.md) - Implementation plan for search enhancements
 - [ARCHITECTURE.md](ARCHITECTURE.md) - System architecture and embeddings explanation
 - [IMPLEMENTATION.md](IMPLEMENTATION.md) - Progress tracking across all phases
-- [CHRONICLES.md](CHRONICLES.md) - Design discussions and decision history
+- [chronicles/](chronicles/) - Design discussions and decision history
 
 ---
 

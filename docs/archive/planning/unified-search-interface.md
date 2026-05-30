@@ -1,5 +1,9 @@
 # Unified Search Interface - Implementation Plan
 
+> **Status**: ⊘ Superseded & archived. The three-tool consolidation here was
+> superseded by the "single LIVE slider" (Option B) approach; the harness now
+> lives as the Explorer view inside `search.html`. Kept for historical context.
+
 **Status**: Draft for Approval
 **Created**: 2026-01-21
 **Branch**: `knobs-and-dials`

@@ -1,5 +1,9 @@
 # Pipeline Step Viewer Harness - Implementation Plan
 
+> **Status**: ✅ Completed & archived. Implemented as the `pipeline_debug`
+> response option and the stage-by-stage view in the UI. Kept for historical
+> context.
+
 ## Overview
 
 Create a new harness interface that visualizes results at each stage of the 8-stage search pipeline, allowing inspection of how results flow, transform, and get filtered/boosted through the pipeline.
