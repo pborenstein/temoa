@@ -1480,260 +1480,45 @@ async def search(
             )
             pipeline_state["stages"].append(stage_state)
 
-        # Stage 3: Score filtering (but not in hybrid mode)
-        stage_start = time.time()
-        results_before_score_filter = results
+        # Stages 3-7: post-retrieval pipeline (score filter → status filter →
+        # query filter → rerank → time boost → limit)
+        from temoa.pipeline import SearchContext as PipelineCtx, default_pipeline
+        pipe_ctx = PipelineCtx(
+            query=q,
+            original_query=original_query,
+            vault_path=vault_path,
+            vault_name=vault_name,
+            limit=limit,
+            search_mode="hybrid" if use_hybrid else "semantic",
+            params={
+                "min_score": min_score,
+                "rerank": rerank,
+                "time_boost": time_boost,
+                "pipeline_debug": pipeline_debug,
+                "include_props": include_props_list or [],
+                "exclude_props": exclude_props_list or [],
+                "include_tags": include_tags_list or [],
+                "exclude_tags": exclude_tags_list or [],
+                "include_paths": include_paths_list or [],
+                "exclude_paths": exclude_paths_list or [],
+                "include_files": include_files_list or [],
+                "exclude_files": exclude_files_list or [],
+            },
+            services={
+                "reranker": request.app.state.reranker,
+                "time_scorer": request.app.state.time_scorer,
+            },
+            results=results,
+        )
+        default_pipeline().run(pipe_ctx)
+        filtered_results = pipe_ctx.results
 
-        if use_hybrid:
-            # In hybrid mode, RRF has already ranked results appropriately
-            # Don't filter by similarity score since BM25-only results may not have one
-            score_filtered = results
-            score_removed = 0
-        else:
-            # In semantic-only mode, filter by similarity threshold
-            score_filtered = [r for r in results if r.get("similarity_score", 0) >= min_score]
-            score_removed = len(results) - len(score_filtered)
-            if score_removed > 0:
-                logger.info(f"Filtered {score_removed} results below min_score={min_score}")
+        score_removed = pipe_ctx.meta.get("score_removed", 0)
+        status_removed = pipe_ctx.meta.get("status_removed", 0)
+        total_filtered = pipe_ctx.meta.get("query_filter_removed", 0)
 
-        # Capture Stage 3 state
         if pipeline_state is not None:
-            removed_items = []
-            if score_removed > 0:
-                # Get items that were filtered
-                filtered_paths = {r.get("relative_path") for r in score_filtered}
-                removed_items = [
-                    {
-                        "relative_path": r.get("relative_path"),
-                        "similarity_score": round(r.get("similarity_score", 0), 4)
-                    }
-                    for r in results_before_score_filter
-                    if r.get("relative_path") not in filtered_paths
-                ][:20]  # Limit to 20
-
-            stage_state = capture_stage_state(
-                stage_num=3,
-                stage_name="Score Filtering",
-                results=score_filtered,
-                metadata={
-                    "before_count": len(results_before_score_filter),
-                    "after_count": len(score_filtered),
-                    "removed_count": score_removed,
-                    "min_score_threshold": min_score,
-                    "applied": not use_hybrid,  # Only in semantic mode
-                    "removed_items": removed_items
-                },
-                start_time=stage_start
-            )
-            pipeline_state["stages"].append(stage_state)
-
-        # Stage 4: Status filtering (inactive gleanings)
-        stage_start = time.time()
-        original_count = len(score_filtered)
-        filtered_results = filter_inactive_gleanings(score_filtered)
-        status_removed = original_count - len(filtered_results)
-
-        if status_removed > 0:
-            logger.info(f"Filtered {status_removed} inactive gleanings from results")
-
-        # Capture Stage 4 state
-        if pipeline_state is not None:
-            removed_items = []
-            if status_removed > 0:
-                filtered_paths = {r.get("relative_path") for r in filtered_results}
-                removed_items = [
-                    {
-                        "relative_path": r.get("relative_path"),
-                        "status": r.get("status", "unknown")
-                    }
-                    for r in score_filtered
-                    if r.get("relative_path") not in filtered_paths
-                ][:20]
-
-            stage_state = capture_stage_state(
-                stage_num=4,
-                stage_name="Status Filtering",
-                results=filtered_results,
-                metadata={
-                    "before_count": original_count,
-                    "after_count": len(filtered_results),
-                    "removed_count": status_removed,
-                    "removed_items": removed_items
-                },
-                start_time=stage_start
-            )
-            pipeline_state["stages"].append(stage_state)
-
-        # Stage 5: Query Filter (properties, tags, paths, files)
-        stage_start = time.time()
-        results_before_filtering = filtered_results
-        total_filtered = 0
-
-        logger.info(f"Stage 5: Starting Query Filter with {len(filtered_results)} results")
-
-        # Apply property filters
-        if include_props_list or exclude_props_list:
-            filter_start = time.time()
-            logger.info(f"Applying property filters: include={include_props_list}, exclude={exclude_props_list}")
-            filtered_results, props_removed = filter_by_properties(
-                filtered_results,
-                include_props=include_props_list,
-                exclude_props=exclude_props_list
-            )
-            total_filtered += props_removed
-            filter_duration = time.time() - filter_start
-            logger.info(f"Filtered {props_removed} results by properties in {filter_duration:.2f}s")
-
-        # Apply tag filters
-        if include_tags_list or exclude_tags_list:
-            filtered_results, tags_removed = filter_by_tags(
-                filtered_results,
-                include_tags=include_tags_list,
-                exclude_tags=exclude_tags_list
-            )
-            total_filtered += tags_removed
-            if tags_removed > 0:
-                logger.info(f"Filtered {tags_removed} results by tags")
-
-        # Apply path filters
-        if include_paths_list or exclude_paths_list:
-            filtered_results, paths_removed = filter_by_paths(
-                filtered_results,
-                include_paths=include_paths_list,
-                exclude_paths=exclude_paths_list
-            )
-            total_filtered += paths_removed
-            if paths_removed > 0:
-                logger.info(f"Filtered {paths_removed} results by paths")
-
-        # Apply file filters
-        if include_files_list or exclude_files_list:
-            filtered_results, files_removed = filter_by_files(
-                filtered_results,
-                include_files=include_files_list,
-                exclude_files=exclude_files_list
-            )
-            total_filtered += files_removed
-            if files_removed > 0:
-                logger.info(f"Filtered {files_removed} results by files")
-
-        # Capture Stage 5 state
-        if pipeline_state is not None:
-            removed_items = []
-            if total_filtered > 0:
-                filtered_paths = {r.get("relative_path") for r in filtered_results}
-                removed_items = [
-                    {
-                        "relative_path": r.get("relative_path"),
-                        "title": r.get("title", "Unknown")
-                    }
-                    for r in results_before_filtering
-                    if r.get("relative_path") not in filtered_paths
-                ][:20]
-
-            stage_state = capture_stage_state(
-                stage_num=5,
-                stage_name="Query Filter",
-                results=filtered_results,
-                metadata={
-                    "before_count": len(results_before_filtering),
-                    "after_count": len(filtered_results),
-                    "removed_count": total_filtered,
-                    "include_props": include_props_list,
-                    "exclude_props": exclude_props_list,
-                    "include_tags": include_tags_list,
-                    "exclude_tags": exclude_tags_list,
-                    "include_paths": include_paths_list,
-                    "exclude_paths": exclude_paths_list,
-                    "include_files": include_files_list,
-                    "exclude_files": exclude_files_list,
-                    "removed_items": removed_items
-                },
-                start_time=stage_start
-            )
-            pipeline_state["stages"].append(stage_state)
-
-        # Stage 6: Cross-encoder re-ranking (if enabled)
-        stage_start = time.time()
-        results_before_rerank = [dict(r) for r in filtered_results[:20]]  # Shallow copy top 20 for comparison
-
-        if rerank and filtered_results:
-            reranker = request.app.state.reranker
-            # Re-rank with more candidates than final limit for better quality
-            rerank_count = min(100, len(filtered_results))
-            logger.info(f"Re-ranking top {rerank_count} results with cross-encoder")
-            filtered_results = reranker.rerank(
-                query=q,
-                results=filtered_results,
-                top_k=limit,
-                rerank_top_n=rerank_count
-            )
-
-        # Capture Stage 6 state
-        if pipeline_state is not None:
-            rank_changes = []
-            if rerank and results_before_rerank:
-                rank_changes = calculate_rank_changes(results_before_rerank, filtered_results[:20])
-
-            stage_state = capture_stage_state(
-                stage_num=6,
-                stage_name="Cross-Encoder Re-Ranking",
-                results=filtered_results,
-                metadata={
-                    "applied": rerank and len(filtered_results) > 0,
-                    "rerank_count": min(100, len(filtered_results)) if rerank else 0,
-                    "rank_changes": rank_changes[:20],  # Top 20 changes
-                    "total_rank_changes": len([c for c in rank_changes if c["delta"] != 0])
-                },
-                start_time=stage_start
-            )
-            pipeline_state["stages"].append(stage_state)
-
-        # Stage 7: Time-aware boost (after re-ranking)
-        stage_start = time.time()
-        results_before_time_boost = [dict(r) for r in filtered_results[:20]]  # Shallow copy for comparison
-
-        if time_boost and filtered_results:
-            time_scorer = request.app.state.time_scorer
-            logger.info(f"Applying time-aware boost to {len(filtered_results)} results")
-            filtered_results = time_scorer.apply_boost(filtered_results, vault_path)
-
-        # Capture Stage 7 state
-        if pipeline_state is not None:
-            boosted_items = []
-            if time_boost and results_before_time_boost:
-                # Find items with time boost applied
-                for idx, result in enumerate(filtered_results[:20]):
-                    time_boost_val = result.get("time_boost", 0)
-                    if time_boost_val > 0:
-                        boosted_items.append({
-                            "relative_path": result.get("relative_path"),
-                            "time_boost": round(time_boost_val, 4),
-                            "mtime": result.get("mtime", "")
-                        })
-
-            rank_changes = []
-            if time_boost and results_before_time_boost:
-                rank_changes = calculate_rank_changes(results_before_time_boost, filtered_results[:20])
-
-            stage_state = capture_stage_state(
-                stage_num=7,
-                stage_name="Time-Aware Boost",
-                results=filtered_results,
-                metadata={
-                    "applied": time_boost and len(filtered_results) > 0,
-                    "boosted_count": len(boosted_items),
-                    "boosted_items": boosted_items,
-                    "rank_changes": rank_changes[:20],
-                    "total_rank_changes": len([c for c in rank_changes if c["delta"] != 0])
-                },
-                start_time=stage_start
-            )
-            pipeline_state["stages"].append(stage_state)
-
-        # Apply final limit (if not already applied by reranker)
-        if not rerank:
-            filtered_results = filtered_results[:limit] if limit else filtered_results
+            pipeline_state["stages"].extend(pipe_ctx.stages_debug)
 
         # Update response
         data["results"] = filtered_results
