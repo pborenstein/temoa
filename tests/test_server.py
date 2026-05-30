@@ -12,11 +12,9 @@ def client():
 
 
 def test_root_endpoint(client):
-    """Test that root endpoint serves UI or placeholder"""
+    """Root is not served by the API server (UI is a separate project)."""
     response = client.get("/")
-    assert response.status_code == 200
-    assert "text/html" in response.headers["content-type"]
-    assert "Temoa" in response.text
+    assert response.status_code == 404
 
 
 def test_health_endpoint(client):
@@ -157,47 +155,14 @@ def test_search_without_harness(client):
     assert "harness" not in data
 
 
-def test_harness_page(client):
-    """Test that main search page includes Explorer/harness functionality"""
-    # /harness was merged into main search UI (Entry 56)
-    response = client.get("/")
+def test_harness_score_data_in_response(client):
+    """?harness=true returns per-result scores dict."""
+    response = client.get("/search?q=test&harness=true")
     assert response.status_code == 200
-    assert "text/html" in response.headers["content-type"]
-    # Explorer mode includes the score mixer functionality
-    assert "Explorer" in response.text or "explorer" in response.text.lower()
-
-
-def test_graph_stats_endpoint(client):
-    """Test graph stats endpoint"""
-    response = client.get("/graph/stats")
-    assert response.status_code == 200
-
     data = response.json()
-    assert "loaded" in data
-    assert "vault" in data
-
-
-def test_graph_neighbors_endpoint(client):
-    """Test graph neighbors endpoint with a note"""
-    # Use a note that should exist - empty string matches orphan node
-    response = client.get("/graph/neighbors?note=test")
-    assert response.status_code == 200
-
-    data = response.json()
-    assert "note" in data
-    assert "found" in data
-    assert "vault" in data
-
-
-def test_graph_hubs_endpoint(client):
-    """Test graph hubs endpoint"""
-    response = client.get("/graph/hubs?limit=10")
-    assert response.status_code == 200
-
-    data = response.json()
-    assert "hubs" in data
-    assert "vault" in data
-    assert isinstance(data["hubs"], list)
+    assert "harness" in data
+    if data["results"]:
+        assert "scores" in data["results"][0]
 
 
 def test_search_hybrid_mode(client):

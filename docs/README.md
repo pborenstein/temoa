@@ -2,7 +2,7 @@
 
 > **Navigation guide** for all documentation in this directory.
 
-**Last Updated**: 2026-02-07
+**Last Updated**: 2026-05-30
 
 ---
 
@@ -38,7 +38,7 @@ Living documents tracking implementation progress and decisions.
 | [CONTEXT.md](CONTEXT.md) | Current project status and session context | Everyone |
 | [IMPLEMENTATION.md](IMPLEMENTATION.md) | Master progress tracker across all phases (current phase detailed) | Everyone |
 | [DECISIONS.md](DECISIONS.md) | Architectural decision registry (DEC-001+) with governance process | Developers, Contributors, LLMs |
-| [CHRONICLES.md](CHRONICLES.md) | Design discussions and historical context (links to decisions) | Developers, Future maintainers |
+| [chronicles/](chronicles/) | Design discussions and historical context, organized by phase (links to decisions) | Developers, Future maintainers |
 
 **Note**: Session workflows (pick-up/wrap-up) are now managed by the plinth plugin (`/session-wrapup` command). See [TRACKING-SYSTEM.md](TRACKING-SYSTEM.md) for manual workflows.
 
@@ -92,7 +92,7 @@ Session notes with detailed implementation decisions:
 **Active Documents** (top-level `docs/`):
 - User guides (DEPLOYMENT, GLEANINGS)
 - Technical reference (ARCHITECTURE, SEARCH-MECHANISMS)
-- Living planning docs (IMPLEMENTATION, CHRONICLES, PHASE-3-READY)
+- Living planning docs (IMPLEMENTATION, CONTEXT) and the phase chronicles (`chronicles/`)
 
 **Historical Documents** (`docs/archive/`):
 - Completed implementation plans (moved after phase completion)
@@ -120,9 +120,9 @@ Session notes with detailed implementation decisions:
 
 **See current progress**: Check [IMPLEMENTATION.md](IMPLEMENTATION.md) for Phase 3.5 status
 
-**Look up a design decision**: Search [DECISIONS.md](DECISIONS.md) for quick reference, or read [CHRONICLES.md](CHRONICLES.md) for full context
+**Look up a design decision**: Search [DECISIONS.md](DECISIONS.md) for quick reference, or read the [chronicles/](chronicles/) for full context
 
-**Understand why we made a choice**: Read the decision in [DECISIONS.md](DECISIONS.md), then follow the Entry link to [CHRONICLES.md](CHRONICLES.md) for discussion
+**Understand why we made a choice**: Read the decision in [DECISIONS.md](DECISIONS.md), then follow the Entry link into the [chronicles/](chronicles/) for discussion
 
 **Extract gleanings from daily notes**: Read [GLEANINGS.md](GLEANINGS.md)
 

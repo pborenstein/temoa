@@ -2,12 +2,16 @@
 
 > **Approach**: Plan like waterfall, implement in agile
 >
-> This document tracks progress across all implementation phases. Original planning documents archived in `docs/archive/original-planning/`. Detailed implementation notes in `docs/chronicles/`.
+> This document tracks **phase-level** progress across all implementation phases. Original planning documents archived in `docs/archive/original-planning/`. Detailed implementation notes in `docs/chronicles/`.
+>
+> **Source of truth**: for current session state and day-to-day active tasks,
+> [CONTEXT.md](CONTEXT.md) is the live source — it is updated every session and
+> may be ahead of this file. This file is the durable phase/milestone record.
 
 **Project**: Temoa - Local Semantic Search Server for Obsidian Vault
 **Created**: 2025-11-18
 **Status**: Experimentation Phase 🔵 ACTIVE - Knobs & Dials Tuning
-**Last Updated**: 2026-02-07
+**Last Updated**: 2026-05-30
 **Current Version**: 0.7.0
 **Current Branch**: `main`
 **Estimated Timeline**: 4-6 weeks for Phases 0-2, ongoing for Phases 3-4
@@ -19,7 +23,7 @@
 | Document | Purpose |
 |----------|---------|
 | [ARCHITECTURE.md](ARCHITECTURE.md) | System architecture, embeddings explanation, data flow |
-| [CHRONICLES.md](CHRONICLES.md) | Design discussions and decision history |
+| [chronicles/](chronicles/) | Design discussions and decision history (organized by phase) |
 | [RESEARCH-NOTES.md](RESEARCH-NOTES.md) | External research, tool comparisons, actionable ideas |
 | [CLAUDE.md](../CLAUDE.md) | Development guide for AI sessions |
 | This file | Implementation progress tracking |
@@ -317,12 +321,38 @@ The production hardening is complete. Now we experiment with different combinati
   - [x] Inspector optimized to update only scores section
   - [x] Add "Clear All" button to search history dropdown
 
+**Cron / maintenance tooling** (2026-04):
+- [x] `--log-format` flag for `reindex` (appends to vault log)
+- ~~`temoa build-graph` command~~ — removed with graph code (2026-05-30)
+- ~~`extract` / `gleaning` CLI commands~~ — removed; gleanings offloaded to separate tool
+
+**Temoa rebuild — pure search engine** (2026-05-30, see chronicles Entry 96):
+- [x] Strip gleaning extraction, graph, and web UI from server.py (2671 → 430 lines)
+- [x] Create composable pipeline abstraction: SearchContext, Stage protocol, Pipeline runner
+- [x] Extract post-retrieval stages into pipeline.py; server.search() calls default_pipeline()
+- [x] Create server_filters.py with filter_by_* helpers
+- [x] Delete gleanings.py, normalizers.py, github_client.py, text_cleaner.py, vault_graph.py
+- [x] Delete scripts/ directory (extract_gleanings, maintain_gleanings, etc.)
+- [x] Strip CLI to 8 commands; search uses default_pipeline()
+- [x] 147 tests passing
+
 **Experimentation**:
 - [ ] Document baseline performance (latency, relevance)
 - [ ] Define test query suite with expected results
-- [ ] Create A/B comparison framework
-- [ ] Experiment with parameter combinations
-- [ ] Document winning configurations
+- [ ] Config-driven pipeline profiles (`search.profiles` in config.json, `profile` query param)
+- [ ] Query logging: `--log-queries` flag or wrapper that appends `{timestamp, query, top 5 results}` to a log file for evaluation (noted 2026-05-17: no way to tell if results are actually good)
+- [ ] Known-miss list: cases where temoa returned nothing but the answer was in the vault — collect as regression set
+- [ ] Score baseline: calibrate what a "good" cross-encoder score looks like with known-good queries
+
+- [x] Restore type filtering: `filter_by_type()` in server_filters.py, `QueryFilterStage`,
+  `/search` params `include_types`/`exclude_types`, CLI `--type`/`--exclude-type`
+  (needed by tlatecpana `temoa-search` skill — see Entry 97)
+
+**Next planned work**:
+- [ ] Merge branch `claude/docs-codebase-review-5YeTG` to main
+- [ ] Update cahuitl cron: replace `temoa extract` with `pixquitl extract`
+- [ ] qmd pipeline improvements — position-aware score blending, heading-aware chunking
+- [ ] Swappable search behaviors — config-driven profiles, build_pipeline(config, profile)
 
 ### Methodology
 
@@ -342,6 +372,6 @@ Moved to backburner. See [archive/backburner/phase-4-llm.md](archive/backburner/
 
 ---
 
-**Last Updated**: 2026-02-07
+**Last Updated**: 2026-05-30
 **Current Phase**: Experimentation (Knobs & Dials)
-**Next**: See CONTEXT.md for current session state
+**Next**: See [CONTEXT.md](CONTEXT.md) for current session state and active tasks (live source of truth)

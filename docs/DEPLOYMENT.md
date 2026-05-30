@@ -1,7 +1,7 @@
 # Temoa Deployment Guide
 
-**Last Updated**: 2026-01-26
-**Version**: 0.6.0
+**Last Updated**: 2026-05-30
+**Version**: 0.7.0
 **For**: Phase 3.5 Complete - Production Deployment + Exploration Tools
 
 ---

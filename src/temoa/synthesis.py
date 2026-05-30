@@ -515,7 +515,6 @@ class SynthesisClient:
         self,
         query: str,
         limit: Optional[int] = None,
-        semantic_weight: float = 0.5,
         file_filter: Optional[List[str]] = None
     ) -> Dict[str, Any]:
         """
@@ -530,8 +529,6 @@ class SynthesisClient:
         Args:
             query: Search query string
             limit: Optional result limit (default: 10)
-            semantic_weight: Weight for semantic vs keyword (0.0-1.0, default: 0.5)
-                            0.0 = keyword only, 1.0 = semantic only
             file_filter: Optional list of relative paths to search.
                         If provided, only search these files.
 
@@ -563,18 +560,18 @@ class SynthesisClient:
             # Get more results from each to ensure good coverage after merging
             fetch_limit = limit * 3
 
-            # Perform both searches
+            # Perform both searches (hybrid always runs semantic + BM25 and
+            # fuses them via RRF; client-side re-blending happens downstream).
             semantic_results = []
             bm25_results = []
 
-            # Semantic search (if weight > 0)
-            if semantic_weight > 0.0:
-                semantic_data = self.search(query, limit=fetch_limit, file_filter=file_filter)
-                semantic_results = semantic_data.get('results', [])
-                logger.debug(f"Semantic search found {len(semantic_results)} results")
+            # Semantic search
+            semantic_data = self.search(query, limit=fetch_limit, file_filter=file_filter)
+            semantic_results = semantic_data.get('results', [])
+            logger.debug(f"Semantic search found {len(semantic_results)} results")
 
-            # Keyword search (if weight < 1.0)
-            if semantic_weight < 1.0 and self.bm25_index.exists():
+            # Keyword (BM25) search
+            if self.bm25_index.exists():
                 # Load BM25 index if needed
                 if self.bm25_index.bm25 is None:
                     self.bm25_index.load()

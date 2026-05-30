@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
-"""
-Temoa CLI - Command-line interface for Temoa semantic search server
-"""
+"""Temoa CLI - Command-line interface for Temoa semantic search server"""
 import json
 import logging
 import sys
@@ -11,46 +9,27 @@ import uvicorn
 
 from .__version__ import __version__
 
-# Configure logging for CLI - quiet down noisy synthesis internals
-logging.basicConfig(
-    level=logging.WARNING,
-    format="%(message)s"
-)
-# Only show warnings from synthesis/embeddings
+logging.basicConfig(level=logging.WARNING, format="%(message)s")
 logging.getLogger("temoa.synthesis").setLevel(logging.WARNING)
 logging.getLogger("src.embeddings").setLevel(logging.WARNING)
 logging.getLogger("sentence_transformers").setLevel(logging.WARNING)
-logging.getLogger("nahuatl_frontmatter").setLevel(logging.ERROR)  # Suppress frontmatter parse warnings
+logging.getLogger("nahuatl_frontmatter").setLevel(logging.ERROR)
 
 
 @click.group()
 @click.version_option(version=__version__)
 def main():
-    """Temoa - Local semantic search server for Obsidian vault.
+    """Local semantic search server for Obsidian vaults.
 
     \b
-    Quick Start:
-      temoa index               # Build index (first time setup)
-      temoa server              # Start the FastAPI server
-      temoa search "query"      # Quick search from CLI
-      temoa stats               # Show vault statistics
+    Setup:
+      temoa index               # build embedding index (first run)
+      temoa server              # start the search API
 
     \b
-    Common Workflows:
-      # First time setup
-      temoa config              # Check configuration
-      temoa index               # Build embedding index
-
-      # Start server for mobile access
-      temoa server
-
-      # Extract new gleanings and update index
-      temoa extract
-      temoa reindex
-
-      # Quick search from terminal
-      temoa search "semantic search"
-      temoa archaeology "tailscale"
+    Daily use:
+      temoa search "query"      # search from the terminal
+      temoa reindex             # pick up new and changed files
     """
     pass
 
@@ -63,42 +42,26 @@ def main():
               type=click.Choice(['critical', 'error', 'warning', 'info', 'debug']),
               help='Logging level')
 def server(host, port, reload, log_level):
-    """Start the Temoa FastAPI server.
-
-    This starts the HTTP server that provides the search API and web UI.
-    The server will be accessible via http://HOST:PORT (default: 0.0.0.0:8080)
-
-    Use Tailscale to access from mobile devices.
-    """
+    """Start the search API server."""
     import socket
     from .config import Config
 
     config = Config()
-
-    # Override config with CLI options if provided
     server_host = host or config.server_host
     server_port = port or config.server_port
 
-    # Get network interface addresses (same approach as Apantli)
     addresses = []
     try:
         import netifaces
-        
-        # Add localhost
         addresses.append("localhost")
-        
-        # Get all network interfaces and their addresses
         for interface in netifaces.interfaces():
             addrs = netifaces.ifaddresses(interface)
-            # Get IPv4 addresses (AF_INET = 2)
             if netifaces.AF_INET in addrs:
                 for addr_info in addrs[netifaces.AF_INET]:
                     ip = addr_info.get('addr')
-                    # Skip localhost IPs
                     if ip and ip != '127.0.0.1':
                         addresses.append(ip)
     except Exception:
-        # Fallback to getaddrinfo if netifaces fails
         try:
             addrs = socket.getaddrinfo(socket.gethostname(), None)
             for addr in addrs:
@@ -108,25 +71,18 @@ def server(host, port, reload, log_level):
                         addresses.append(ip)
         except Exception:
             pass
-    
-    # Ensure we always have at least localhost
+
     if not addresses:
         addresses = ["localhost"]
 
-    # Configure logging format with timestamps
     log_config = uvicorn.config.LOGGING_CONFIG
-    # Update default formatter (for startup/info logs)
     log_config["formatters"]["default"]["fmt"] = '%(asctime)s %(levelprefix)s %(message)s'
     log_config["formatters"]["default"]["datefmt"] = '%Y-%m-%d %H:%M:%S'
-    # Update access formatter (for HTTP request logs)
     log_config["formatters"]["access"]["fmt"] = '%(asctime)s %(levelprefix)s %(client_addr)s - "%(request_line)s" %(status_code)s'
     log_config["formatters"]["access"]["datefmt"] = '%Y-%m-%d %H:%M:%S'
 
-    # Display startup message with all addresses
-    click.echo("🚀 Temoa server starting...")
     addr_str = " or ".join([f"http://{addr}:{server_port}/" for addr in addresses])
-    click.echo(f"   Server at {addr_str}")
-    click.echo("")
+    click.echo(f"Temoa server starting at {addr_str}")
 
     uvicorn.run(
         "temoa.server:app",
@@ -142,77 +98,46 @@ def server(host, port, reload, log_level):
 @click.argument('query')
 @click.option('--limit', '-n', default=10, type=int, help='Number of results (default: 10)')
 @click.option('--min-score', '-s', default=0.3, type=float, help='Minimum similarity score (0.0-1.0, default: 0.3)')
-@click.option('--type', '-t', 'include_types', default=None, help='Include only these types (comma-separated, e.g., "gleaning,article")')
-@click.option('--exclude-type', '-x', 'exclude_types', default='daily', help='Exclude these types (comma-separated, default: "daily")')
+@click.option('--type', '-t', 'include_types', default=None, help='Include only these types (comma-separated, e.g. "gleaning,article")')
+@click.option('--exclude-type', '-x', 'exclude_types', default=None, help='Exclude these types (comma-separated, e.g. "daily")')
 @click.option('--hybrid', is_flag=True, default=None, help='Use hybrid search (BM25 + semantic)')
-@click.option('--rerank/--no-rerank', default=True, help='Use cross-encoder re-ranking for better precision (default: enabled)')
-@click.option('--expand/--no-expand', 'expand_query', default=False, help='Expand short queries (<3 words) with TF-IDF terms (default: disabled)')
-@click.option('--time-boost/--no-time-boost', 'time_boost', default=True, help='Boost recent documents with time-decay scoring (default: enabled)')
-@click.option('--bm25-only', is_flag=True, help='Use BM25 keyword search only (for debugging)')
-@click.option('--model', '-m', default=None, help='Embedding model to use')
+@click.option('--rerank/--no-rerank', default=True, help='Use cross-encoder re-ranking (default: enabled)')
+@click.option('--expand/--no-expand', 'expand_query', default=False, help='Expand short queries with TF-IDF terms')
+@click.option('--time-boost/--no-time-boost', 'time_boost', default=True, help='Boost recent documents')
+@click.option('--bm25-only', is_flag=True, help='Use BM25 keyword search only')
 @click.option('--json', 'output_json', is_flag=True, help='Output as JSON')
-@click.option('--vault', default=None, type=click.Path(exists=True),
-              help='Vault path (default: from config)')
-def search(query, limit, min_score, include_types, exclude_types, hybrid, rerank, expand_query, time_boost, bm25_only, model, output_json, vault):
-    """Search the vault for similar content.
+@click.option('--vault', default=None, type=click.Path(exists=True), help='Vault path (default: from config)')
+def search(query, limit, min_score, include_types, exclude_types, hybrid, rerank, expand_query, time_boost, bm25_only, output_json, vault):
+    """Search the vault by meaning.
 
     \b
     Examples:
       temoa search "semantic search"
-      temoa search "tailscale networking" --limit 5
+      temoa search "tailscale networking" --hybrid
+      temoa search "saved articles" --type gleaning
+      temoa search "topic" --exclude-type daily
       temoa search "AI tools" --min-score 0.5
-      temoa search "Joan Doe" --hybrid
-      temoa search "Joan Doe" --bm25-only
       temoa search "obsidian" --json
-      temoa search "topic" --type gleaning,article
-      temoa search "topic" --exclude-type daily,note
-      temoa search "topic" --type daily --exclude-type ""
-      temoa search "query" --vault ~/vaults/other
     """
     from .config import Config
     from .synthesis import SynthesisClient
-    from .server import filter_inactive_gleanings, filter_by_type
     from .storage import derive_storage_dir
+    from .pipeline import default_pipeline, SearchContext
 
     config = Config()
 
-    # Determine vault and storage based on --vault flag
-    # Also get vault-specific model if configured
-    vault_model = None
     if vault:
         vault_path = Path(vault)
-        storage_dir = derive_storage_dir(
-            vault_path, config.vault_path, config.storage_dir
-        )
-        # Look up vault-specific model from config
+        storage_dir = derive_storage_dir(vault_path, config.vault_path, config.storage_dir)
         vault_config = config.find_vault(vault)
-        if vault_config:
-            vault_model = vault_config.get('model')
+        vault_model = vault_config.get('model') if vault_config else None
     else:
         vault_path = config.vault_path
         storage_dir = config.storage_dir
-
-    # Parse type filters
-    include_type_list = None
-    if include_types:
-        include_type_list = [t.strip() for t in include_types.split(",") if t.strip()]
-
-    # If include_types is specified, ignore exclude_types default (user is explicit about what they want)
-    exclude_type_list = None
-    if include_types:
-        # User explicitly specified what to include, only apply exclude if they also specified it
-        if exclude_types and exclude_types != 'daily':  # Don't use default when include is set
-            exclude_type_list = [t.strip() for t in exclude_types.split(",") if t.strip()]
-    elif exclude_types:
-        # No include_types, use exclude_types (including default)
-        exclude_type_list = [t.strip() for t in exclude_types.split(",") if t.strip()]
+        vault_model = None
 
     try:
-        # Determine which model to use:
-        # 1. Explicit --model flag (highest priority)
-        # 2. Vault-specific model from config
-        # 3. Global default_model (fallback)
-        effective_model = model or vault_model or config.default_model
+        effective_model = vault_model or config.default_model
 
         client = SynthesisClient(
             synthesis_path=config.synthesis_path,
@@ -221,154 +146,84 @@ def search(query, limit, min_score, include_types, exclude_types, hybrid, rerank
             storage_dir=storage_dir
         )
 
-        # Stage 0: Query expansion (if enabled and query is short)
         original_query = query
         expanded_query_str = None
         if expand_query and not bm25_only:
             from .query_expansion import QueryExpander
             expander = QueryExpander(max_expansion_terms=3)
             if expander.should_expand(query):
-                # Get initial results for expansion
                 initial_data = client.search(query, limit=5)
-                initial_results = initial_data.get('results', [])
-                # Expand query
-                query = expander.expand(query, initial_results, top_k=5)
+                query = expander.expand(query, initial_data.get('results', []), top_k=5)
                 if query != original_query:
                     expanded_query_str = query
 
-        # Determine search mode
         if bm25_only:
-            # BM25 only for debugging
             result_data = client.bm25_search(query, limit=limit)
             results = result_data.get('results', [])
         else:
-            # Hybrid or semantic
             use_hybrid = hybrid if hybrid is not None else config.hybrid_search_enabled
-
-            # Request more results to account for filtering
             search_limit = limit * 3 if limit else 100
 
-            # Choose search method
             if use_hybrid:
                 result_data = client.hybrid_search(query, limit=search_limit)
             else:
                 result_data = client.search(query, limit=search_limit)
 
             results = result_data.get('results', [])
+            search_mode = "hybrid" if use_hybrid else "semantic"
 
-            # Filter by minimum similarity score (but not in hybrid mode)
-            score_removed = 0
-            if use_hybrid:
-                # In hybrid mode, RRF has already ranked results appropriately
-                # Don't filter by similarity score since BM25-only results may not have one
-                filtered_results = results
-            else:
-                # In semantic-only mode, filter by similarity threshold
-                filtered_results = [r for r in results if r.get('similarity_score', 0) >= min_score]
-                score_removed = len(results) - len(filtered_results)
-
-            # Filter out inactive gleanings
-            status_count = len(filtered_results)
-            filtered_results = filter_inactive_gleanings(filtered_results)
-            status_removed = status_count - len(filtered_results)
-
-            # Filter by type
-            filtered_results, type_removed = filter_by_type(
-                filtered_results,
-                include_types=include_type_list,
-                exclude_types=exclude_type_list
-            )
-
-            # Apply time-aware boost (before re-ranking)
-            if time_boost and filtered_results and not bm25_only:
+            services = {}
+            if time_boost:
                 from .time_scoring import TimeAwareScorer
                 time_decay_config = config._config.get("search", {}).get("time_decay", {})
-                scorer = TimeAwareScorer(
+                services["time_scorer"] = TimeAwareScorer(
                     half_life_days=time_decay_config.get("half_life_days", 90),
                     max_boost=time_decay_config.get("max_boost", 0.2),
                     enabled=True
                 )
-                filtered_results = scorer.apply_boost(filtered_results, vault_path)
-
-            # Check if any results have tag-based boosts (exact matches)
-            has_tag_boosts = any(r.get('tag_boosted') for r in filtered_results)
-
-            # Apply cross-encoder re-ranking if enabled
-            # Skip reranking when tag boosts are present - those are exact matches
-            # that should dominate over semantic similarity
-            if rerank and filtered_results and not bm25_only and not has_tag_boosts:
+            if rerank:
                 from .reranker import CrossEncoderReranker
-                reranker = CrossEncoderReranker()
-                # Re-rank with more candidates than final limit
-                rerank_count = min(100, len(filtered_results))
-                filtered_results = reranker.rerank(
-                    query=query,
-                    results=filtered_results,
-                    top_k=limit,
-                    rerank_top_n=rerank_count
-                )
-            else:
-                # Apply final limit if not re-ranking (or skipping due to tag boosts)
-                filtered_results = filtered_results[:limit]
+                services["reranker"] = CrossEncoderReranker()
 
-            # Update result data
-            result_data['results'] = filtered_results
-            result_data['total'] = len(filtered_results)
+            include_types_list = [t.strip() for t in include_types.split(",")] if include_types else []
+            exclude_types_list = [t.strip() for t in exclude_types.split(",")] if exclude_types else []
+
+            ctx = SearchContext(
+                query=query,
+                original_query=original_query,
+                vault_path=vault_path,
+                vault_name=vault or "",
+                limit=limit,
+                search_mode=search_mode,
+                params={
+                    "min_score": min_score,
+                    "rerank": rerank,
+                    "time_boost": time_boost,
+                    "include_types": include_types_list,
+                    "exclude_types": exclude_types_list,
+                },
+                services=services,
+            )
+            ctx.results = results
+            default_pipeline().run(ctx)
+            results = ctx.results
+
+            result_data['results'] = results
+            result_data['total'] = len(results)
             result_data['query'] = original_query
             if expanded_query_str:
                 result_data['expanded_query'] = expanded_query_str
-            result_data['min_score'] = min_score
-            result_data['filtered_count'] = {
-                'by_score': score_removed,
-                'by_status': status_removed,
-                'by_type': type_removed,
-                'total_removed': score_removed + status_removed + type_removed
-            }
-
-            results = filtered_results
 
         if output_json:
-            # Output as JSON for scripting
             click.echo(json.dumps(result_data, indent=2))
         else:
-            # Human-readable output
-            search_mode = result_data.get('search_mode', 'semantic')
-            mode_str = f" ({search_mode})" if search_mode else ""
-
-            # Show original query and expansion if it occurred
+            search_mode_str = result_data.get('search_mode', 'semantic')
             if expanded_query_str:
                 click.echo(f"\nSearch results for: {click.style(original_query, fg='cyan', bold=True)}")
                 click.echo(click.style(f"Expanded to: {expanded_query_str}", dim=True))
                 click.echo()
             else:
-                click.echo(f"\nSearch results for: {click.style(query, fg='cyan', bold=True)}{mode_str}\n")
-
-            # Show applied filters
-            if include_type_list or exclude_type_list:
-                filters_applied = []
-                if include_type_list:
-                    filters_applied.append(f"types: {', '.join(include_type_list)}")
-                if exclude_type_list:
-                    filters_applied.append(f"excluding: {', '.join(exclude_type_list)}")
-
-                if filters_applied:
-                    click.echo(click.style(f"Filters: {', '.join(filters_applied)}", dim=True))
-
-            # Show filtered count
-            if 'filtered_count' in result_data:
-                fc = result_data['filtered_count']
-                total = fc.get('total_removed', 0)
-                if total > 0:
-                    parts = []
-                    if fc.get('by_score', 0) > 0:
-                        parts.append(f"{fc['by_score']} by score")
-                    if fc.get('by_status', 0) > 0:
-                        parts.append(f"{fc['by_status']} by status")
-                    if fc.get('by_type', 0) > 0:
-                        parts.append(f"{fc['by_type']} by type")
-
-                    click.echo(click.style(f"Filtered: {', '.join(parts)} ({total} total)", dim=True))
-                    click.echo()
+                click.echo(f"\nSearch results for: {click.style(query, fg='cyan', bold=True)} ({search_mode_str})\n")
 
             if not results:
                 click.echo("No results found.")
@@ -378,27 +233,20 @@ def search(query, limit, min_score, include_types, exclude_types, hybrid, rerank
                 click.echo(f"{i}. {click.style(result.get('title', 'Untitled'), fg='green', bold=True)}")
                 click.echo(f"   {result.get('relative_path', 'Unknown path')}")
 
-                # Show both scores if available
                 sim_score = result.get('similarity_score')
                 bm25_score = result.get('bm25_score')
 
                 if sim_score is not None and bm25_score is not None:
-                    # Hybrid result - show both
                     click.echo(f"   Semantic: {sim_score:.3f} | BM25: {bm25_score:.3f}")
                 elif bm25_score is not None:
-                    # BM25 only
                     click.echo(f"   BM25: {bm25_score:.3f}")
                 elif sim_score is not None:
-                    # Semantic only
                     click.echo(f"   Similarity: {sim_score:.3f}")
 
-                # Show description/snippet if available
                 if result.get('description'):
-                    desc = result['description'].strip()
-                    click.echo(f"   {click.style(desc, dim=True)}")
+                    click.echo(f"   {click.style(result['description'].strip(), dim=True)}")
 
                 if result.get('tags'):
-                    # Convert all tags to strings in case some are integers
                     tags_str = ', '.join(str(tag) for tag in result['tags'])
                     click.echo(f"   Tags: {tags_str}")
                 click.echo()
@@ -412,18 +260,14 @@ def search(query, limit, min_score, include_types, exclude_types, hybrid, rerank
 @click.argument('topic')
 @click.option('--limit', '-n', default=20, type=int, help='Number of results (default: 20)')
 @click.option('--json', 'output_json', is_flag=True, help='Output as JSON')
-@click.option('--vault', default=None, type=click.Path(exists=True),
-              help='Vault path (default: from config)')
+@click.option('--vault', default=None, type=click.Path(exists=True), help='Vault path (default: from config)')
 def archaeology(topic, limit, output_json, vault):
-    """Analyze temporal patterns of interest in a topic.
-
-    Shows when you were interested in a topic over time.
+    """Show when you were interested in a topic over time.
 
     \b
     Examples:
       temoa archaeology "machine learning"
       temoa archaeology "tailscale" --json
-      temoa archaeology "topic" --vault ~/vaults/other
     """
     from .config import Config
     from .synthesis import SynthesisClient
@@ -431,12 +275,9 @@ def archaeology(topic, limit, output_json, vault):
 
     config = Config()
 
-    # Determine vault and storage based on --vault flag
     if vault:
         vault_path = Path(vault)
-        storage_dir = derive_storage_dir(
-            vault_path, config.vault_path, config.storage_dir
-        )
+        storage_dir = derive_storage_dir(vault_path, config.vault_path, config.storage_dir)
     else:
         vault_path = config.vault_path
         storage_dir = config.storage_dir
@@ -462,7 +303,7 @@ def archaeology(topic, limit, output_json, vault):
                 if 'periods' in analysis:
                     click.echo(f"\nActive periods:")
                     for period in analysis['periods']:
-                        click.echo(f"  • {period}")
+                        click.echo(f"  * {period}")
 
                 click.echo(f"\nTop results:")
                 for i, result in enumerate(analysis['results'][:10], 1):
@@ -480,25 +321,18 @@ def archaeology(topic, limit, output_json, vault):
 
 @main.command()
 @click.option('--json', 'output_json', is_flag=True, help='Output as JSON')
-@click.option('--vault', default=None, type=click.Path(exists=True),
-              help='Vault path (default: from config)')
+@click.option('--vault', default=None, type=click.Path(exists=True), help='Vault path (default: from config)')
 def stats(output_json, vault):
-    """Show vault statistics.
-
-    Displays information about indexed files, embeddings, and models.
-    """
+    """Show index statistics."""
     from .config import Config
     from .synthesis import SynthesisClient
     from .storage import derive_storage_dir
 
     config = Config()
 
-    # Determine vault and storage based on --vault flag
     if vault:
         vault_path = Path(vault)
-        storage_dir = derive_storage_dir(
-            vault_path, config.vault_path, config.storage_dir
-        )
+        storage_dir = derive_storage_dir(vault_path, config.vault_path, config.storage_dir)
     else:
         vault_path = config.vault_path
         storage_dir = config.storage_dir
@@ -520,18 +354,17 @@ def stats(output_json, vault):
             click.echo(f"Vault path: {click.style(str(vault_path), fg='cyan')}")
             click.echo(f"Storage: {click.style(str(storage_dir), fg='cyan')}")
 
-            # Check if embeddings exist
             total_files = statistics.get('total_files', 0)
-            total_embeddings = statistics.get('num_embeddings', 0)  # Synthesis uses 'num_embeddings'
+            total_embeddings = statistics.get('num_embeddings', 0)
             has_error = 'error' in statistics
 
             if has_error or total_files == 0:
-                click.echo(f"\n{click.style('⚠ No index found', fg='yellow', bold=True)}")
+                click.echo(f"\nNo index found")
                 click.echo("Run 'temoa index' to build the embedding index for your vault.")
             elif total_embeddings == 0 and total_files > 0:
-                click.echo(f"\n{click.style('⚠ Index incomplete', fg='yellow', bold=True)}")
-                click.echo(f"Files scanned: {click.style(str(total_files), fg='yellow')}")
-                click.echo(f"Embeddings generated: {click.style('0', fg='red')}")
+                click.echo(f"\nIndex incomplete")
+                click.echo(f"Files scanned: {total_files}")
+                click.echo(f"Embeddings generated: 0")
                 click.echo("\nRun 'temoa index' to generate embeddings for your vault.")
             else:
                 model_name = statistics.get('model_info', {}).get('model_name', 'Unknown')
@@ -539,7 +372,6 @@ def stats(output_json, vault):
                 click.echo(f"Files indexed: {click.style(str(total_files), fg='yellow')}")
                 click.echo(f"Embeddings: {click.style(str(total_embeddings), fg='green')}")
 
-                # Show additional stats if available
                 if 'avg_content_length' in statistics:
                     click.echo(f"Avg content length: {statistics['avg_content_length']:.0f} chars")
                 if 'total_tags' in statistics:
@@ -555,162 +387,34 @@ def stats(output_json, vault):
 
 
 @main.command()
-@click.option('--vault', default=None, type=click.Path(exists=True),
-              help='Vault path (default: from config)')
-@click.option('--full', is_flag=True, help='Process all files (ignore state tracking)')
-@click.option('--dry-run', is_flag=True, help='Show what would be extracted without writing files')
-@click.option('--log-format', is_flag=True, help='Output a single timestamped markdown line (for cron logs)')
-def extract(vault, full, dry_run, log_format):
-    """Extract gleanings from daily notes.
-
-    Parses daily notes looking for ## Gleanings sections and extracts
-    individual gleaning entries to separate markdown files in L/Gleanings/.
-
-    Uses incremental extraction by default (only processes new files).
-    Use --full to re-process all files.
-    """
-    from .config import Config
-    import subprocess
-
-    config = Config()
-    vault_path = Path(vault) if vault else config.vault_path
-
-    # Build command for extraction script (now in src/temoa/scripts/)
-    script = Path(__file__).parent / "scripts" / "extract_gleanings.py"
-
-    cmd = [
-        sys.executable,
-        str(script),
-        "--vault-path", str(vault_path)
-    ]
-
-    if full:
-        cmd.append("--full")
-    if dry_run:
-        cmd.append("--dry-run")
-    if log_format:
-        cmd.append("--log-format")
-
-    if not log_format:
-        click.echo(f"Extracting gleanings from: {vault_path}")
-        if dry_run:
-            click.echo(click.style("DRY RUN - No files will be written", fg='yellow'))
-        click.echo()
-
-    try:
-        result = subprocess.run(cmd, check=True)
-        sys.exit(result.returncode)
-    except subprocess.CalledProcessError as e:
-        click.echo(f"Extraction failed: {e}", err=True)
-        sys.exit(1)
-    except FileNotFoundError:
-        click.echo(f"Error: Extraction script not found at {script}", err=True)
-        click.echo("Make sure you're running from the temoa project directory.", err=True)
-        sys.exit(1)
-
-
-@main.command()
-@click.option('--vault', default=None, type=click.Path(exists=True),
-              help='Vault path (default: from config)')
-@click.option('--json-file', required=True, type=click.Path(exists=True),
-              help='Path to old gleanings JSON file')
-@click.option('--dry-run', is_flag=True, help='Show what would be migrated without writing files')
-def migrate(vault, json_file, dry_run):
-    """Migrate gleanings from old-gleanings JSON format.
-
-    Converts gleanings from the old JSON format to individual markdown files
-    in L/Gleanings/, preserving all metadata (categories, tags, timestamps).
-    """
-    from .config import Config
-    import subprocess
-
-    config = Config()
-    vault_path = Path(vault) if vault else config.vault_path
-
-    # Build command for migration script
-    script = Path(__file__).parent.parent.parent / "scripts" / "migrate_old_gleanings.py"
-
-    cmd = [
-        sys.executable,
-        str(script),
-        "--vault-path", str(vault_path),
-        "--old-gleanings", json_file
-    ]
-
-    if dry_run:
-        cmd.append("--dry-run")
-
-    click.echo(f"Migrating gleanings to: {vault_path}")
-    if dry_run:
-        click.echo(click.style("DRY RUN - No files will be written", fg='yellow'))
-    click.echo()
-
-    try:
-        result = subprocess.run(cmd, check=True)
-        sys.exit(result.returncode)
-    except subprocess.CalledProcessError as e:
-        click.echo(f"Migration failed: {e}", err=True)
-        sys.exit(1)
-    except FileNotFoundError:
-        click.echo(f"Error: Migration script not found at {script}", err=True)
-        click.echo("Make sure you're running from the temoa project directory.", err=True)
-        sys.exit(1)
-
-
-@main.command()
-@click.option('--vault', default=None, type=click.Path(exists=True),
-              help='Vault path (default: from config)')
-@click.option('--force', is_flag=True,
-              help='Force overwrite if storage mismatch (DANGER)')
-@click.option('--model', '-m', default=None,
-              help='Embedding model to use (default: from config)')
-@click.option('--enable-chunking', is_flag=True,
-              help='Enable adaptive chunking for large files')
-@click.option('--chunk-size', default=2000, type=int,
-              help='Target size for each chunk in characters (default: 2000)')
-@click.option('--chunk-overlap', default=400, type=int,
-              help='Number of overlapping characters between chunks (default: 400)')
-@click.option('--chunk-threshold', default=4000, type=int,
-              help='Minimum file size before chunking is applied (default: 4000)')
+@click.option('--vault', default=None, type=click.Path(exists=True), help='Vault path (default: from config)')
+@click.option('--force', is_flag=True, help='Force overwrite if storage mismatch (DANGER)')
+@click.option('--model', '-m', default=None, help='Embedding model to use (default: from config)')
+@click.option('--enable-chunking', is_flag=True, help='Enable adaptive chunking for large files')
+@click.option('--chunk-size', default=2000, type=int, help='Target chunk size in characters (default: 2000)')
+@click.option('--chunk-overlap', default=400, type=int, help='Overlapping characters between chunks (default: 400)')
+@click.option('--chunk-threshold', default=4000, type=int, help='Minimum file size before chunking (default: 4000)')
 def index(vault, force, model, enable_chunking, chunk_size, chunk_overlap, chunk_threshold):
-    """Build the embedding index from scratch.
-
-    This processes all files in the vault and creates embeddings.
-    Run this once when you first set up Temoa, or after major vault changes.
-
-    For incremental updates, use 'temoa reindex' instead.
-
-    Chunking: Use --enable-chunking to split large files into searchable chunks.
-    This is essential for large documents (>4000 chars) to ensure full coverage.
-    """
+    """Build the full embedding index (first-time setup)."""
     from .config import Config
     from .synthesis import SynthesisClient
     from .storage import derive_storage_dir, validate_storage_safe
 
     config = Config()
 
-    # Determine vault and storage based on --vault flag
     if vault:
         vault_path = Path(vault)
-        storage_dir = derive_storage_dir(
-            vault_path, config.vault_path, config.storage_dir
-        )
+        storage_dir = derive_storage_dir(vault_path, config.vault_path, config.storage_dir)
     else:
         vault_path = config.vault_path
         storage_dir = config.storage_dir
 
-    # Determine which model to use (priority: CLI flag > vault config > default)
     if model:
         embedding_model = model
     else:
-        # Try to get vault-specific model from config
         vault_config = config.find_vault(str(vault_path))
-        if vault_config and 'model' in vault_config:
-            embedding_model = vault_config['model']
-        else:
-            embedding_model = config.default_model
+        embedding_model = vault_config.get('model') if vault_config and 'model' in vault_config else config.default_model
 
-    # Validate storage is safe before proceeding
     validate_storage_safe(storage_dir, vault_path, "index", force, model=embedding_model)
 
     click.echo(f"Building index for: {vault_path}")
@@ -741,24 +445,12 @@ def index(vault, force, model, enable_chunking, chunk_size, chunk_overlap, chunk
             )
             bar.update(100)
 
-        click.echo(f"\n{click.style('✓', fg='green')} Index built successfully")
+        click.echo(f"\nIndex built successfully")
         click.echo(f"Files indexed: {result.get('files_indexed', 'Unknown')}")
         if enable_chunking and result.get('total_chunks'):
             click.echo(f"Total files: {result.get('total_files', 'Unknown')}")
             click.echo(f"Total chunks: {result.get('total_chunks', 'Unknown')}")
         click.echo(f"Model: {result.get('model', 'Unknown')}")
-
-        # Rebuild vault graph
-        click.echo("\nRebuilding vault graph...")
-        try:
-            from .vault_graph import VaultGraph
-            graph = VaultGraph(vault_path, storage_dir)
-            if graph.rebuild_and_cache():
-                click.echo(f"{click.style('✓', fg='green')} Graph rebuilt: {graph._graph.number_of_nodes()} nodes, {graph._graph.number_of_edges()} edges")
-            else:
-                click.echo(click.style("Graph rebuild failed (obsidiantools may not be installed)", fg='yellow'))
-        except Exception as e:
-            click.echo(click.style(f"Graph rebuild failed: {e}", fg='yellow'))
 
     except Exception as e:
         click.echo(f"\nError: {e}", err=True)
@@ -766,64 +458,35 @@ def index(vault, force, model, enable_chunking, chunk_size, chunk_overlap, chunk
 
 
 @main.command()
-@click.option('--vault', default=None, type=click.Path(exists=True),
-              help='Vault path (default: from config)')
-@click.option('--force', is_flag=True,
-              help='Force overwrite if storage mismatch (DANGER)')
-@click.option('--model', '-m', default=None,
-              help='Embedding model to use (default: from config)')
-@click.option('--enable-chunking', is_flag=True,
-              help='Enable adaptive chunking for large files')
-@click.option('--chunk-size', default=2000, type=int,
-              help='Target size for each chunk in characters (default: 2000)')
-@click.option('--chunk-overlap', default=400, type=int,
-              help='Number of overlapping characters between chunks (default: 400)')
-@click.option('--chunk-threshold', default=4000, type=int,
-              help='Minimum file size before chunking is applied (default: 4000)')
+@click.option('--vault', default=None, type=click.Path(exists=True), help='Vault path (default: from config)')
+@click.option('--force', is_flag=True, help='Force overwrite if storage mismatch (DANGER)')
+@click.option('--model', '-m', default=None, help='Embedding model to use (default: from config)')
+@click.option('--enable-chunking', is_flag=True, help='Enable adaptive chunking for large files')
+@click.option('--chunk-size', default=2000, type=int, help='Target chunk size in characters (default: 2000)')
+@click.option('--chunk-overlap', default=400, type=int, help='Overlapping characters between chunks (default: 400)')
+@click.option('--chunk-threshold', default=4000, type=int, help='Minimum file size before chunking (default: 4000)')
 @click.option('--log-format', is_flag=True, help='Output a single timestamped markdown line (for cron logs)')
 def reindex(vault, force, model, enable_chunking, chunk_size, chunk_overlap, chunk_threshold, log_format):
-    """Re-index the vault incrementally (only new/modified files).
-
-    Detects changes since last index and only processes:
-    - New files
-    - Modified files (based on modification time)
-    - Deleted files (removes from index)
-
-    Much faster than full rebuild for daily use (~6 seconds vs ~154 seconds).
-    Falls back to full rebuild if no previous index exists.
-
-    For first-time setup or full rebuild, use 'temoa index' instead.
-
-    Chunking: Use --enable-chunking to split large files into searchable chunks.
-    """
+    """Update the index incrementally (new and modified files only)."""
     from .config import Config
     from .synthesis import SynthesisClient
     from .storage import derive_storage_dir, validate_storage_safe
 
     config = Config()
 
-    # Determine vault and storage based on --vault flag
     if vault:
         vault_path = Path(vault)
-        storage_dir = derive_storage_dir(
-            vault_path, config.vault_path, config.storage_dir
-        )
+        storage_dir = derive_storage_dir(vault_path, config.vault_path, config.storage_dir)
     else:
         vault_path = config.vault_path
         storage_dir = config.storage_dir
 
-    # Determine which model to use (priority: CLI flag > vault config > default)
     if model:
         embedding_model = model
     else:
-        # Try to get vault-specific model from config
         vault_config = config.find_vault(str(vault_path))
-        if vault_config and 'model' in vault_config:
-            embedding_model = vault_config['model']
-        else:
-            embedding_model = config.default_model
+        embedding_model = vault_config.get('model') if vault_config and 'model' in vault_config else config.default_model
 
-    # Validate storage is safe before proceeding
     validate_storage_safe(storage_dir, vault_path, "reindex", force, model=embedding_model)
 
     if not log_format:
@@ -866,26 +529,6 @@ def reindex(vault, force, model, enable_chunking, chunk_size, chunk_overlap, chu
         new_f = result.get('files_new', 0)
         mod_f = result.get('files_modified', 0)
         del_f = result.get('files_deleted', 0)
-        # Only rebuild graph when new/modified files exist and not in log-format mode.
-        # In log-format (cron), skip graph rebuild entirely — it's ~80s and the graph
-        # is used only for the similar-notes UI, not search. Server lazy-loads from cache.
-        files_changed = new_f + mod_f > 0
-
-        graph_summary = ""
-        if not log_format and files_changed:
-            try:
-                from .vault_graph import VaultGraph
-                graph = VaultGraph(vault_path, storage_dir)
-                if graph.rebuild_and_cache():
-                    graph_summary = f"{graph._graph.number_of_nodes()} nodes, {graph._graph.number_of_edges()} edges"
-                else:
-                    graph_summary = "graph rebuild failed"
-            except Exception as e:
-                graph_summary = f"graph error: {e}"
-        elif log_format:
-            graph_summary = "graph skipped"
-        else:
-            graph_summary = "no changes, graph skipped"
 
         if log_format:
             import datetime
@@ -894,19 +537,15 @@ def reindex(vault, force, model, enable_chunking, chunk_size, chunk_overlap, chu
                 file_stats = f"+{new_f} new, ~{mod_f} modified, -{del_f} deleted"
             else:
                 file_stats = f"{result.get('files_indexed', '?')} indexed"
-            click.echo(f"## {ts} | reindex\n{file_stats} | {graph_summary}")
+            click.echo(f"## {ts} | reindex\n{file_stats}")
         else:
-            click.echo(f"\n{click.style('✓', fg='green')} Re-indexing complete")
+            click.echo(f"\nRe-indexing complete")
             if 'files_new' in result:
                 click.echo(f"New files: {new_f}")
                 click.echo(f"Modified files: {mod_f}")
                 click.echo(f"Deleted files: {del_f}")
             else:
                 click.echo(f"Files indexed: {result.get('files_indexed', 'Unknown')}")
-            if files_changed:
-                click.echo(f"\n{click.style('✓', fg='green')} Graph rebuilt: {graph_summary}")
-            else:
-                click.echo("\nNo changes — graph rebuild skipped")
 
     except Exception as e:
         if log_format:
@@ -918,297 +557,9 @@ def reindex(vault, force, model, enable_chunking, chunk_size, chunk_overlap, chu
         sys.exit(1)
 
 
-@main.command(name='build-graph')
-@click.option('--vault', default=None, help='Vault name from config (default: first vault)')
-@click.option('--log-format', is_flag=True, help='Output a single timestamped markdown line (for cron logs)')
-def build_graph(vault, log_format):
-    """Rebuild the vault wikilink graph cache.
-
-    \b
-    The graph is used for similar-notes and graph exploration features.
-    It is not required for search. Run once or twice a day via cron.
-
-    \b
-    Examples:
-      temoa build-graph
-      temoa build-graph --log-format >> ~/Obsidian/amoxtli/log/temoa-log.md
-    """
-    from .config import Config
-    from .vault_graph import VaultGraph
-
-    try:
-        cfg = Config()
-        vault_path = cfg.vault_path if vault is None else cfg.find_vault(vault)['path']
-        vault_path = Path(vault_path).expanduser()
-        storage_dir = vault_path / '.temoa'
-
-        if not log_format:
-            click.echo(f"Rebuilding vault graph: {vault_path}")
-
-        graph = VaultGraph(vault_path, storage_dir)
-        if graph.rebuild_and_cache():
-            nodes = graph._graph.number_of_nodes()
-            edges = graph._graph.number_of_edges()
-            if log_format:
-                import datetime
-                ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-                click.echo(f"## {ts} | build-graph\n{nodes} nodes, {edges} edges")
-            else:
-                click.echo(f"\n{click.style('✓', fg='green')} Graph rebuilt: {nodes} nodes, {edges} edges")
-        else:
-            if log_format:
-                import datetime
-                ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-                click.echo(f"## {ts} | build-graph | ERROR: rebuild returned false")
-            else:
-                click.echo("Graph rebuild failed", err=True)
-            sys.exit(1)
-
-    except Exception as e:
-        if log_format:
-            import datetime
-            ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-            click.echo(f"## {ts} | build-graph | ERROR: {e}")
-        else:
-            click.echo(f"\nError: {e}", err=True)
-        sys.exit(1)
-
-
-@main.group()
-def gleaning():
-    """Manage gleaning status (mark as active/inactive).
-
-    \b
-    Examples:
-      temoa gleaning mark abc123def456 --status inactive --reason "broken link"
-      temoa gleaning list --status inactive
-      temoa gleaning show abc123def456
-    """
-    pass
-
-
-@gleaning.command(name="mark")
-@click.argument('gleaning_id')
-@click.option('--status', type=click.Choice(['active', 'inactive', 'hidden']), required=True,
-              help='Status to set for the gleaning')
-@click.option('--reason', default=None, help='Optional reason for status change')
-def gleaning_mark(gleaning_id, status, reason):
-    """Mark a gleaning as active, inactive, or hidden.
-
-    \b
-    Status meanings:
-      active   - Normal gleaning, included in search results
-      inactive - Dead link, excluded from search, auto-restores if link comes back
-      hidden   - Manually hidden, never checked by maintenance tool
-
-    \b
-    Examples:
-      temoa gleaning mark abc123def456 --status inactive --reason "broken link"
-      temoa gleaning mark abc123def456 --status hidden --reason "duplicate"
-      temoa gleaning mark abc123def456 --status active
-    """
-    from .config import Config
-    from .gleanings import GleaningStatusManager
-
-    try:
-        cfg = Config()
-        manager = GleaningStatusManager(cfg.vault_path / ".temoa")
-
-        record = manager.mark_status(gleaning_id, status, reason)
-
-        click.echo(f"\n{click.style('✓', fg='green')} Gleaning {gleaning_id} marked as {click.style(status, fg='yellow')}")
-        if reason:
-            click.echo(f"  Reason: {reason}")
-        click.echo(f"  Marked at: {record['marked_at']}")
-        click.echo()
-
-    except Exception as e:
-        click.echo(f"Error: {e}", err=True)
-        sys.exit(1)
-
-
-@gleaning.command(name="list")
-@click.option('--status', type=click.Choice(['active', 'inactive', 'hidden', 'all']), default='all',
-              help='Filter by status (default: all)')
-@click.option('--json-output', is_flag=True, help='Output as JSON')
-def gleaning_list(status, json_output):
-    """List all gleanings from vault.
-
-    \b
-    Examples:
-      temoa gleaning list
-      temoa gleaning list --status inactive
-      temoa gleaning list --status hidden
-      temoa gleaning list --status active --json-output
-    """
-    from .config import Config
-    from .gleanings import GleaningStatusManager, scan_gleaning_files
-
-    try:
-        cfg = Config()
-        manager = GleaningStatusManager(cfg.vault_path / ".temoa")
-
-        # Scan gleaning files
-        status_filter = None if status == 'all' else status
-        gleanings = scan_gleaning_files(
-            vault_path=cfg.vault_path,
-            status_manager=manager,
-            status_filter=status_filter
-        )
-
-        if json_output:
-            click.echo(json.dumps(gleanings, indent=2))
-            return
-
-        if not gleanings:
-            click.echo(f"\nNo gleanings found{' with status: ' + status if status != 'all' else ''}")
-            click.echo()
-            return
-
-        click.echo(f"\nGleanings ({status}):\n")
-        for gleaning in gleanings:
-            gleaning_id = gleaning['gleaning_id']
-            title = gleaning.get('title', 'Untitled')
-            status_value = gleaning['status']
-            created = gleaning.get('created', 'Unknown')
-            url = gleaning.get('url', '')
-
-            click.echo(f"{click.style(gleaning_id, fg='cyan')} - {title}")
-            click.echo(f"  URL: {url}")
-            click.echo(f"  Status: {click.style(status_value, fg='yellow')}")
-            click.echo(f"  Created: {created}")
-
-            # If marked inactive or hidden, check status file for reason
-            if status_value in ('inactive', 'hidden'):
-                record = manager.get_gleaning_record(gleaning_id)
-                if record and 'reason' in record:
-                    click.echo(f"  Reason: {record['reason']}")
-
-            click.echo()
-
-        click.echo(f"Total: {len(gleanings)}")
-        click.echo()
-
-    except Exception as e:
-        click.echo(f"Error: {e}", err=True)
-        sys.exit(1)
-
-
-@gleaning.command(name="show")
-@click.argument('gleaning_id')
-@click.option('--json-output', is_flag=True, help='Output as JSON')
-def gleaning_show(gleaning_id, json_output):
-    """Show details for a specific gleaning.
-
-    \b
-    Example:
-      temoa gleaning show abc123def456
-      temoa gleaning show abc123def456 --json-output
-    """
-    from .config import Config
-    from .gleanings import GleaningStatusManager
-
-    try:
-        cfg = Config()
-        manager = GleaningStatusManager(cfg.vault_path / ".temoa")
-
-        record = manager.get_gleaning_record(gleaning_id)
-
-        if not record:
-            click.echo(f"\nGleaning {gleaning_id} not found (or has default status: active)")
-            click.echo()
-            return
-
-        if json_output:
-            click.echo(json.dumps(record, indent=2))
-            return
-
-        click.echo(f"\nGleaning: {click.style(gleaning_id, fg='cyan')}\n")
-        click.echo(f"Status: {click.style(record['status'], fg='yellow')}")
-        click.echo(f"Marked: {record.get('marked_at', 'Unknown')}")
-        if 'reason' in record:
-            click.echo(f"Reason: {record['reason']}")
-
-        if 'history' in record and len(record['history']) > 1:
-            click.echo("\nHistory:")
-            for i, entry in enumerate(record['history'], 1):
-                click.echo(f"  {i}. {entry['status']} at {entry['marked_at']}")
-                if 'reason' in entry and entry['reason']:
-                    click.echo(f"     Reason: {entry['reason']}")
-
-        click.echo()
-
-    except Exception as e:
-        click.echo(f"Error: {e}", err=True)
-        sys.exit(1)
-
-
-@gleaning.command(name="maintain")
-@click.option('--check-links/--no-check-links', default=True,
-              help='Check if URLs are alive (default: true)')
-@click.option('--add-descriptions/--no-add-descriptions', default=True,
-              help='Fetch meta descriptions for missing ones (default: true)')
-@click.option('--mark-dead-inactive/--no-mark-dead-inactive', default=True,
-              help='Mark dead links as inactive (default: true)')
-@click.option('--dry-run', is_flag=True, help='Preview changes without applying them')
-@click.option('--timeout', type=int, default=10, help='HTTP request timeout in seconds (default: 10)')
-@click.option('--rate-limit', type=float, default=1.0, help='Seconds between requests (default: 1.0)')
-def gleaning_maintain(check_links, add_descriptions, mark_dead_inactive, dry_run, timeout, rate_limit):
-    """Maintain gleanings (check links, add descriptions).
-
-    This command:
-    - Checks if gleaning URLs are still alive
-    - Fetches meta descriptions from live URLs if missing
-    - Marks dead links as inactive
-    - Updates frontmatter with new data
-
-    \b
-    Examples:
-      temoa gleaning maintain --dry-run
-      temoa gleaning maintain
-      temoa gleaning maintain --no-mark-dead-inactive
-      temoa gleaning maintain --rate-limit 2.0
-    """
-    from .config import Config
-
-    # Import the maintainer from scripts
-    try:
-        from .scripts.maintain_gleanings import GleaningMaintainer
-    except ImportError as e:
-        click.echo(f"Error importing maintenance tool: {e}", err=True)
-        sys.exit(1)
-
-    try:
-        cfg = Config()
-
-        maintainer = GleaningMaintainer(
-            vault_path=cfg.vault_path,
-            timeout=timeout
-        )
-
-        maintainer.maintain_all(
-            check_links=check_links,
-            add_descriptions=add_descriptions,
-            mark_dead_inactive=mark_dead_inactive,
-            dry_run=dry_run,
-            rate_limit=rate_limit
-        )
-
-    except KeyboardInterrupt:
-        click.echo("\n\nInterrupted by user")
-        sys.exit(1)
-    except Exception as e:
-        click.echo(f"Error: {e}", err=True)
-        sys.exit(1)
-
-
 @main.command()
 def config():
-    """Show current configuration.
-
-    Displays the configuration being used by Temoa, including paths,
-    server settings, and model information.
-    """
+    """Show current configuration."""
     from .config import Config
 
     try:
@@ -1235,6 +586,32 @@ def config():
 
     except Exception as e:
         click.echo(f"Error loading config: {e}", err=True)
+        sys.exit(1)
+
+
+@main.command()
+def vaults():
+    """List configured vaults and their models."""
+    from .config import Config
+
+    try:
+        cfg = Config()
+        vault_list = cfg.vaults
+
+        if not vault_list:
+            click.echo("No vaults configured.")
+            return
+
+        click.echo("\nConfigured vaults:\n")
+        for v in vault_list:
+            name = v.get('name', 'unnamed')
+            path = v.get('path', 'unknown')
+            model = v.get('model', cfg.default_model)
+            click.echo(f"  {click.style(name, fg='green')}: {path} (model: {model})")
+        click.echo()
+
+    except Exception as e:
+        click.echo(f"Error: {e}", err=True)
         sys.exit(1)
 
 

@@ -2166,4 +2166,4 @@ The key insight: **Treat Synthesis as a library, not a service.** This single de
 **Related Docs**:
 - [CLAUDE.md](../CLAUDE.md) - Development guide
 - [IMPLEMENTATION.md](IMPLEMENTATION.md) - Project plan
-- [CHRONICLES.md](CHRONICLES.md) - Design discussions
+- [chronicles/](chronicles/) - Design discussions

@@ -1,27 +1,27 @@
 ---
 phase: "Experimentation"
 phase_name: "Knobs & Dials"
-updated: 2026-04-18
-last_commit: 215ff4f
-branch: main
+updated: 2026-05-30
+last_commit: a826237
+branch: claude/docs-codebase-review-5YeTG
 ---
 
 # Current Context
 
 ## Current Focus
 
-Cron-friendly log format complete. Graph rebuild decoupled from reindex via new `temoa build-graph` command.
+Temoa is a clean pure search API. Type filtering restored after discovering
+tlatecpana skills depend on `--type gleaning` / `--exclude-type daily`.
 
 ## Active Tasks
 
-- [x] 181 remaining empty gleaning descriptions — done via Obsidian vault skill
-- [x] `--log-format` flag for extract and reindex commands
-- [x] `temoa build-graph` command (separate ~80s graph rebuild, supports `--log-format`)
-- [ ] Add `build-graph` to crontab (user to do manually, suggested: `0 8,20 * * *`)
-- [ ] Document baseline search performance (latency, relevance)
-- [ ] Define test query suite with expected results
-- [ ] Phase 1: implement qmd pipeline improvements (see `docs/plans/qmd-pipeline-improvements.md`)
-- [ ] Phase 2: dashboard zeitgeist surface (see `docs/plans/dashboard-zeitgeist-surface.md`)
+- [x] Strip gleanings/graph/UI from server.py (2671 → 430 lines)
+- [x] Create composable pipeline abstraction (pipeline.py + server_filters.py)
+- [x] Strip CLI to 8 commands; search uses default_pipeline()
+- [x] Clean up CLI help text
+- [x] Restore type filtering (--type / --exclude-type, filter_by_type in pipeline)
+- [x] Extract gleaning code to pixquitl repo
+- [ ] Merge branch to main
 
 ## Blockers
 
@@ -29,12 +29,13 @@ None
 
 ## Context
 
-- `--log-format` output: heading line `## YYYY-MM-DD HH:MM | command`, stats on next line — appended to `~/Obsidian/amoxtli/log/temoa-log.md`
-- `reindex --log-format` never rebuilds the graph; graph is only for similar-notes UI, not search
-- `build-graph` runs obsidiantools (~78s for 7897 nodes); deletions alone don't trigger graph rebuild
-- `show_progress` threaded through synthesis.py → vault_reader.py; tqdm suppressed via `disable=not show_progress`
-- **Synthesis is modifiable** — DEC-012 "do NOT modify" was Phase 1-2 only; CLAUDE.md corrected
+- Branch has 8 commits ahead of main; all work on `claude/docs-codebase-review-5YeTG`
+- `--type` / `--exclude-type` use `normalize_type()` from `nahuatl_frontmatter`
+- tlatecpana `temoa-search` skill uses CLI directly — no skill changes needed
+- pixquitl extracted at `~/projects/nahuatl-PROJECTS/pixquitl` (gleaning lifecycle)
+- 147 tests passing
 
 ## Next Session
 
-Start Phase 1 pipeline work: read `synthesis/` chunking internals, implement position-aware score blending in `reranker.py` (self-contained, testable first), then tackle heading-aware chunking.
+Merge branch to main, then update cahuitl cron to use `pixquitl extract`
+instead of `temoa extract`.
