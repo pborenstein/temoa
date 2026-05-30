@@ -340,6 +340,9 @@ The production hardening is complete. Now we experiment with different combinati
 - [ ] Document baseline performance (latency, relevance)
 - [ ] Define test query suite with expected results
 - [ ] Config-driven pipeline profiles (`search.profiles` in config.json, `profile` query param)
+- [ ] Query logging: `--log-queries` flag or wrapper that appends `{timestamp, query, top 5 results}` to a log file for evaluation (noted 2026-05-17: no way to tell if results are actually good)
+- [ ] Known-miss list: cases where temoa returned nothing but the answer was in the vault — collect as regression set
+- [ ] Score baseline: calibrate what a "good" cross-encoder score looks like with known-good queries
 
 - [x] Restore type filtering: `filter_by_type()` in server_filters.py, `QueryFilterStage`,
   `/search` params `include_types`/`exclude_types`, CLI `--type`/`--exclude-type`
