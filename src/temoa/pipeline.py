@@ -10,15 +10,6 @@ registry, no class hierarchy — per the project's "avoid over-engineering"
 principle (see ``CLAUDE.md``). Stages are plain objects implementing a one-method
 ``Protocol``.
 
-Status / migration note
-------------------------
-This abstraction is introduced *alongside* the existing inline pipeline in
-``server.search()``. It is not yet wired into the live endpoint. Rewiring
-``server.search()`` to build and run a ``Pipeline`` is a follow-up (strangler-fig)
-step that must be verified against the live server tests, which require a
-configured vault + index + the cross-encoder model. The pure stages and helpers
-here are unit-tested in ``tests/test_pipeline.py`` without those dependencies.
-
 Score envelope
 --------------
 Scores are currently scattered across inconsistent top-level fields
@@ -159,16 +150,12 @@ class Pipeline:
 
 
 # --------------------------------------------------------------------------- #
-# Pure post-retrieval stages (no external services required)
-#
-# These mirror the corresponding inline stages in server.search() and are the
-# extraction targets for the strangler-fig migration.
+# Post-retrieval stages
 # --------------------------------------------------------------------------- #
 
 class ScoreFilterStage:
-    """Mirror of server.search() Stage 3.
+    """Drops results below the similarity threshold — but only in semantic mode.
 
-    Drops results below the similarity threshold — but only in semantic mode.
     In hybrid mode RRF has already ranked results (and BM25-only results may
     lack a similarity score), so filtering is skipped.
     """
@@ -189,9 +176,8 @@ class ScoreFilterStage:
 
 
 class StatusFilterStage:
-    """Mirror of server.search() Stage 4 (filter_inactive_gleanings).
+    """Removes results whose frontmatter ``status`` is ``inactive`` or ``hidden``.
 
-    Removes results whose frontmatter ``status`` is ``inactive`` or ``hidden``.
     Fails open: results without frontmatter are kept.
     """
 
@@ -213,12 +199,10 @@ class StatusFilterStage:
 
 
 class QueryFilterStage:
-    """Mirror of server.search() Stage 5.
+    """Applies frontmatter property, tag, path, and file filters.
 
-    Applies frontmatter property, tag, path, and file filters using the
-    existing ``filter_by_*`` helpers from ``server.py``. Filter specs are read
-    from ``ctx.params`` at run time so the same stage object is reusable across
-    requests with different filter combinations.
+    Filter specs are read from ``ctx.params`` at run time so the same stage
+    object is reusable across requests with different filter combinations.
     """
 
     name = "query_filter"
@@ -280,13 +264,11 @@ class QueryFilterStage:
 
 
 class RerankStage:
-    """Mirror of server.search() Stage 6.
+    """Runs the cross-encoder reranker held in ``ctx.services["reranker"]``.
 
-    Runs the cross-encoder reranker held in ``ctx.services["reranker"]``.
     Skipped when ``ctx.params["rerank"]`` is falsy or when there are no results.
-    After reranking the limit is already applied by the reranker (``top_k``), so
-    the terminal :class:`LimitStage` checks ``rerank`` and skips itself to avoid
-    double-truncation.
+    The reranker applies ``top_k`` itself, so :class:`LimitStage` skips when
+    rerank is on to avoid double-truncation.
     """
 
     name = "rerank"
@@ -308,9 +290,8 @@ class RerankStage:
 
 
 class TimeBoostStage:
-    """Mirror of server.search() Stage 7.
+    """Applies time-decay scoring held in ``ctx.services["time_scorer"]``.
 
-    Applies time-decay scoring held in ``ctx.services["time_scorer"]``.
     Skipped when ``ctx.params["time_boost"]`` is falsy or results are empty.
     """
 
