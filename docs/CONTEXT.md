@@ -2,7 +2,7 @@
 phase: "Experimentation"
 phase_name: "Knobs & Dials"
 updated: 2026-05-30
-last_commit: 1ef34ca
+last_commit: a826237
 branch: claude/docs-codebase-review-5YeTG
 ---
 
@@ -10,18 +10,18 @@ branch: claude/docs-codebase-review-5YeTG
 
 ## Current Focus
 
-Temoa has been rebuilt as a pure search engine. Gleaning extraction, graph,
-and UI are gone. The server is a clean JSON API; the CLI has 8 commands.
+Temoa is a clean pure search API. Type filtering restored after discovering
+tlatecpana skills depend on `--type gleaning` / `--exclude-type daily`.
 
 ## Active Tasks
 
 - [x] Strip gleanings/graph/UI from server.py (2671 → 430 lines)
 - [x] Create composable pipeline abstraction (pipeline.py + server_filters.py)
-- [x] Wire server.search() through default_pipeline()
-- [x] Delete gleanings.py, normalizers.py, github_client.py, vault_graph.py, scripts/
 - [x] Strip CLI to 8 commands; search uses default_pipeline()
-- [x] Clean up CLI help text and command descriptions
-- [ ] Merge branch to main / open PR
+- [x] Clean up CLI help text
+- [x] Restore type filtering (--type / --exclude-type, filter_by_type in pipeline)
+- [x] Extract gleaning code to pixquitl repo
+- [ ] Merge branch to main
 
 ## Blockers
 
@@ -29,15 +29,13 @@ None
 
 ## Context
 
-- Branch `claude/docs-codebase-review-5YeTG` has 6 commits ahead of main
-- Server is pure JSON API — no UI served, no gleaning routes, no graph routes
-- Pipeline abstraction: SearchContext → Stage protocol → Pipeline runner → default_pipeline()
-- Score envelope: set_score/score_view alongside legacy flat fields (strangler-safe)
-- CLI commands: server, search, archaeology, stats, index, reindex, config, vaults
-- 147 tests passing (was 216; 69 gleaning/normalizer tests removed with the code)
+- Branch has 8 commits ahead of main; all work on `claude/docs-codebase-review-5YeTG`
+- `--type` / `--exclude-type` use `normalize_type()` from `nahuatl_frontmatter`
+- tlatecpana `temoa-search` skill uses CLI directly — no skill changes needed
+- pixquitl extracted at `~/projects/nahuatl-PROJECTS/pixquitl` (gleaning lifecycle)
+- 147 tests passing
 
 ## Next Session
 
-Decide whether to merge the branch, then start new work: config-driven pipeline
-profiles (`search.profiles` in config.json, `profile` query param) or baseline
-search performance documentation.
+Merge branch to main, then update cahuitl cron to use `pixquitl extract`
+instead of `temoa extract`.

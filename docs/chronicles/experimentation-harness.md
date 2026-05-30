@@ -1182,3 +1182,23 @@ Transformed 342 GitHub gleanings to clean, consistent format with short titles a
 **Commits**: `d6dbe3a` through `1ef34ca` on branch `claude/docs-codebase-review-5YeTG`
 
 ---
+
+## Entry 97: Restore Type Filtering (2026-05-30)
+
+**What**: Restored `--type` / `--exclude-type` to the CLI and `include_types`/`exclude_types`
+to the `/search` API after discovering they were load-bearing for the tlatecpana `temoa-search`
+skill (`--type gleaning`, `--exclude-type daily`).
+
+**Why**: The gleaning-related CLI commands were removed during the temoa rebuild, and type
+filtering was accidentally dropped along with them. Type is a general frontmatter field,
+not gleaning-specific.
+
+**How**:
+- `filter_by_type()` added to `server_filters.py` using `normalize_type()` from `nahuatl_frontmatter`
+- `QueryFilterStage` wired to call it when `include_types`/`exclude_types` present
+- `/search` endpoint gains `include_types`/`exclude_types` query params
+- CLI `search` command gains `--type/-t` and `--exclude-type/-x` flags
+
+**Files**: `server_filters.py`, `pipeline.py`, `server.py`, `cli.py` — commit `a826237`
+
+---
