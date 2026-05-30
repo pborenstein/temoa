@@ -1,27 +1,27 @@
 ---
 phase: "Experimentation"
 phase_name: "Knobs & Dials"
-updated: 2026-04-18
-last_commit: 215ff4f
-branch: main
+updated: 2026-05-30
+last_commit: 1ef34ca
+branch: claude/docs-codebase-review-5YeTG
 ---
 
 # Current Context
 
 ## Current Focus
 
-Cron-friendly log format complete. Graph rebuild decoupled from reindex via new `temoa build-graph` command.
+Temoa has been rebuilt as a pure search engine. Gleaning extraction, graph,
+and UI are gone. The server is a clean JSON API; the CLI has 8 commands.
 
 ## Active Tasks
 
-- [x] 181 remaining empty gleaning descriptions — done via Obsidian vault skill
-- [x] `--log-format` flag for extract and reindex commands
-- [x] `temoa build-graph` command (separate ~80s graph rebuild, supports `--log-format`)
-- [ ] Add `build-graph` to crontab (user to do manually, suggested: `0 8,20 * * *`)
-- [ ] Document baseline search performance (latency, relevance)
-- [ ] Define test query suite with expected results
-- [ ] Phase 1: implement qmd pipeline improvements (see `docs/plans/qmd-pipeline-improvements.md`)
-- [ ] Phase 2: dashboard zeitgeist surface (see `docs/plans/dashboard-zeitgeist-surface.md`)
+- [x] Strip gleanings/graph/UI from server.py (2671 → 430 lines)
+- [x] Create composable pipeline abstraction (pipeline.py + server_filters.py)
+- [x] Wire server.search() through default_pipeline()
+- [x] Delete gleanings.py, normalizers.py, github_client.py, vault_graph.py, scripts/
+- [x] Strip CLI to 8 commands; search uses default_pipeline()
+- [x] Clean up CLI help text and command descriptions
+- [ ] Merge branch to main / open PR
 
 ## Blockers
 
@@ -29,12 +29,15 @@ None
 
 ## Context
 
-- `--log-format` output: heading line `## YYYY-MM-DD HH:MM | command`, stats on next line — appended to `~/Obsidian/amoxtli/log/temoa-log.md`
-- `reindex --log-format` never rebuilds the graph; graph is only for similar-notes UI, not search
-- `build-graph` runs obsidiantools (~78s for 7897 nodes); deletions alone don't trigger graph rebuild
-- `show_progress` threaded through synthesis.py → vault_reader.py; tqdm suppressed via `disable=not show_progress`
-- **Synthesis is modifiable** — DEC-012 "do NOT modify" was Phase 1-2 only; CLAUDE.md corrected
+- Branch `claude/docs-codebase-review-5YeTG` has 6 commits ahead of main
+- Server is pure JSON API — no UI served, no gleaning routes, no graph routes
+- Pipeline abstraction: SearchContext → Stage protocol → Pipeline runner → default_pipeline()
+- Score envelope: set_score/score_view alongside legacy flat fields (strangler-safe)
+- CLI commands: server, search, archaeology, stats, index, reindex, config, vaults
+- 147 tests passing (was 216; 69 gleaning/normalizer tests removed with the code)
 
 ## Next Session
 
-Start Phase 1 pipeline work: read `synthesis/` chunking internals, implement position-aware score blending in `reranker.py` (self-contained, testable first), then tackle heading-aware chunking.
+Decide whether to merge the branch, then start new work: config-driven pipeline
+profiles (`search.profiles` in config.json, `profile` query param) or baseline
+search performance documentation.

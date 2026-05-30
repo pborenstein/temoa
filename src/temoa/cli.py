@@ -19,14 +19,17 @@ logging.getLogger("nahuatl_frontmatter").setLevel(logging.ERROR)
 @click.group()
 @click.version_option(version=__version__)
 def main():
-    """Temoa - Local semantic search server for Obsidian vault.
+    """Local semantic search server for Obsidian vaults.
 
     \b
-    Quick Start:
-      temoa index               # Build index (first time setup)
-      temoa server              # Start the FastAPI server
-      temoa search "query"      # Quick search from CLI
-      temoa stats               # Show vault statistics
+    Setup:
+      temoa index               # build embedding index (first run)
+      temoa server              # start the search API
+
+    \b
+    Daily use:
+      temoa search "query"      # search from the terminal
+      temoa reindex             # pick up new and changed files
     """
     pass
 
@@ -39,7 +42,7 @@ def main():
               type=click.Choice(['critical', 'error', 'warning', 'info', 'debug']),
               help='Logging level')
 def server(host, port, reload, log_level):
-    """Start the Temoa FastAPI server."""
+    """Start the search API server."""
     import socket
     from .config import Config
 
@@ -103,7 +106,7 @@ def server(host, port, reload, log_level):
 @click.option('--json', 'output_json', is_flag=True, help='Output as JSON')
 @click.option('--vault', default=None, type=click.Path(exists=True), help='Vault path (default: from config)')
 def search(query, limit, min_score, hybrid, rerank, expand_query, time_boost, bm25_only, output_json, vault):
-    """Search the vault for similar content.
+    """Search the vault by meaning.
 
     \b
     Examples:
@@ -251,7 +254,7 @@ def search(query, limit, min_score, hybrid, rerank, expand_query, time_boost, bm
 @click.option('--json', 'output_json', is_flag=True, help='Output as JSON')
 @click.option('--vault', default=None, type=click.Path(exists=True), help='Vault path (default: from config)')
 def archaeology(topic, limit, output_json, vault):
-    """Analyze temporal patterns of interest in a topic.
+    """Show when you were interested in a topic over time.
 
     \b
     Examples:
@@ -312,7 +315,7 @@ def archaeology(topic, limit, output_json, vault):
 @click.option('--json', 'output_json', is_flag=True, help='Output as JSON')
 @click.option('--vault', default=None, type=click.Path(exists=True), help='Vault path (default: from config)')
 def stats(output_json, vault):
-    """Show vault statistics."""
+    """Show index statistics."""
     from .config import Config
     from .synthesis import SynthesisClient
     from .storage import derive_storage_dir
@@ -384,10 +387,7 @@ def stats(output_json, vault):
 @click.option('--chunk-overlap', default=400, type=int, help='Overlapping characters between chunks (default: 400)')
 @click.option('--chunk-threshold', default=4000, type=int, help='Minimum file size before chunking (default: 4000)')
 def index(vault, force, model, enable_chunking, chunk_size, chunk_overlap, chunk_threshold):
-    """Build the embedding index from scratch.
-
-    For incremental updates, use 'temoa reindex' instead.
-    """
+    """Build the full embedding index (first-time setup)."""
     from .config import Config
     from .synthesis import SynthesisClient
     from .storage import derive_storage_dir, validate_storage_safe
@@ -459,11 +459,7 @@ def index(vault, force, model, enable_chunking, chunk_size, chunk_overlap, chunk
 @click.option('--chunk-threshold', default=4000, type=int, help='Minimum file size before chunking (default: 4000)')
 @click.option('--log-format', is_flag=True, help='Output a single timestamped markdown line (for cron logs)')
 def reindex(vault, force, model, enable_chunking, chunk_size, chunk_overlap, chunk_threshold, log_format):
-    """Re-index the vault incrementally (only new/modified files).
-
-    Falls back to full rebuild if no previous index exists.
-    For first-time setup, use 'temoa index' instead.
-    """
+    """Update the index incrementally (new and modified files only)."""
     from .config import Config
     from .synthesis import SynthesisClient
     from .storage import derive_storage_dir, validate_storage_safe
@@ -587,7 +583,7 @@ def config():
 
 @main.command()
 def vaults():
-    """List configured vaults."""
+    """List configured vaults and their models."""
     from .config import Config
 
     try:

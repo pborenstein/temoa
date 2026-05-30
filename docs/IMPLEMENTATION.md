@@ -321,22 +321,30 @@ The production hardening is complete. Now we experiment with different combinati
   - [x] Inspector optimized to update only scores section
   - [x] Add "Clear All" button to search history dropdown
 
-**Cron / maintenance tooling** (2026-04, see CONTEXT.md):
-- [x] `--log-format` flag for `extract` and `reindex` (appends to vault log)
-- [x] `temoa build-graph` command — decouples the ~80s graph rebuild from reindex
-- [ ] Add `build-graph` to crontab (manual; suggested `0 8,20 * * *`)
+**Cron / maintenance tooling** (2026-04):
+- [x] `--log-format` flag for `reindex` (appends to vault log)
+- ~~`temoa build-graph` command~~ — removed with graph code (2026-05-30)
+- ~~`extract` / `gleaning` CLI commands~~ — removed; gleanings offloaded to separate tool
+
+**Temoa rebuild — pure search engine** (2026-05-30, see chronicles Entry 96):
+- [x] Strip gleaning extraction, graph, and web UI from server.py (2671 → 430 lines)
+- [x] Create composable pipeline abstraction: SearchContext, Stage protocol, Pipeline runner
+- [x] Extract post-retrieval stages into pipeline.py; server.search() calls default_pipeline()
+- [x] Create server_filters.py with filter_by_* helpers
+- [x] Delete gleanings.py, normalizers.py, github_client.py, text_cleaner.py, vault_graph.py
+- [x] Delete scripts/ directory (extract_gleanings, maintain_gleanings, etc.)
+- [x] Strip CLI to 8 commands; search uses default_pipeline()
+- [x] 147 tests passing
 
 **Experimentation**:
 - [ ] Document baseline performance (latency, relevance)
 - [ ] Define test query suite with expected results
-- [ ] Create A/B comparison framework
-- [ ] Experiment with parameter combinations
-- [ ] Document winning configurations
+- [ ] Config-driven pipeline profiles (`search.profiles` in config.json, `profile` query param)
 
-**Next planned work** (see `docs/plans/`):
-- [ ] qmd pipeline improvements — position-aware score blending, heading-aware chunking (`plans/qmd-pipeline-improvements.md`)
-- [ ] Dashboard zeitgeist surface — landing state with snapshot/cluster links (`plans/dashboard-zeitgeist-surface.md`)
-- [ ] Swappable search behaviors — modular pipeline + config-driven profiles (see `CONTEXT.md` / planning notes)
+**Next planned work**:
+- [ ] Merge branch `claude/docs-codebase-review-5YeTG` to main
+- [ ] qmd pipeline improvements — position-aware score blending, heading-aware chunking
+- [ ] Swappable search behaviors — config-driven profiles, build_pipeline(config, profile)
 
 ### Methodology
 

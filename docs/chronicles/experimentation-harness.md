@@ -1162,3 +1162,23 @@ Transformed 342 GitHub gleanings to clean, consistent format with short titles a
 **Files**: `src/temoa/cli.py`, `src/temoa/scripts/extract_gleanings.py`
 
 ---
+
+## Entry 96: Temoa Rebuilt as Pure Search Engine (2026-05-30)
+
+**What**: Stripped gleaning extraction, vault graph, and web UI from Temoa. Server rebuilt from 2671 → 430 lines as a pure JSON API. CLI reduced from 1242 → ~450 lines with 8 commands. Introduced composable pipeline abstraction.
+
+**Why**: Temoa was doing too much — search engine + gleaning extractor + link maintainer + graph explorer + web UI. Gleanings are being offloaded to a separate tool. The rebuild clears the decks for swappable search behaviors.
+
+**How**:
+- `server.py` rewritten: kept `/search`, `/reindex`, `/health`, `/vaults`, `/config`, `/stats`, `/models`; dropped all gleaning/graph/UI routes
+- New `pipeline.py`: `SearchContext` dataclass, `Stage` protocol, `Pipeline` runner, six concrete stages (ScoreFilter, StatusFilter, QueryFilter, Rerank, TimeBoost, Limit), `default_pipeline()` factory
+- New `server_filters.py`: `filter_by_properties/tags/paths/files` and `build_file_filter` extracted from old server.py
+- Deleted: `gleanings.py`, `normalizers.py`, `github_client.py`, `text_cleaner.py`, `vault_graph.py`, `scripts/` directory
+- CLI: removed `extract`, `migrate`, `gleaning` group, `build-graph`; `search` now uses `default_pipeline()`
+- Tests: 147 passing (69 gleaning/normalizer tests deleted with the code)
+
+**Decisions**: Gleaning management → separate tool. UI → separate project. Temoa = search API only.
+
+**Commits**: `d6dbe3a` through `1ef34ca` on branch `claude/docs-codebase-review-5YeTG`
+
+---
