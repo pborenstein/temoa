@@ -7,10 +7,14 @@ so they run in any environment.
 
 from temoa.pipeline import (
     Pipeline,
+    RerankStage,
     SearchContext,
     ScoreFilterStage,
     StatusFilterStage,
+    TimeBoostStage,
     LimitStage,
+    QueryFilterStage,
+    default_pipeline,
     set_score,
     score_view,
     SCORE_FLAT_ALIASES,
@@ -106,7 +110,8 @@ def test_status_filter_removes_inactive_and_hidden():
 # --------------------------------------------------------------------------- #
 
 def test_pipeline_runs_stages_in_order_and_gates_with_applies():
-    ctx = SearchContext(query="q", search_mode="hybrid", limit=2)
+    ctx = SearchContext(query="q", search_mode="hybrid", limit=2,
+                        params={"rerank": False})  # rerank=False so LimitStage fires
     ctx.results = [
         {"title": "a", "similarity_score": 0.9, "frontmatter": {"status": "active"}},
         {"title": "b", "similarity_score": 0.1, "frontmatter": {"status": "inactive"}},
@@ -115,7 +120,7 @@ def test_pipeline_runs_stages_in_order_and_gates_with_applies():
     ]
     pipe = Pipeline([ScoreFilterStage(), StatusFilterStage(), LimitStage()])
     pipe.run(ctx)
-    # ScoreFilter skipped (hybrid); StatusFilter drops "b"; Limit keeps 2
+    # ScoreFilter skipped (hybrid); StatusFilter drops "b"; Limit keeps 2 of (a, c, d)
     assert [r["title"] for r in ctx.results] == ["a", "c"]
 
 
@@ -132,3 +137,128 @@ def test_pipeline_debug_capture_records_each_applied_stage():
 def test_context_defaults_original_query_to_query():
     ctx = SearchContext(query="hello")
     assert ctx.original_query == "hello"
+
+
+# --------------------------------------------------------------------------- #
+# RerankStage (stub reranker via services dict)
+# --------------------------------------------------------------------------- #
+
+class _StubReranker:
+    """Reverses result order — detectable without a real cross-encoder."""
+    def rerank(self, query, results, top_k, rerank_top_n):
+        return list(reversed(results))[:top_k]
+
+
+def test_rerank_stage_uses_service_and_applies_limit():
+    ctx = SearchContext(query="q", limit=2, params={"rerank": True},
+                        services={"reranker": _StubReranker()})
+    ctx.results = [{"title": str(i)} for i in range(4)]
+    RerankStage().run(ctx)
+    assert [r["title"] for r in ctx.results] == ["3", "2"]
+
+
+def test_rerank_stage_skipped_when_param_false():
+    ctx = SearchContext(query="q", params={"rerank": False})
+    ctx.results = [{"title": "x"}]
+    assert RerankStage().applies(ctx) is False
+
+
+def test_rerank_stage_skipped_when_no_results():
+    ctx = SearchContext(query="q", params={"rerank": True})
+    assert RerankStage().applies(ctx) is False
+
+
+def test_rerank_stage_noop_when_service_missing():
+    ctx = SearchContext(query="q", limit=5, params={"rerank": True})
+    ctx.results = [{"title": "a"}]
+    RerankStage().run(ctx)
+    assert ctx.results == [{"title": "a"}]  # unchanged
+
+
+# --------------------------------------------------------------------------- #
+# TimeBoostStage (stub scorer via services dict)
+# --------------------------------------------------------------------------- #
+
+class _StubScorer:
+    """Adds a fixed time_boost field so we can assert the stage ran."""
+    def apply_boost(self, results, vault_path):
+        for r in results:
+            r["time_boost"] = 0.1
+        return results
+
+
+def test_time_boost_stage_applies_scorer():
+    ctx = SearchContext(query="q", params={"time_boost": True},
+                        services={"time_scorer": _StubScorer()})
+    ctx.results = [{"title": "a"}]
+    TimeBoostStage().run(ctx)
+    assert ctx.results[0]["time_boost"] == 0.1
+
+
+def test_time_boost_stage_skipped_when_param_false():
+    ctx = SearchContext(query="q", params={"time_boost": False})
+    ctx.results = [{"title": "a"}]
+    assert TimeBoostStage().applies(ctx) is False
+
+
+def test_time_boost_stage_noop_when_service_missing():
+    ctx = SearchContext(query="q", params={"time_boost": True})
+    ctx.results = [{"title": "a"}]
+    TimeBoostStage().run(ctx)
+    assert "time_boost" not in ctx.results[0]
+
+
+# --------------------------------------------------------------------------- #
+# LimitStage — only fires when rerank=False
+# --------------------------------------------------------------------------- #
+
+def test_limit_stage_skipped_when_rerank_true():
+    ctx = SearchContext(query="q", limit=1, params={"rerank": True})
+    ctx.results = [{"title": str(i)} for i in range(5)]
+    assert LimitStage().applies(ctx) is False
+
+
+def test_limit_stage_fires_when_rerank_false():
+    ctx = SearchContext(query="q", limit=2, params={"rerank": False})
+    ctx.results = [{"title": str(i)} for i in range(5)]
+    LimitStage().run(ctx)
+    assert len(ctx.results) == 2
+
+
+# --------------------------------------------------------------------------- #
+# QueryFilterStage — skips when no filter params present
+# --------------------------------------------------------------------------- #
+
+def test_query_filter_skipped_when_no_params():
+    ctx = SearchContext(query="q", params={})
+    ctx.results = [{"title": "a"}]
+    assert QueryFilterStage().applies(ctx) is False
+
+
+# --------------------------------------------------------------------------- #
+# default_pipeline factory
+# --------------------------------------------------------------------------- #
+
+def test_default_pipeline_contains_all_stages():
+    pipe = default_pipeline()
+    names = [s.name for s in pipe.stages]
+    assert names == [
+        "score_filter", "status_filter", "query_filter",
+        "rerank", "time_boost", "limit",
+    ]
+
+
+def test_default_pipeline_end_to_end_semantic_no_services():
+    """Full semantic run with no services — rerank/time_boost noop, limit applied."""
+    ctx = SearchContext(query="q", search_mode="semantic", limit=2,
+                        params={"min_score": 0.3, "rerank": False, "time_boost": False})
+    ctx.results = [
+        {"title": "a", "similarity_score": 0.8, "frontmatter": {"status": "active"}},
+        {"title": "b", "similarity_score": 0.1, "frontmatter": {"status": "active"}},  # below threshold
+        {"title": "c", "similarity_score": 0.7, "frontmatter": {"status": "inactive"}},  # filtered
+        {"title": "d", "similarity_score": 0.6, "frontmatter": {"status": "active"}},
+        {"title": "e", "similarity_score": 0.5, "frontmatter": {"status": "active"}},
+    ]
+    default_pipeline().run(ctx)
+    # b removed by score, c by status; a + d kept (limit 2 from remaining a, d, e)
+    assert [r["title"] for r in ctx.results] == ["a", "d"]

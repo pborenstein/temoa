@@ -212,13 +212,147 @@ class StatusFilterStage:
         ctx.results = kept
 
 
+class QueryFilterStage:
+    """Mirror of server.search() Stage 5.
+
+    Applies frontmatter property, tag, path, and file filters using the
+    existing ``filter_by_*`` helpers from ``server.py``. Filter specs are read
+    from ``ctx.params`` at run time so the same stage object is reusable across
+    requests with different filter combinations.
+    """
+
+    name = "query_filter"
+
+    def applies(self, ctx: SearchContext) -> bool:
+        p = ctx.params
+        return bool(
+            p.get("include_props") or p.get("exclude_props")
+            or p.get("include_tags") or p.get("exclude_tags")
+            or p.get("include_paths") or p.get("exclude_paths")
+            or p.get("include_files") or p.get("exclude_files")
+        )
+
+    def run(self, ctx: SearchContext) -> None:
+        from temoa.server import (
+            filter_by_files,
+            filter_by_paths,
+            filter_by_properties,
+            filter_by_tags,
+        )
+        p = ctx.params
+        results = ctx.results
+        total_removed = 0
+
+        if p.get("include_props") or p.get("exclude_props"):
+            results, n = filter_by_properties(
+                results,
+                include_props=p.get("include_props"),
+                exclude_props=p.get("exclude_props"),
+            )
+            total_removed += n
+
+        if p.get("include_tags") or p.get("exclude_tags"):
+            results, n = filter_by_tags(
+                results,
+                include_tags=p.get("include_tags"),
+                exclude_tags=p.get("exclude_tags"),
+            )
+            total_removed += n
+
+        if p.get("include_paths") or p.get("exclude_paths"):
+            results, n = filter_by_paths(
+                results,
+                include_paths=p.get("include_paths"),
+                exclude_paths=p.get("exclude_paths"),
+            )
+            total_removed += n
+
+        if p.get("include_files") or p.get("exclude_files"):
+            results, n = filter_by_files(
+                results,
+                include_files=p.get("include_files"),
+                exclude_files=p.get("exclude_files"),
+            )
+            total_removed += n
+
+        ctx.meta["query_filter_removed"] = total_removed
+        ctx.results = results
+
+
+class RerankStage:
+    """Mirror of server.search() Stage 6.
+
+    Runs the cross-encoder reranker held in ``ctx.services["reranker"]``.
+    Skipped when ``ctx.params["rerank"]`` is falsy or when there are no results.
+    After reranking the limit is already applied by the reranker (``top_k``), so
+    the terminal :class:`LimitStage` checks ``rerank`` and skips itself to avoid
+    double-truncation.
+    """
+
+    name = "rerank"
+
+    def applies(self, ctx: SearchContext) -> bool:
+        return bool(ctx.params.get("rerank", True)) and bool(ctx.results)
+
+    def run(self, ctx: SearchContext) -> None:
+        reranker = ctx.services.get("reranker")
+        if reranker is None:
+            return
+        rerank_count = min(100, len(ctx.results))
+        ctx.results = reranker.rerank(
+            query=ctx.query,
+            results=ctx.results,
+            top_k=ctx.limit,
+            rerank_top_n=rerank_count,
+        )
+
+
+class TimeBoostStage:
+    """Mirror of server.search() Stage 7.
+
+    Applies time-decay scoring held in ``ctx.services["time_scorer"]``.
+    Skipped when ``ctx.params["time_boost"]`` is falsy or results are empty.
+    """
+
+    name = "time_boost"
+
+    def applies(self, ctx: SearchContext) -> bool:
+        return bool(ctx.params.get("time_boost", True)) and bool(ctx.results)
+
+    def run(self, ctx: SearchContext) -> None:
+        scorer = ctx.services.get("time_scorer")
+        if scorer is None:
+            return
+        ctx.results = scorer.apply_boost(ctx.results, ctx.vault_path)
+
+
 class LimitStage:
-    """Terminal limit. Mirrors the final ``results[:limit]`` truncation."""
+    """Terminal limit. Skipped when the reranker has already applied the limit."""
 
     name = "limit"
 
     def applies(self, ctx: SearchContext) -> bool:
-        return True
+        return not bool(ctx.params.get("rerank", True))
 
     def run(self, ctx: SearchContext) -> None:
         ctx.results = ctx.results[: ctx.limit]
+
+
+# --------------------------------------------------------------------------- #
+# Default pipeline factory
+# --------------------------------------------------------------------------- #
+
+def default_pipeline() -> Pipeline:
+    """Return the standard post-retrieval pipeline mirroring server.search() stages 3–7.
+
+    Retrieval (stages 0–2) is not included here — it still happens in
+    ``server.search()`` before this pipeline is invoked.
+    """
+    return Pipeline([
+        ScoreFilterStage(),
+        StatusFilterStage(),
+        QueryFilterStage(),
+        RerankStage(),
+        TimeBoostStage(),
+        LimitStage(),
+    ])
