@@ -233,7 +233,7 @@ class QueryFilterStage:
         )
 
     def run(self, ctx: SearchContext) -> None:
-        from temoa.server import (
+        from temoa.server_filters import (
             filter_by_files,
             filter_by_paths,
             filter_by_properties,
