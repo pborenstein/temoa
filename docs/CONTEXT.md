@@ -2,8 +2,8 @@
 phase: "Experimentation"
 phase_name: "Knobs & Dials"
 updated: 2026-05-30
-last_commit: a826237
-branch: claude/docs-codebase-review-5YeTG
+last_commit: 48c90ec
+branch: main
 ---
 
 # Current Context
@@ -21,7 +21,7 @@ tlatecpana skills depend on `--type gleaning` / `--exclude-type daily`.
 - [x] Clean up CLI help text
 - [x] Restore type filtering (--type / --exclude-type, filter_by_type in pipeline)
 - [x] Extract gleaning code to pixquitl repo
-- [ ] Merge branch to main
+- [x] Merge branch to main (48c90ec)
 
 ## Blockers
 
@@ -37,5 +37,5 @@ None
 
 ## Next Session
 
-Merge branch to main, then update cahuitl cron to use `pixquitl extract`
-instead of `temoa extract`.
+Restart launchd service to pick up the new server, then update cahuitl
+cron to use `pixquitl extract` instead of `temoa extract`.

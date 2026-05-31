@@ -349,7 +349,7 @@ The production hardening is complete. Now we experiment with different combinati
   (needed by tlatecpana `temoa-search` skill — see Entry 97)
 
 **Next planned work**:
-- [ ] Merge branch `claude/docs-codebase-review-5YeTG` to main
+- [x] Merge branch `claude/docs-codebase-review-5YeTG` to main (48c90ec)
 - [ ] Update cahuitl cron: replace `temoa extract` with `pixquitl extract`
 - [ ] qmd pipeline improvements — position-aware score blending, heading-aware chunking
 - [ ] Swappable search behaviors — config-driven profiles, build_pipeline(config, profile)
