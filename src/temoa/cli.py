@@ -634,13 +634,15 @@ def vaults():
 @click.option("--vault", default=None, type=click.Path(exists=True), help="Vault path (default: from config)")
 @click.option("--recent", "-n", default=20, type=int, help="Show N most recent searches (default: 20)")
 @click.option("--stats", "show_stats", is_flag=True, help="Show aggregate stats instead of recent searches")
+@click.option("--detail", is_flag=True, help="Show ranked result paths for each search")
 @click.option("--json", "output_json", is_flag=True, help="Output as JSON")
-def log(vault, recent, show_stats, output_json):
+def log(vault, recent, show_stats, detail, output_json):
     """Show the search query log.
 
     \b
     Examples:
       temoa log                        # recent searches
+      temoa log --detail               # include ranked result paths
       temoa log --stats                # aggregate stats
       temoa log --recent 50 --json     # last 50 searches as JSON
     """
@@ -714,6 +716,15 @@ def log(vault, recent, show_stats, output_json):
                 score_str = f"  top={top:.3f}" if top is not None else ""
                 rt_str = f"  {rt}ms" if rt is not None else ""
                 click.echo(f"{ts}  {click.style(q, fg='cyan')}  [{mode}, {n} results{score_str}{rt_str}]")
+                if detail and row.get("results"):
+                    try:
+                        result_list = json.loads(row["results"])
+                        for i, r in enumerate(result_list, 1):
+                            score = r.get("score")
+                            score_fmt = f"{score:.3f}" if score is not None else "?"
+                            click.echo(f"  {i:2d}. {click.style(score_fmt, dim=True)}  {r.get('path', '?')}")
+                    except Exception:
+                        pass
             click.echo()
 
     except Exception as e:
