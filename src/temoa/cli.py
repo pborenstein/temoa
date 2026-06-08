@@ -214,6 +214,21 @@ def search(query, limit, min_score, include_types, exclude_types, hybrid, rerank
             if expanded_query_str:
                 result_data['expanded_query'] = expanded_query_str
 
+        # Log to search_log.db
+        import asyncio as _asyncio
+        from .search_log import SearchLog as _SearchLog
+        _log = _SearchLog(storage_dir / "search_log.db")
+        _asyncio.run(_log.init())
+        _asyncio.run(_log.log_search(
+            query=original_query,
+            vault=str(vault_path),
+            mode=result_data.get("search_mode", search_mode if not bm25_only else "bm25"),
+            limit=limit,
+            rerank=rerank,
+            expand_query=expand_query,
+            results=results,
+        ))
+
         if output_json:
             click.echo(json.dumps(result_data, indent=2))
         else:
@@ -609,6 +624,97 @@ def vaults():
             model = v.get('model', cfg.default_model)
             click.echo(f"  {click.style(name, fg='green')}: {path} (model: {model})")
         click.echo()
+
+    except Exception as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
+
+
+@main.command("log")
+@click.option("--vault", default=None, type=click.Path(exists=True), help="Vault path (default: from config)")
+@click.option("--recent", "-n", default=20, type=int, help="Show N most recent searches (default: 20)")
+@click.option("--stats", "show_stats", is_flag=True, help="Show aggregate stats instead of recent searches")
+@click.option("--json", "output_json", is_flag=True, help="Output as JSON")
+def log(vault, recent, show_stats, output_json):
+    """Show the search query log.
+
+    \b
+    Examples:
+      temoa log                        # recent searches
+      temoa log --stats                # aggregate stats
+      temoa log --recent 50 --json     # last 50 searches as JSON
+    """
+    import asyncio
+    from .config import Config
+    from .search_log import SearchLog
+    from .storage import derive_storage_dir
+
+    config = Config()
+
+    if vault:
+        vault_path = Path(vault)
+        storage_dir = derive_storage_dir(vault_path, config.vault_path, config.storage_dir)
+    else:
+        vault_path = config.vault_path
+        storage_dir = config.storage_dir
+
+    log_path = storage_dir / "search_log.db"
+    if not log_path.exists():
+        click.echo(f"No search log found at {log_path}. Start the server and run some searches first.")
+        return
+
+    search_log = SearchLog(log_path)
+
+    async def _run():
+        await search_log.init()
+        if show_stats:
+            return await search_log.get_stats()
+        return await search_log.recent(recent)
+
+    try:
+        data = asyncio.run(_run())
+
+        if output_json:
+            click.echo(json.dumps(data, indent=2))
+            return
+
+        if show_stats:
+            click.echo("\nSearch Log Stats\n")
+            click.echo(f"Total searches: {click.style(str(data['total_searches']), fg='yellow')}")
+            dr = data.get("date_range", {})
+            if dr.get("first"):
+                click.echo(f"Date range:     {dr['first']} — {dr['last']}")
+            if data.get("by_mode"):
+                click.echo("\nBy mode:")
+                for mode, count in data["by_mode"].items():
+                    click.echo(f"  {mode}: {count}")
+            if data.get("timing"):
+                t = data["timing"]
+                click.echo(f"\nAvg retrieval: {t.get('avg_retrieval_ms', '?')} ms")
+                click.echo(f"Avg total:     {t.get('avg_total_ms', '?')} ms")
+            click.echo()
+        else:
+            if not data:
+                click.echo("No searches logged yet.")
+                return
+            click.echo(f"\nRecent searches ({len(data)}):\n")
+            for row in data:
+                from datetime import datetime, timezone
+                raw_ts = row.get("timestamp", "")
+                try:
+                    dt = datetime.fromisoformat(raw_ts.replace("Z", "+00:00"))
+                    ts = dt.astimezone().strftime("%Y-%m-%d %H:%M:%S")
+                except Exception:
+                    ts = raw_ts[:19].replace("T", " ")
+                q = row.get("query", "")
+                mode = row.get("mode") or "?"
+                n = row.get("result_count", 0)
+                top = row.get("top_score")
+                rt = row.get("retrieval_ms")
+                score_str = f"  top={top:.3f}" if top is not None else ""
+                rt_str = f"  {rt}ms" if rt is not None else ""
+                click.echo(f"{ts}  {click.style(q, fg='cyan')}  [{mode}, {n} results{score_str}{rt_str}]")
+            click.echo()
 
     except Exception as e:
         click.echo(f"Error: {e}", err=True)

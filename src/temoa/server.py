@@ -17,6 +17,7 @@ from .pipeline import SearchContext, default_pipeline
 from .query_expansion import QueryExpander
 from .rate_limiter import RateLimiter
 from .reranker import CrossEncoderReranker
+from .search_log import SearchLog
 from .storage import derive_storage_dir, get_vault_metadata, validate_storage_safe
 from .synthesis import SynthesisClient, SynthesisError
 from .time_scoring import TimeAwareScorer
@@ -113,11 +114,17 @@ async def lifespan(app: FastAPI):
         )
         logger.info("  ✓ Time-aware scorer initialized")
 
+        search_log_path = default_storage_dir / "search_log.db"
+        search_log = SearchLog(search_log_path)
+        await search_log.init()
+        logger.info("  ✓ Search log initialized")
+
         app.state.config = config
         app.state.client_cache = client_cache
         app.state.reranker = reranker
         app.state.query_expander = query_expander
         app.state.time_scorer = time_scorer
+        app.state.search_log = search_log
 
         logger.info("=" * 60)
         logger.info("Temoa server ready")
@@ -341,6 +348,7 @@ async def search(
     harness: bool = Query(default=False, description="Include per-result score breakdown"),
     pipeline_debug: bool = Query(default=False),
 ):
+    t_start = time.time()
     config: Config = request.app.state.config
     _check_rate_limit(request, "search", config)
 
@@ -425,7 +433,8 @@ async def search(
         data = synthesis.search(query=q, limit=search_limit, file_filter=file_filter)
 
     results = data.get("results", [])
-    logger.info(f"Retrieval: {len(results)} results in {time.time()-t0:.2f}s (hybrid={use_hybrid})")
+    retrieval_elapsed = time.time() - t0
+    logger.info(f"Retrieval: {len(results)} results in {retrieval_elapsed:.2f}s (hybrid={use_hybrid})")
 
     # --- Stages 3-7: post-retrieval pipeline ---
     ctx = SearchContext(
@@ -504,5 +513,22 @@ async def search(
             "stages": ctx.stages_debug,
             "search_mode": response["search_mode"],
         }
+
+    # Log to search_log.db (fire-and-forget within the async handler)
+    search_log: SearchLog = request.app.state.search_log
+    retrieval_ms_val = round((retrieval_elapsed) * 1000)
+    total_ms_val = round((time.time() - t_start) * 1000)
+    await search_log.log_search(
+        query=original_query,
+        vault=vault_name,
+        mode=response["search_mode"],
+        limit=effective_limit,
+        rerank=rerank,
+        expand_query=expand_query,
+        retrieval_ms=retrieval_ms_val,
+        total_ms=total_ms_val,
+        results=ctx.results,
+        pipeline_stages=ctx.stages_debug,
+    )
 
     return JSONResponse(content=sanitize_unicode(response))

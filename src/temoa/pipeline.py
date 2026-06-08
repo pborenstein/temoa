@@ -139,13 +139,15 @@ class Pipeline:
             before = len(ctx.results)
             t0 = time.time()
             stage.run(ctx)
-            if debug:
-                ctx.stages_debug.append({
-                    "stage": stage.name,
-                    "before_count": before,
-                    "after_count": len(ctx.results),
-                    "elapsed_ms": round((time.time() - t0) * 1000, 2),
-                })
+            # Always capture stage timing for the search log; include in HTTP
+            # response only when pipeline_debug param is set.
+            entry = {
+                "stage": stage.name,
+                "before_count": before,
+                "after_count": len(ctx.results),
+                "elapsed_ms": round((time.time() - t0) * 1000, 2),
+            }
+            ctx.stages_debug.append(entry)
         return ctx
 
 

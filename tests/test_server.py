@@ -2,12 +2,18 @@
 import pytest
 from fastapi.testclient import TestClient
 from temoa.server import app
+from temoa.search_log import SearchLog
 
 
 @pytest.fixture(scope="module")
-def client():
-    """Create test client with lifespan context"""
+def client(tmp_path_factory):
+    """Create test client with lifespan context, using a tmp search log."""
+    tmp = tmp_path_factory.mktemp("search_log")
     with TestClient(app) as c:
+        import asyncio
+        log = SearchLog(tmp / "search_log.db")
+        asyncio.get_event_loop().run_until_complete(log.init())
+        c.app.state.search_log = log
         yield c
 
 

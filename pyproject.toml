@@ -23,6 +23,7 @@ dependencies = [
     "netifaces>=0.11.0",
     "nahuatl-frontmatter",
     "obsidiantools>=0.11.0",
+    "aiosqlite>=0.22.1",
 ]
 
 [project.scripts]
