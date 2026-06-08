@@ -2,7 +2,7 @@
 phase: "Experimentation"
 phase_name: "Knobs & Dials"
 updated: 2026-06-08
-last_commit: d2dbaba
+last_commit: c0f123c
 branch: main
 ---
 
@@ -10,16 +10,13 @@ branch: main
 
 ## Current Focus
 
-Search query logging infrastructure. Every search (HTTP + CLI) now persists to `.temoa/search_log.db` so we can measure whether algorithm changes actually help.
+Search log infrastructure complete. Using it to observe real search behavior and understand score signals before tackling algorithm improvements.
 
 ## Active Tasks
 
-- [x] SQLite search log (SearchLog class, aiosqlite)
-- [x] Server wires log in lifespan, logs after each search
-- [x] CLI search command logs (including vault path, mode, results)
-- [x] `temoa log` command — recent searches + --stats
-- [x] Pipeline stage timing always captured (not just pipeline_debug)
-- [x] Test suite uses tmp_path for log (not live vault)
+- [x] SQLite search log (SearchLog, aiosqlite, server + CLI)
+- [x] `temoa log` / `temoa log --detail` / `temoa log --stats`
+- [x] SEARCH-MECHANISMS.md: cross-encoder score explanation + log reading guide
 
 ## Blockers
 
@@ -27,12 +24,12 @@ None
 
 ## Context
 
-- 155 tests passing (196 in CLAUDE.md was stale — update it)
-- search_log.db stored in `.temoa/` alongside vector index
-- CLI logs vault as full path (not name) — minor inconsistency with server
-- `temoa log` displays local time; DB stores UTC
+- 155 tests passing (CLAUDE.md says 196 — stale, update it)
+- `search_log.db` in `.temoa/`; CLI logs vault as full path, server logs vault name (minor inconsistency)
+- Cross-encoder scores are unbounded signed logits: positive = answers query, negative = doesn't; only meaningful relative to each other within one query
+- Observed: hybrid hurts conceptual queries (BM25 floods with keyword matches the reranker scores poorly)
 - qmd pipeline improvements in docs/archive/ (position-aware blending, heading-aware chunking, zeitgeist chunking)
 
 ## Next Session
 
-Now that logging is in place, good next steps: run some real searches and look at the log, then tackle a search quality improvement (zeitgeist chunking, position-aware blending, or multi-model experiment) and use the log to compare.
+Run real searches, build up log data, then pick one improvement to measure: position-aware reranker blending (fix hybrid burying good semantic results) or zeitgeist snapshot chunking.
