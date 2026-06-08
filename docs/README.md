@@ -11,6 +11,7 @@
 | Document | Purpose |
 |----------|---------|
 | [DEPLOYMENT.md](DEPLOYMENT.md) | Deploy and run the server (launchd, Tailscale, config) |
+| [ZEITGEIST-INTEGRATION.md](ZEITGEIST-INTEGRATION.md) | Design notes: zeitgeist snapshots as high-density search signal |
 
 ---
 

@@ -2,7 +2,7 @@
 phase: "Experimentation"
 phase_name: "Knobs & Dials"
 updated: 2026-06-07
-last_commit: 8516252
+last_commit: pending
 branch: main
 ---
 
@@ -10,13 +10,12 @@ branch: main
 
 ## Current Focus
 
-Documentation overhaul complete. All docs now reflect v2.0.0 (pure search engine).
+Docs stable for v2.0.0. Added ZEITGEIST-INTEGRATION.md — design thinking on snapshots as high-density search signal.
 
 ## Active Tasks
 
-- [x] Tag v1.1.0 and v2.0.0, push GitHub releases
-- [x] Full docs overhaul — ARCHITECTURE, README, IMPLEMENTATION, DECISIONS, DEPLOYMENT, CLAUDE.md, SEARCH-MECHANISMS
-- [x] Delete 8 stale docs, archive MULTI-MODEL-PLAN and qmd pipeline improvements
+- [x] Documentation overhaul for v2.0.0
+- [x] Move NOTE-FROM-ZEITGEIST.md → docs/ZEITGEIST-INTEGRATION.md
 
 ## Blockers
 
@@ -24,12 +23,11 @@ None
 
 ## Context
 
-- v1.1.0 = last version with UI/gleanings/graph (40e5bb6), available on GitHub
-- v2.0.0 = pure search engine, all docs now accurate to this state
-- pixquitl handles gleaning extraction
-- qmd pipeline improvements preserved in docs/archive/ (position-aware blending, heading-aware chunking, zeitgeist chunking)
+- v2.0.0 live, all docs accurate
+- qmd pipeline improvements in docs/archive/ (position-aware blending, heading-aware chunking, zeitgeist chunking)
+- ZEITGEIST-INTEGRATION.md: snapshots as search signal, chunking problem, archaeology connection
 - 196 tests passing
 
 ## Next Session
 
-Good candidates: qmd pipeline improvements (reranker.py blending, heading-aware chunking) or multi-model experimentation.
+Good candidates: zeitgeist snapshot chunking (ties qmd plan + ZEITGEIST-INTEGRATION.md together), position-aware reranker blending, or multi-model experimentation.

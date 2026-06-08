@@ -1242,3 +1242,19 @@ make the history navigable and give users a way to run back to the UI version.
 **Files**: commits `4ba0466`, `8516252`
 
 ---
+
+## Entry 100: Zeitgeist Integration Design Notes (2026-06-07)
+
+**What**: Moved `NOTE-FROM-ZEITGEIST.md` (root) → `docs/ZEITGEIST-INTEGRATION.md`. Added to docs index.
+
+**Why**: The note (written during a vault zeitgeist session) articulates why zeitgeist snapshots are high-density signal for temoa search — cluster characterizations, cross-note connections, and gleaning annotations that only make sense in context of a period. Worth keeping where temoa development sessions will find it.
+
+**Key ideas in the note**:
+- Snapshots contain synthesized prose connections not expressed anywhere as wikilinks — "constructed meaning after defeat" type searches
+- Zeitgeist chunking problem: sliding window destroys the connective structure (Connections section gets mixed with Inventory list items)
+- `/archaeology` endpoint could return cluster characterizations from snapshots, not just individual note matches
+- Ties directly to qmd pipeline improvements plan (zeitgeist-aware chunking is Improvement 3)
+
+**Files**: `docs/ZEITGEIST-INTEGRATION.md`, `docs/README.md`
+
+---
