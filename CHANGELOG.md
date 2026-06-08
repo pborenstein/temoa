@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-06-07
+
+Complete rebuild as a pure search engine. UI, gleanings extraction, and knowledge
+graph have been removed from this repo — gleaning functionality lives in
+[pixquitl](https://github.com/pborenstein/pixquitl).
+
+### Added
+
+- Composable pipeline abstraction (`pipeline.py` + `server_filters.py`) ([1eb65a0](https://github.com/pborenstein/temoa/commit/1eb65a0)) ([f127f68](https://github.com/pborenstein/temoa/commit/f127f68))
+- `--type` / `--exclude-type` filtering via `normalize_type()` from `nahuatl_frontmatter` ([a826237](https://github.com/pborenstein/temoa/commit/a826237))
+
+### Removed
+
+- ⚠️ **BREAKING**: Web UI (search, management, harness, inspector views) removed
+- ⚠️ **BREAKING**: Gleaning extraction removed — use pixquitl instead
+- ⚠️ **BREAKING**: Knowledge graph build/serve removed
+- server.py reduced from 2671 to 430 lines ([c83bfde](https://github.com/pborenstein/temoa/commit/c83bfde)) ([1ef34ca](https://github.com/pborenstein/temoa/commit/1ef34ca))
+
+## [1.1.0] - 2026-06-07
+
+Last version with web UI, gleanings extraction, and knowledge graph.
+Tag `v1.1.0` to restore this version.
+
 ## [1.0.0] - 2026-03-28
 
 First stable release. Local semantic search server for Obsidian vaults with
@@ -50,5 +73,7 @@ macOS launchd service management.
 - Per-vault filter state management ([2b6a36a](https://github.com/pborenstein/temoa/commit/2b6a36a))
 - Query expansion disabled by default based on production usage ([79aa611](https://github.com/pborenstein/temoa/commit/79aa611))
 
-[Unreleased]: https://github.com/pborenstein/temoa/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/pborenstein/temoa/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/pborenstein/temoa/compare/v1.1.0...v2.0.0
+[1.1.0]: https://github.com/pborenstein/temoa/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/pborenstein/temoa/releases/tag/v1.0.0
