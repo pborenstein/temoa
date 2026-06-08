@@ -1202,3 +1202,22 @@ not gleaning-specific.
 **Files**: `server_filters.py`, `pipeline.py`, `server.py`, `cli.py` — commit `a826237`
 
 ---
+
+## Entry 98: Versioned Releases — v1.1.0 and v2.0.0 (2026-06-07)
+
+**What**: Tagged and released two versions on GitHub. `v1.1.0` marks the last
+version with UI/gleanings/graph. `v2.0.0` marks the pure search engine rebuild.
+
+**Why**: `origin/main` was stuck at `40e5bb6` (pre-rebuild). Needed releases to
+make the history navigable and give users a way to run back to the UI version.
+
+**How**:
+- Annotated tag `v1.1.0` created at `40e5bb6` and pushed with GitHub release note
+- `CHANGELOG.md` updated with v2.0.0 entry (Added, Removed/Breaking sections)
+- `pyproject.toml` bumped to `2.0.0`
+- Committed, tagged `v2.0.0`, pushed `origin/main` (now at `80e436e`)
+- GitHub release created for both tags
+
+**Files**: `CHANGELOG.md`, `pyproject.toml` — commits `e6d0967`, `80e436e`
+
+---
