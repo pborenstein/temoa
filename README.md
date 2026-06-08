@@ -1,112 +1,56 @@
-# 👣 Temoa
+# Temoa
 
 > [Temoa](https://nahuatl.wired-humanities.org/content/temoa) (Nahuatl): To search for, to seek
 
-A local semantic search server for your Obsidian vault. Search by meaning, not keywords. Access from mobile via HTTP.
+Local semantic search server for Obsidian vaults. Search by meaning over HTTP — accessible from mobile via Tailscale.
 
 [![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)
 [![uv](https://img.shields.io/badge/package%20manager-uv-orange.svg)](https://github.com/astral-sh/uv)
 
 ## What it does
 
-### Core Search Features
+Temoa indexes your vault with sentence-transformer embeddings and serves a search API. You query it over HTTP; it returns ranked results with Obsidian URIs.
 
 | Feature | Description |
 |:--------|:------------|
 | Semantic search | Find notes by meaning, not exact keywords |
-| Hybrid search | Combine BM25 keyword search with semantic embeddings |
-| Cross-encoder re-ranking | Two-stage retrieval for 20-30% better precision |
+| Hybrid search | Combine BM25 keyword search with semantic embeddings (RRF fusion) |
+| Cross-encoder re-ranking | Two-stage retrieval for 20–30% better precision |
 | Query expansion | Automatically expand short queries using TF-IDF |
 | Time-aware scoring | Boost recent documents with configurable decay |
-| Type filtering | Filter by document type (gleaning, writering, daily, etc.) |
-| Adaptive chunking | Automatic chunking of large files (>4,000 chars) for full searchability |
-
-### Mobile Experience
-
-| Feature | Description |
-|:--------|:------------|
-| Mobile-first UI | Optimized for phone use with compact collapsible results |
-| PWA support | Install on home screen for one-tap access |
-| Search history | Last 10 searches saved locally |
-| Keyboard shortcuts | `/` to focus search, `Esc` to clear, `t` to toggle expanded query |
-
-### Infrastructure
-
-| Feature | Description |
-|:--------|:------------|
-| Multi-vault support | Search across multiple vaults with fast switching |
-| Local processing | All embeddings and search happen on your machine |
-| Obsidian integration | Results open directly in Obsidian app |
-| Gleaning extraction | Automatically extract saved links from daily notes |
-| Incremental reindexing | 30x faster updates (5s vs 159s) |
+| Type/tag/property filtering | Filter results by frontmatter fields |
+| Adaptive chunking | Full searchability for large files (>4,000 chars) |
+| Multi-vault support | Independent indexes per vault, LRU-cached in memory |
 
 ## Installation
 
 ```bash
-# Clone repository
 git clone https://github.com/pborenstein/temoa
 cd temoa
-
-# Install with uv
 uv sync
-
-# Install CLI globally (optional)
-uv tool install --editable .
 ```
 
 ## Configuration
 
-Create a config file at `~/.config/temoa/config.json`:
-
-```bash
-mkdir -p ~/.config/temoa
-cat > ~/.config/temoa/config.json << 'EOF'
-{
-  "vault_path": "~/Obsidian/your-vault",
-  "synthesis_path": "~/projects/temoa/synthesis",
-  "storage_dir": null,
-  "default_model": "all-mpnet-base-v2",
-  "server": {
-    "host": "0.0.0.0",
-    "port": 8080
-  },
-  "search": {
-    "default_limit": 10,
-    "max_limit": 100,
-    "timeout": 10,
-    "time_decay": {
-      "enabled": true,
-      "half_life_days": 90,
-      "max_boost": 0.2
-    }
-  }
-}
-EOF
-```
-
-### Multi-Vault Configuration
-
-To search across multiple vaults, use the `vaults` array:
+Create `~/.config/temoa/config.json`:
 
 ```json
 {
   "vaults": [
-    {"name": "main", "path": "~/Obsidian/main-vault", "is_default": true},
-    {"name": "work", "path": "~/Obsidian/work-vault", "is_default": false},
-    {"name": "archive", "path": "~/Obsidian/archive", "is_default": false}
+    {
+      "name": "myvault",
+      "path": "~/Obsidian/myvault",
+      "is_default": true,
+      "model": "all-MiniLM-L6-v2"
+    }
   ],
-  "vault_path": "~/Obsidian/main-vault",
-  "synthesis_path": "~/projects/temoa/synthesis",
-  "storage_dir": null,
-  "default_model": "all-mpnet-base-v2",
+  "default_vault": "myvault",
   "server": {
     "host": "0.0.0.0",
     "port": 8080
   },
   "search": {
     "default_limit": 10,
-    "max_limit": 100,
-    "timeout": 10,
     "time_decay": {
       "enabled": true,
       "half_life_days": 90,
@@ -116,549 +60,199 @@ To search across multiple vaults, use the `vaults` array:
 }
 ```
 
-Multi-vault support includes LRU cache (max 3 vaults in memory, ~1.5GB RAM), fast vault switching (~400ms when cached), independent indexes per vault (stored in `vault/.temoa/`), vault selector in web UI, and `--vault` CLI flag for all commands.
-
-Configuration files are searched in priority order:
-
-1. `~/.config/temoa/config.json` (recommended)
-2. `~/.temoa.json` (alternative)
-3. `./config.json` (development)
-
-### Configuration Fields
-
-| Field | Description |
-|:------|:------------|
-| `vaults` | Array of vault configurations (optional, for multi-vault) |
-| `vault_path` | Path to your Obsidian vault (or default vault) |
-| `synthesis_path` | Path to Synthesis engine (bundled in `synthesis/`) |
-| `storage_dir` | Where to store embeddings index (default: `vault/.temoa/`) |
-| `default_model` | Embedding model (see Available Models below) |
-| `server` | HTTP server settings |
-| `search.time_decay.enabled` | Enable recency boost (default: true) |
-| `search.time_decay.half_life_days` | Days for 50% decay (default: 90) |
-| `search.time_decay.max_boost` | Maximum boost for today's docs (default: 0.2 = 20%) |
+Config is searched in order: `~/.config/temoa/config.json`, `~/.temoa.json`, `./config.json`.
 
 ## Quick Start
 
 ```bash
-# Build embedding index (first time only)
+# Build embedding index (first time)
 temoa index
 
 # Start server
 temoa server
 
-# Access web UI
-open http://localhost:8080
-
-# Or search from CLI
+# Search from CLI
 temoa search "semantic search"
 
+# Or via HTTP
+curl "http://localhost:8080/search?q=semantic+search"
+
 # Access from mobile (via Tailscale)
-# http://<tailscale-ip>:8080
+# http://<tailscale-ip>:8080/search?q=...
 ```
 
-First startup requires model download (30-60s one-time). Subsequent starts take ~15s.
+First startup downloads the model (~80 MB, one-time). Subsequent starts take ~15s.
 
 ## CLI Commands
 
 ```bash
-# Configuration
-temoa config              # Show current config
-
-# Indexing
-temoa index               # Build index from scratch (first time)
-temoa reindex             # Update index incrementally (daily use)
-
-# Searching
-temoa search "query"      # Quick search from terminal
-temoa archaeology "topic" # Temporal analysis (when was I interested in X?)
+temoa server              # Start HTTP server
+temoa search "query"      # Search from terminal
+temoa index               # Build index from scratch (first time / forced rebuild)
+temoa reindex             # Incremental update (new and modified files only)
 temoa stats               # Vault statistics
-
-# Gleanings
-temoa extract             # Extract gleanings from daily notes
-
-# Gleaning management
-temoa gleaning list                           # List all gleanings
-temoa gleaning show <id>                      # Show gleaning details
-temoa gleaning mark <id> --status inactive    # Mark gleaning status
-temoa gleaning maintain                       # Check links, add descriptions
-
-# Server
-temoa server              # Start HTTP server (port 8080)
-temoa server --reload     # Start with auto-reload (dev)
+temoa config              # Show current configuration
+temoa vaults              # List configured vaults and their models
+temoa archaeology "topic" # Show when you were interested in a topic over time
 ```
 
 ### Index vs Reindex
 
-| Command | Description | Files Processed | Time | Use Case |
-|:--------|:------------|:----------------|:-----|:---------|
-| `temoa index` | Full rebuild | All files (3,000+) | ~2-3 minutes | First time setup, index corruption |
-| `temoa reindex` | Incremental update | New, modified, deleted | ~5 seconds | Daily use (30x faster) |
-
-#### Performance Example (3,059 file vault)
-
-| Operation | Time | Files Processed |
-|:----------|:-----|:----------------|
-| Full index | 159s | 3,059 files |
-| Incremental (no changes) | 4.8s | 0 files |
-| Incremental (5 new files) | 6-8s | 5 files |
-
-Incremental reindexing detects new files (not in previous index), modified files (changed modification timestamp), and deleted files (in index but not in vault).
+| Command | Files processed | Time | Use case |
+|:--------|:----------------|:-----|:---------|
+| `temoa index` | All files | ~2–3 min | First time, forced rebuild |
+| `temoa reindex` | New and modified only | ~5s | Daily use |
 
 ## HTTP API
 
-### Search
+### `GET /search`
+
 ```bash
-GET /search?q=<query>&limit=10&min_score=0.3&exclude_types=daily&vault=main
+curl "http://localhost:8080/search?q=query&limit=10&hybrid=true"
 ```
 
-| Parameter | Type | Default | Description |
-|:----------|:-----|:--------|:------------|
-| `q` | string | required | Search query |
-| `limit` | integer | 10 | Maximum results (max: 100) |
-| `min_score` | float | 0.3 | Minimum similarity score (0-1) |
-| `exclude_types` | string | "daily" | Comma-separated types to exclude |
-| `include_types` | string | none | Comma-separated types to include |
-| `hybrid` | boolean | false | Use hybrid search (BM25 + semantic) |
-| `rerank` | boolean | true | Enable cross-encoder re-ranking |
-| `expand_query` | boolean | false | Auto-expand short queries (<3 words) using TF-IDF |
-| `time_boost` | boolean | true | Apply time-decay boost to recent docs |
-| `vault` | string | config | Vault name to search |
-
-**Example:**
-```bash
-curl "http://localhost:8080/search?q=semantic+search&limit=5"
-```
+| Parameter | Default | Description |
+|:----------|:--------|:------------|
+| `q` | required | Search query |
+| `vault` | config | Vault name |
+| `limit` | 10 | Max results (1–100) |
+| `min_score` | 0.3 | Minimum similarity (0–1) |
+| `hybrid` | false | BM25 + semantic search |
+| `rerank` | true | Cross-encoder re-ranking |
+| `expand_query` | false | TF-IDF expansion for short queries |
+| `time_boost` | true | Recency boost |
+| `include_types` | — | JSON array of types to include |
+| `exclude_types` | — | JSON array of types to exclude |
+| `include_tags` | — | JSON array of tags |
+| `exclude_tags` | — | JSON array of tags to exclude |
+| `include_paths` | — | Path prefixes to include |
+| `exclude_paths` | — | Path prefixes to exclude |
 
 **Response:**
 ```json
 {
   "query": "semantic search",
-  "expanded_query": null,
   "results": [
     {
       "title": "Semantic Search Tools",
       "relative_path": "L/Gleanings/abc123.md",
       "similarity_score": 0.847,
-      "cross_encoder_score": 4.523,
-      "obsidian_uri": "obsidian://open?vault=...",
+      "obsidian_uri": "obsidian://open?vault=myvault&file=...",
       "description": "Overview of semantic search implementations",
       "tags": ["search", "ai"],
-      "frontmatter": {
-        "type": "gleaning",
-        "date": "2025-01-15"
+      "frontmatter": {"type": "gleaning"},
+      "scores": {
+        "semantic": 0.847,
+        "bm25": 0.42,
+        "rrf": 0.63,
+        "cross_encoder": 4.52,
+        "final": 0.91
       }
     }
   ],
   "total": 15,
-  "filtered_count": 10,
-  "model": "all-mpnet-base-v2",
-  "vault": "main"
+  "model": "all-MiniLM-L6-v2",
+  "vault": "myvault"
 }
 ```
 
-**Note**: When query expansion is triggered (short queries), `expanded_query` shows the enhanced query used for search.
+### Other Endpoints
 
-### Archaeology (Temporal Analysis)
-```bash
-GET /archaeology?q=<topic>&threshold=0.2
-```
-
-Shows when you were interested in a topic over time.
-
-### Statistics
-```bash
-GET /stats
-```
-
-Vault statistics (file count, embeddings, tags).
-
-### Health Check
-```bash
-GET /health
-```
-
-Server health and model status.
-
-### Extract Gleanings
-```bash
-POST /extract?incremental=true&auto_reindex=true
-```
-
-Extract gleanings from daily notes and optionally reindex.
-
-### Reindex
-```bash
-POST /reindex?force=false
-```
-
-Update embedding index with new/modified files.
-
-| Parameter | Type | Default | Description |
-|:----------|:-----|:--------|:------------|
-| `force` | boolean | false | `false` for incremental update, `true` for full rebuild |
-
-**Examples:**
-```bash
-# Incremental reindex (only changed files)
-curl -X POST "http://localhost:8080/reindex?force=false"
-
-# Full rebuild (all files)
-curl -X POST "http://localhost:8080/reindex?force=true"
-```
-
-**Response:**
-```json
-{
-  "status": "success",
-  "files_indexed": 3059,
-  "new_files": 5,
-  "modified_files": 2,
-  "deleted_files": 1
-}
-```
-
-### Graph Operations
-
-```bash
-# Get wikilinks for a file
-GET /graph/links?file=path/to/file.md
-
-# Get backlinks to a file
-GET /graph/backlinks?file=path/to/file.md
-
-# Get semantically similar documents
-GET /similar?file=path/to/file.md&limit=20
-```
-
-### Experimental Endpoints
-
-```bash
-# Search harness UI
-GET /harness
-
-# Pipeline visualization
-GET /pipeline?q=query
-
-# Document inspector
-GET /inspector?file=path/to/file.md
-```
+| Endpoint | Method | Description |
+|:---------|:-------|:------------|
+| `/health` | GET | Server status |
+| `/config` | GET | Current configuration |
+| `/vaults` | GET | Configured vaults |
+| `/models` | GET | Available embedding models |
+| `/stats` | GET | Index statistics |
+| `/reindex` | POST | Rebuild or update index (`?force=false`) |
+| `/archaeology` | GET | Temporal interest analysis (`?q=topic`) |
 
 ## Available Models
 
-| Model | Dimensions | Speed | Quality | Use Case |
-|:------|:-----------|:------|:--------|:---------|
-| `all-MiniLM-L6-v2` | 384 | Fast | Good | Quick searches |
-| `all-MiniLM-L12-v2` | 384 | Medium | Better | Balanced |
-| `all-mpnet-base-v2` | 768 | Slower | Best | Default (quality) |
-| `multi-qa-mpnet-base-cos-v1` | 768 | Slower | Best | Q&A optimized |
-| `paraphrase-albert-small-v2` | 768 | Slower | Good | Paraphrasing |
-
-Default: `all-mpnet-base-v2`
-
-Change model in config or via `--model` flag.
-
-## Gleanings
-
-**Gleanings** are saved links extracted from your daily notes.
-
-### Format in Daily Notes
-
-```markdown
-## Gleanings
-
-- [Article Title](https://example.com) - Description here
-- https://example.com (naked URLs work too)
-```
-
-### Extraction
-
-```bash
-# Extract new gleanings from daily notes
-temoa extract
-
-# Full re-extraction (process all files)
-temoa extract --full
-
-# Dry run (preview what would be extracted)
-temoa extract --dry-run
-```
-
-Supports multiple formats including markdown links (`- [Title](URL) - Description`), naked URLs with bullets (`- https://...`), bare naked URLs (`https://...`), multi-line descriptions (lines starting with `>`), and timestamps (`[HH:MM]` preserved in date field).
-
-### Gleaning Management
-
-```bash
-# List inactive gleanings (dead links)
-temoa gleaning list --status inactive
-
-# Mark gleaning as hidden
-temoa gleaning mark abc123 --status hidden --reason "duplicate"
-
-# Check all gleaning links, mark dead ones inactive
-temoa gleaning maintain --check-links --mark-dead-inactive
-```
-
-Gleanings have three status types: `active` (normal, included in search), `inactive` (dead link, excluded from search, auto-restores if link comes back), and `hidden` (manually hidden, never auto-restored).
+| Model | Dimensions | Speed | Notes |
+|:------|:-----------|:------|:------|
+| `all-MiniLM-L6-v2` | 384 | Fast | Default |
+| `all-MiniLM-L12-v2` | 384 | Medium | Better quality |
+| `all-mpnet-base-v2` | 768 | Medium | Higher quality |
+| `multi-qa-mpnet-base-cos-v1` | 768 | Medium | Q&A optimized |
 
 ## Mobile Access via Tailscale
 
-Temoa runs on your local network. Access from mobile using Tailscale:
+1. Install Tailscale on server and phone
+2. Start server: `temoa server`
+3. Get server IP: `tailscale ip -4`
+4. Search from phone: `http://<tailscale-ip>:8080/search?q=...`
 
-1. **Install Tailscale** on server and mobile device
-2. **Start server**: `temoa server`
-3. **Get server IP**: `tailscale ip -4` (e.g., `100.x.x.x`)
-4. **Access from mobile**: `http://100.x.x.x:8080`
+Tailscale encrypts all traffic — no HTTPS or port forwarding needed.
 
-Tailscale encrypts all traffic, eliminating the need for HTTPS and preventing public exposure.
-
-### PWA Installation (Progressive Web App)
-
-Temoa can be installed as a PWA on mobile devices for quick access:
-
-**iOS (Safari)**:
-1. Open Temoa in Safari: `http://100.x.x.x:8080`
-2. Tap the Share button (box with arrow)
-3. Scroll down and tap "Add to Home Screen"
-4. Name it "Temoa" and tap "Add"
-5. Tap the Temoa icon on your home screen to launch
-
-**Android (Chrome)**:
-1. Open Temoa in Chrome: `http://100.x.x.x:8080`
-2. Tap the three-dot menu (⋮)
-3. Tap "Add to Home screen" or "Install app"
-4. Confirm by tapping "Add" or "Install"
-5. Tap the Temoa icon on your home screen to launch
-
-Installing as a PWA provides one-tap access from your home screen, launches like a native app without browser UI, provides offline UI (search requires network), and maintains persistent state and settings.
-
-## Deployment
-
-### Background Process (Mac/Linux)
+## Deployment (macOS launchd)
 
 ```bash
-# Start server in background
-nohup temoa server > ~/temoa.log 2>&1 &
-echo $! > ~/temoa.pid
-
-# View logs
-tail -f ~/temoa.log
-
-# Stop server
-kill $(cat ~/temoa.pid)
+cd launchd
+./install.sh
+launchctl list | grep temoa
 ```
 
-### System Service (Linux)
+See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for full setup guide.
 
-```bash
-# Create systemd service
-sudo tee /etc/systemd/system/temoa.service << 'EOF'
-[Unit]
-Description=Temoa Semantic Search Server
-After=network.target
+## Search Pipeline
 
-[Service]
-Type=simple
-User=youruser
-WorkingDirectory=/home/youruser/projects/temoa
-ExecStart=/home/youruser/.local/bin/temoa server
-Restart=always
+1. **Query expansion** (optional) — expand short queries (<3 words) with TF-IDF
+2. **Retrieval** — semantic (bi-encoder) or hybrid (semantic + BM25 with RRF)
+3. **Score filter** — remove results below `min_score`
+4. **Status filter** — remove `status: inactive/hidden` results
+5. **Query filter** — apply type/tag/property/path/file filters
+6. **Re-ranking** (optional) — cross-encoder precision boost (~200ms, +20–30%)
+7. **Time boost** (optional) — exponential decay recency boost
+8. **Top-K** — return final `limit` results
 
-[Install]
-WantedBy=multi-user.target
-EOF
+## Performance
 
-# Enable and start
-sudo systemctl daemon-reload
-sudo systemctl enable temoa
-sudo systemctl start temoa
-```
+| Operation | Time |
+|:----------|:-----|
+| Search (semantic) | ~400ms |
+| Search (hybrid) | ~450ms |
+| Search (+ reranking) | ~600ms |
+| Startup (model cached) | ~15–20s |
+| Full reindex (3,059 files) | ~159s |
+| Incremental reindex (no changes) | ~5s |
 
-### Automation
-
-```bash
-# Daily gleaning extraction (add to crontab)
-0 23 * * * cd ~/projects/temoa && temoa extract
-```
-
-See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for complete deployment guide.
+Memory: ~600 MB single vault, ~1.5 GB for 3 cached vaults.
 
 ## Architecture
 
 ```
-Mobile Browser
-    ↓ HTTP over Tailscale VPN
-FastAPI Server (temoa)
-    ↓ Direct Python imports
-Synthesis Engine (sentence-transformers)
-    ↓ Embeddings
-Obsidian Vault + .temoa/index
+CLI / HTTP client
+    │
+FastAPI Server (server.py)
+    │
+SynthesisClient (synthesis.py) — model in memory
+    │
+Synthesis Engine (synthesis/) — sentence-transformers + NumPy
+    │
+Obsidian Vault + .temoa/ index
 ```
 
-The architecture includes a FastAPI server for HTTP API and web UI, Synthesis engine for semantic search and embeddings, sentence-transformers for pre-trained models, and local storage in the `.temoa/` directory within the vault for embeddings index and state.
-
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed architecture documentation.
-
-## Performance
-
-### Search Latency (3,000 file vault)
-
-| Operation | Time |
-|:----------|:-----|
-| Semantic search | ~400ms |
-| Hybrid search (BM25 + semantic) | ~450ms |
-| With cross-encoder re-ranking | ~600ms |
-| Short query with expansion + re-ranking | ~800-1000ms |
-
-### Memory Usage
-
-| Configuration | Memory |
-|:--------------|:-------|
-| Single vault | ~600 MB (bi-encoder model) |
-| With re-ranking | ~800 MB (bi-encoder + cross-encoder) |
-| Multi-vault (3 vaults cached) | ~1.5 GB |
-
-### Other Metrics
-
-| Metric | Value |
-|:-------|:------|
-| Startup time | ~15-20s (model loading) |
-| Full reindex (3,059 files) | ~159s |
-| Incremental reindex (no changes) | ~5s (30x faster) |
-| Incremental reindex (5-10 new files) | ~6-8s |
-| Scalability | Linear to 10,000+ files |
-
-## Search Quality Pipeline
-
-Temoa uses a multi-stage search pipeline for high precision:
-
-1. Query Enhancement (optional, for short queries) - Auto-expand queries <3 words using TF-IDF. Example: `"AI"` → `"AI machine learning neural networks"`
-
-2. Initial Retrieval - Fast bi-encoder similarity (all-mpnet-base-v2) for semantic search, or BM25 keyword + semantic with RRF fusion for hybrid search. Returns top 100 candidates.
-
-3. Filtering - Apply score threshold (min_score), status filter (exclude inactive gleanings), and type filter (exclude/include by document type).
-
-4. Time-Aware Boost (optional) - Recent documents get exponential decay boost with configurable half-life (default: 90 days) and max boost of 20% for today's documents.
-
-5. Cross-Encoder Re-Ranking (optional, enabled by default) - Precise two-stage retrieval using ms-marco-MiniLM-L-6-v2. Re-ranks top 100 candidates for 20-30% precision improvement with ~200ms latency.
-
-6. Top-K Selection - Return final results (default: 10).
-
-Expected quality improvements include Precision@5 of 80-90% (up from 60-70% without re-ranking), much better results for short queries with expansion, and improved ranking for recent topics with time boost.
-
-### Adaptive Chunking
-
-Files larger than 4,000 characters are automatically chunked to ensure full searchability:
-
-- Chunk size: 2,000 characters with 400-character overlap
-- Sliding window ensures complete coverage
-- Deduplication keeps best-scoring chunk per file
-- No search-time performance penalty
-
-**Impact:**
-- Before: 9MB book → only first 2,500 chars searchable (~2.5%)
-- After: Same book → 50 chunks, all 100,000 chars searchable (100%)
-- Example vault: 2,006 files → 8,755 searchable chunks (4.4x content items)
-
-Configuration: Enabled by default.
-
-See [docs/SEARCH-MECHANISMS.md](docs/SEARCH-MECHANISMS.md) for detailed technical reference.
-
-## Experimental Tools
-
-Temoa includes experimental tools for search exploration and debugging (added Jan 2026):
-
-### Search Harness (`/harness`)
-
-Interactive score mixer for real-time search experimentation. Adjust weights and parameters with instant feedback:
-
-- BM25/semantic balance slider
-- Tag boost multiplier
-- Time decay controls
-- Type filtering toggles
-- Side-by-side comparison of parameter effects
-
-**Use Case:** Fine-tune search parameters for your vault, understand how different weights affect results.
-
-### Pipeline Viewer (`/pipeline?q=query`)
-
-Visualize results at each of the 8 search stages. See how filtering, boosting, and re-ranking transform the result set:
-
-1. Query expansion (if enabled)
-2. Initial retrieval (semantic/hybrid)
-3. Score filtering
-4. Status filtering (gleanings)
-5. Type filtering
-6. Time-aware boosting
-7. Cross-encoder re-ranking
-8. Final results
-
-**Use Case:** Debug why a document appears at a certain rank, understand pipeline behavior for specific queries.
-
-### Inspector (`/inspector?file=path`)
-
-Explore a document's connections and relationships:
-
-- **Wikilinks**: Outgoing links from the document
-- **Backlinks**: Documents linking to this one
-- **Similar**: Semantically similar documents (top 20)
-- **Graph caching**: 0.1s response time (vs 90s uncached)
-
-**Use Case:** Understand document relationships, discover unexpected connections, validate similarity scoring.
-
-### Explorer View
-
-Alternative search results view showing document relationships and graph context. Displays wikilinks, backlinks, and similar documents alongside search results.
-
-**Use Case:** Research mode, follow connection threads, visual exploration of vault structure.
-
-**Access:** All experimental tools available from the management page (`/manage` or web UI management link).
-
-## Documentation
-
-- **[docs/README.md](docs/README.md)**: Documentation index and navigation
-- **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**: System architecture with diagrams
-- **[docs/SEARCH-MECHANISMS.md](docs/SEARCH-MECHANISMS.md)**: Search algorithms and quality pipeline
-- **[docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md)**: Implementation progress and plans
-- **[docs/CHRONICLES.md](docs/CHRONICLES.md)**: Design decisions and history (split into chapters)
-- **[docs/GLEANINGS.md](docs/GLEANINGS.md)**: Gleaning extraction guide
-- **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)**: Production deployment guide
-- **[CLAUDE.md](CLAUDE.md)**: Development guide for AI sessions
-
-## Project Status
-
-**Version**: 0.7.0
-
-**Phase**: Experimentation Phase Active
-
-All major phases completed: Phase 0 (Discovery & Validation), Phase 1 (Minimal Viable Search), Phase 2 (Gleanings Integration), Phase 2.5 (Mobile Validation & UI Optimization), Phase 3 (Enhanced Features including multi-vault, search quality, and UX polish), and Production Hardening (Phases 0-4 + 6). Currently exploring search UX improvements through experimental tools.
-
-**Testing**: 223 tests (171 passing baseline)
-
-**Next**: Continue experimentation or Phase 4 (Vault-First LLM)
-
-See [docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md) for complete history and next steps.
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for details.
 
 ## Philosophy
 
 > You don't have an organization problem. You have a surfacing problem.
 
-- **Simple over complex**: Individual files, not state management
-- **Semantic search**: Let embeddings find connections
-- **Mobile-first**: Optimize for phone use
-- **Local processing**: Privacy, no external APIs
-- **Vault-first habit**: Check your vault before searching the internet
+- Search by meaning — embeddings find connections keywords miss
+- Mobile-first — your vault in your pocket
+- Local processing — no cloud, no external APIs, full privacy
+- Vault-first habit — check your notes before searching the internet
 
-## Tech Stack
+## Documentation
 
-- Python 3.11+ with [uv](https://github.com/astral-sh/uv)
-- FastAPI (async HTTP server)
-- sentence-transformers (embeddings)
-- Click (CLI)
-- Vanilla HTML/CSS/JS (web UI)
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — system architecture
+- [docs/SEARCH-MECHANISMS.md](docs/SEARCH-MECHANISMS.md) — search algorithms
+- [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) — launchd service, Tailscale
+- [docs/TESTING.md](docs/TESTING.md) — test baseline
+- [CLAUDE.md](CLAUDE.md) — development guide
 
 ---
 
-**Created**: 2025-11-17
-**Last Updated**: 2026-01-26
-**Version**: 0.7.0
+**Version**: 2.0.0 | **Created**: 2025-11-17 | **Last Updated**: 2026-06-07

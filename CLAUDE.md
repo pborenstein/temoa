@@ -2,9 +2,9 @@
 
 > **Purpose**: Context and guidance for Claude AI across development sessions.
 
-**Last Updated**: 2026-03-16
-**Project Status**: Experimentation Phase Active / Production Hardening ongoing
-**Current Version**: 0.7.0
+**Last Updated**: 2026-06-07
+**Project Status**: Experimentation Phase Active — Pure Search Engine
+**Current Version**: 2.0.0
 **Current Branch**: `main`
 
 ---
@@ -15,7 +15,7 @@
 
 **Problem Solved**: Saved links and notes accumulate but never resurface. Temoa makes your vault the first place to check before external search.
 
-**Vault**: `~/Obsidian/amoxtli` — gleanings live in `L/Gleanings/` as individual `.md` files.
+**Vault**: `~/Obsidian/amoxtli`
 
 ---
 
@@ -45,29 +45,28 @@
 temoa/
 ├── CLAUDE.md             # This file
 ├── docs/                 # Documentation
-│   ├── ARCHITECTURE.md   # System architecture & embeddings
+│   ├── ARCHITECTURE.md   # System architecture & data flow
 │   ├── SEARCH-MECHANISMS.md  # Search algorithms & ranking
 │   ├── IMPLEMENTATION.md # Progress tracking (source of truth for phase status)
 │   ├── chronicles/       # Design discussions & decision log (by phase)
 │   ├── DECISIONS.md      # Architectural decision records
-│   ├── GLEANINGS.md      # Gleaning extraction & management
 │   ├── TESTING.md        # Test baseline, known failures
 │   └── DEPLOYMENT.md     # Launchd service setup
-├── synthesis/            # Core search engine
+├── synthesis/            # Core search engine (bundled)
 ├── src/temoa/            # Temoa source code
-│   ├── server.py         # FastAPI app, endpoints, main pipeline
-│   ├── synthesis.py      # Synthesis client wrapper, hybrid search
-│   ├── bm25_index.py     # BM25 keyword search with tag boosting
+│   ├── server.py         # FastAPI app, endpoints, lifespan
+│   ├── cli.py            # Click CLI — 8 commands
+│   ├── pipeline.py       # Composable post-retrieval pipeline
+│   ├── server_filters.py # Filter functions (type, tag, property, path, file)
+│   ├── synthesis.py      # SynthesisClient wrapper, hybrid search
+│   ├── bm25_index.py     # BM25 keyword index
 │   ├── reranker.py       # Cross-encoder re-ranking
 │   ├── query_expansion.py # TF-IDF query expansion
 │   ├── time_scoring.py   # Time-aware scoring
 │   ├── config.py         # Configuration management
-│   ├── gleanings.py      # Gleaning extraction logic
-│   ├── normalizers.py    # URL normalization
 │   ├── client_cache.py   # Multi-vault LRU cache
-│   ├── github_client.py  # GitHub API for repo title/description fetch
-│   ├── ui/               # Web interface (search.html, manage.html, harness.html, etc.)
-│   └── scripts/          # CLI tools (extract_gleanings.py, maintain_gleanings.py)
+│   ├── rate_limiter.py   # Per-IP sliding-window rate limiter
+│   └── storage.py        # Storage directory derivation, vault validation
 ├── tests/                # Test suite
 ├── launchd/              # macOS service management
 ├── config.json           # Local config (not committed)
@@ -91,7 +90,9 @@ temoa/
 
 ## Current State
 
-**All phases through Phase 3 + Production Hardening complete.** See `docs/IMPLEMENTATION.md` and `docs/CONTEXT.md` for current status.
+**v2.0.0 — pure search engine.** UI, gleanings, and graph removed. Gleaning lifecycle lives in pixquitl (`~/projects/nahuatl-PROJECTS/pixquitl`).
+
+See `docs/IMPLEMENTATION.md` and `docs/CONTEXT.md` for current status.
 
 ### Test Baseline
 
@@ -114,17 +115,17 @@ uv run pytest
 # Search
 uv run temoa search "query" --vault amoxtli --limit 10 --hybrid
 
-# Index (incremental by default)
-uv run temoa index --vault amoxtli
+# Reindex (incremental)
+uv run temoa reindex --vault amoxtli
 
-# Force full reindex
+# Full index rebuild
 uv run temoa index --vault amoxtli --force
 
-# Extract gleanings
-uv run temoa extract --vault amoxtli
+# Temporal analysis
+uv run temoa archaeology "topic" --vault amoxtli
 
-# Maintain gleanings (check links)
-uv run temoa gleaning maintain --vault amoxtli
+# Index stats
+uv run temoa stats --vault amoxtli
 
 # Config / vault list
 uv run temoa config
@@ -147,10 +148,9 @@ launchctl list | grep temoa
 | `docs/TESTING.md` | Test baseline, known failures, debugging |
 | `docs/chronicles/` | Design discussions & decision history (organized by phase) |
 | `docs/DECISIONS.md` | Architectural decision records |
-| `docs/GLEANINGS.md` | Gleaning extraction & management guide |
 | `docs/DEPLOYMENT.md` | Launchd service setup |
 | `docs/RESEARCH-NOTES.md` | External research, tool comparisons, actionable ideas |
 
 ---
 
-**Owner**: pborenstein | **Created**: 2025-11-18 | **Last Updated**: 2026-03-16
+**Owner**: pborenstein | **Created**: 2025-11-18 | **Last Updated**: 2026-06-07

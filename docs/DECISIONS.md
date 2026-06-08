@@ -177,12 +177,13 @@ This checks for:
 | DEC-089: Topics as JSON array/YAML list | 44 | Structured data for filtering |
 | DEC-090: Only enrich missing data | 44 | Idempotent, skip if github_stars exists |
 | DEC-091: README excerpt max 500 chars | 44 | ~2-3 sentences, fits search preview |
-| DEC-092: obsidiantools for graph analysis | 58 | Production-ready (502 stars), NetworkX integration, lazy loading |
-| DEC-093: Two layers of relatedness | 57-58 | Explicit links (wikilinks) + Implicit similarity (embeddings) |
-| DEC-094: Lazy graph loading per vault | 58 | ~90s load time, cache on first request not startup |
+| DEC-092: obsidiantools for graph analysis | 58 | **SUPERSEDED** — VaultGraph removed in v2.0 rebuild |
+| DEC-093: Two layers of relatedness | 57-58 | **SUPERSEDED** — Inspector/graph removed in v2.0 rebuild |
+| DEC-094: Lazy graph loading per vault | 58 | **SUPERSEDED** — VaultGraph removed in v2.0 rebuild |
 | DEC-095: Remove search profiles feature | 64 | Unused abstraction; direct query params sufficient |
 | DEC-096: Obsidian-compatible filter parser | 70 | Lexer+parser with AST for property syntax, boolean operators, grouping |
 | DEC-097: Two-phase filtering architecture | 73-74 | Query Filter (server pre-filtering) + Results Filter (client post-filtering) |
+| DEC-098: v2.0 rebuild — strip to pure search API | 96-97 | Remove UI/gleanings/graph; extract gleaning lifecycle to pixquitl |
 
 ---
 
@@ -357,5 +358,41 @@ Implement two-phase filtering architecture:
 **See Also**: Chronicle Entries 73-74
 
 **Commits**: 6911066 (Query Filter), 876ff8d (15-20x speedup)
+
+---
+
+## DEC-098: v2.0 Rebuild — Strip to Pure Search API (2026-05-30)
+
+**Status**: ✅ Accepted
+
+**Context**:
+- Temoa had grown to include a web UI, gleaning extraction, gleaning management,
+  knowledge graph (VaultGraph), Inspector, Search Harness, and Pipeline Viewer
+- server.py had reached 2,671 lines
+- The core value — semantic search — was buried under gleaning lifecycle management
+- Gleaning extraction is a separate concern from search; it was entangled by accident
+
+**Decision**:
+Strip temoa to a pure search engine:
+
+1. Remove the web UI (search.html, manage.html, harness.html, inspector)
+2. Remove gleaning extraction and management (extract, gleaning CLI commands)
+3. Remove knowledge graph (VaultGraph, obsidiantools dependency)
+4. Remove Search Harness, Pipeline Viewer, Inspector endpoints
+5. Extract gleaning lifecycle to a new standalone tool (pixquitl)
+6. Introduce composable pipeline abstraction (pipeline.py + server_filters.py)
+7. Keep archaeology (temporal analysis) as it's search-adjacent
+
+**Consequences**:
+- ✅ server.py: 2,671 → 430 lines
+- ✅ Single responsibility: temoa searches, pixquitl manages gleanings
+- ✅ Composable pipeline makes stage ordering and filtering explicit
+- ✅ CLI reduced to 8 focused commands
+- ⚠️ Users who relied on the web UI need to query the API directly
+- ⚠️ DEC-092, DEC-093, DEC-094 (VaultGraph/Inspector/graph loading) are superseded
+
+**See Also**: Chronicle Entries 96-97
+
+**Commits**: c83bfde (server rebuild), 1ef34ca (gleaning strip), a826237 (type filtering restore), 48c90ec (merge)
 
 ---

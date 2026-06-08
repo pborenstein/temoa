@@ -10,11 +10,10 @@
 
 **Project**: Temoa - Local Semantic Search Server for Obsidian Vault
 **Created**: 2025-11-18
-**Status**: Experimentation Phase 🔵 ACTIVE - Knobs & Dials Tuning
-**Last Updated**: 2026-05-30
-**Current Version**: 0.7.0
+**Status**: Experimentation Phase 🔵 ACTIVE - Pure Search Engine
+**Last Updated**: 2026-06-07
+**Current Version**: 2.0.0
 **Current Branch**: `main`
-**Estimated Timeline**: 4-6 weeks for Phases 0-2, ongoing for Phases 3-4
 
 ---
 
@@ -39,7 +38,8 @@
 | Phase 2: Gleanings Integration | ✅ **COMPLETE** | 1 day | Phase 1 ✅ |
 | Phase 2.5: Mobile Validation + UI | ✅ **COMPLETE** | 1 week | Phase 2 ✅ |
 | Phase 3: Enhanced Features | ✅ **COMPLETE** | 2 weeks | Phase 2.5 ✅ |
-| **Experimentation: Knobs & Dials** | 🔵 **ACTIVE** | ongoing | Phase 3 ✅ |
+| v2.0 Rebuild: Pure Search Engine | ✅ **COMPLETE** | 2026-05 | Phase 3 ✅ |
+| **Experimentation: Knobs & Dials** | 🔵 **ACTIVE** | ongoing | v2.0 ✅ |
 | [Phase 4: Vault-First LLM](archive/backburner/phase-4-llm.md) | ⚪ Backburner | TBD | Experimentation |
 
 ---
@@ -179,10 +179,7 @@ See: chronicles/test-hygiene.md, docs/TESTING.md, chronicles/production-hardenin
 
 ## Phase 3.5: Specialized Search Modes 🔵
 
-**Status**: IN PROGRESS
-**Branch**: `phase-3.5-search-modes`
-**Version**: 0.7.0 (in development)
-**Duration**: 10-14 days (estimated)
+**Status**: COMPLETE
 
 **Goal**: Enable optimized search experiences for different content types through adaptive chunking and metadata-aware ranking.
 
@@ -348,11 +345,11 @@ The production hardening is complete. Now we experiment with different combinati
   `/search` params `include_types`/`exclude_types`, CLI `--type`/`--exclude-type`
   (needed by tlatecpana `temoa-search` skill — see Entry 97)
 
-**Next planned work**:
-- [x] Merge branch `claude/docs-codebase-review-5YeTG` to main (48c90ec)
-- [ ] Update cahuitl cron: replace `temoa extract` with `pixquitl extract`
-- [ ] qmd pipeline improvements — position-aware score blending, heading-aware chunking
-- [ ] Swappable search behaviors — config-driven profiles, build_pipeline(config, profile)
+**Completed**:
+- [x] Merge branch to main (48c90ec)
+- [x] Restart launchd service with new server
+- [x] Update cahuitl cron to use `pixquitl extract` (gleaning extraction moved to pixquitl)
+- [x] Documentation overhaul for v2.0.0 (2026-06-07)
 
 ### Methodology
 

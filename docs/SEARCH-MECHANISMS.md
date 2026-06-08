@@ -34,7 +34,7 @@ The search pipeline consists of:
   - [Query Expansion](#query-expansion)
 - [Result Filtering](#result-filtering)
   - [Score Threshold Filtering](#1-score-threshold-filtering)
-  - [Status Filtering (Inactive Gleanings)](#2-status-filtering-inactive-gleanings)
+  - [Status Filtering](#2-status-filtering)
   - [Type-Based Filtering](#3-type-based-filtering)
 - [Ranking Enhancement](#ranking-enhancement)
   - [Time-Aware Scoring](#1-time-aware-scoring)
@@ -45,7 +45,6 @@ The search pipeline consists of:
   - [Configuration](#chunking-configuration)
 - [Multi-Vault Support](#multi-vault-support)
 - [Pipeline Debugging](#pipeline-debugging)
-  - [Pipeline Viewer UI](#pipeline-viewer-ui)
   - [Pipeline Stages](#pipeline-stages)
   - [API Usage](#api-usage)
   - [Performance Impact](#performance-impact)
@@ -372,26 +371,24 @@ After retrieving results, several filters refine the list before presenting to u
 
 ---
 
-### 2. Status Filtering (Inactive Gleanings)
+### 2. Status Filtering
 
-**File**: `src/temoa/server.py::filter_inactive_gleanings()`
+**File**: `src/temoa/server_filters.py` (`StatusFilterStage`)
 
-**What it does**: Removes gleanings marked as `inactive` or `hidden` from search results.
+**What it does**: Removes documents with `status: inactive` or `status: hidden` from search results.
 
 **How it works**:
-1. Reads frontmatter from each result
-2. Checks `status:` field
-3. Filters out:
-   - `status: inactive` - Dead links, auto-detected by maintenance tool
-   - `status: hidden` - Manually hidden by user
-4. Keeps:
-   - `status: active` - Normal gleanings
-   - No status field - Regular vault documents
+1. Reads `status:` field from cached frontmatter in each result
+2. Filters out:
+   - `status: inactive` — document excluded from search
+   - `status: hidden` — document manually suppressed
+3. Keeps:
+   - `status: active` — normal document
+   - No status field — treated as active (fail-open)
 
 **Why we chose it**:
-- **Gleaning lifecycle**: Dead links shouldn't pollute search results
-- **User control**: Hide duplicates or unwanted gleanings
-- **Auto-restore**: Inactive links automatically restored if they come back online
+- **User control**: Suppress specific documents without deleting them
+- **Fail-open**: Documents without a status field are always included
 
 **Performance**: Fast (reads cached frontmatter from results, no file I/O)
 
@@ -794,7 +791,7 @@ User Query: "AI" (short query)
     ↓
 ┌─────────────────────────────────────────────────────┐
 │ Stage 4: Status Filtering                           │
-│ - Remove inactive/hidden gleanings                  │
+│ - Remove status: inactive/hidden documents          │
 │ - Check frontmatter status field                    │
 └─────────────────────────────────────────────────────┘
     ↓
@@ -978,18 +975,7 @@ GET /search?
 
 **Added**: 2026-01-21 (Phase 3 Complete)
 
-Temoa includes a pipeline viewer tool to visualize how results flow through the 8-stage search pipeline. This is useful for understanding why specific results appear, disappear, or change ranks during search.
-
-### Pipeline Viewer UI
-
-Access the pipeline viewer at: `http://localhost:8080/pipeline`
-
-The UI provides:
-- **Summary metrics**: Total time, initial/final result counts, filtering statistics
-- **Stage-by-stage visualization**: See results at each pipeline stage
-- **Rank change tracking**: Visualize how re-ranking and time boost affect result order
-- **Filtering details**: See which results were removed and why
-- **Export functionality**: Download full pipeline state as JSON
+The search API supports `pipeline_debug=true` to return per-stage timing and result counts. Useful for understanding why specific results appear, disappear, or change ranks.
 
 ### Pipeline Stages
 
@@ -1006,7 +992,7 @@ The search pipeline consists of 8 stages (0-7):
    - Shows: Before/after counts, min score threshold, removed items
    - Only applied in semantic mode (not hybrid)
 
-4. **Stage 4: Status Filtering** - Remove inactive/hidden gleanings
+4. **Stage 4: Status Filtering** - Remove status: inactive/hidden documents
    - Shows: Before/after counts, removed items with status
 
 5. **Stage 5: Type Filtering** - Apply include/exclude type filters
@@ -1118,16 +1104,6 @@ The overhead comes from:
 3. **Tuning re-ranking**: See how cross-encoder changes result order
 4. **Parameter optimization**: Compare pipeline behavior across different parameter settings
 5. **Performance analysis**: Identify slow stages (timing per stage)
-
-### Related Tools
-
-The pipeline viewer complements existing debugging tools:
-
-- **Score Mixer (`/harness`)**: Live score weight tuning (semantic, BM25, RRF)
-- **Pipeline Viewer (`/pipeline`)**: Stage-by-stage result flow visualization (this tool)
-- **Search UI (`/`)**: Main search interface with vault selector
-
-All three tools are interconnected via navigation links in the header.
 
 ---
 

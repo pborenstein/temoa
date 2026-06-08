@@ -74,7 +74,6 @@ cat > ~/.config/temoa/config.json << 'EOF'
     "default_limit": 10,
     "max_limit": 100,
     "timeout": 10,
-    "default_profile": "default",
     "time_decay": {
       "enabled": true,
       "half_life_days": 90,
@@ -90,18 +89,14 @@ cat > ~/.config/temoa/config.json << 'EOF'
   "rate_limits": {
     "search_per_hour": 1000,
     "archaeology_per_hour": 20,
-    "reindex_per_hour": 5,
-    "extract_per_hour": 10
+    "reindex_per_hour": 5
   }
 }
 EOF
 ```
 
-**New in Phase 3.5:**
-- `search.default_profile`: Default search profile to use ("default", "repos", "recent", "deep", "keywords")
-- `chunking`: Adaptive chunking configuration (Phase 3.5.2 - enables 100% content searchability)
-
-**New in Phase 4:**
+**Configuration notes:**
+- `chunking`: Adaptive chunking (enables 100% content searchability for large files)
 - `server.cors_origins`: CORS allowed origins (restrictive by default)
 - `rate_limits`: DoS protection for expensive endpoints
 
@@ -115,18 +110,15 @@ cat > ~/.config/temoa/config.json << 'EOF'
   "vaults": {
     "amoxtli": {
       "path": "~/Obsidian/amoxtli",
-      "model": "all-mpnet-base-v2",
-      "default_profile": "default"
+      "model": "all-mpnet-base-v2"
     },
     "1002": {
       "path": "~/Obsidian/1002",
-      "model": "all-MiniLM-L6-v2",
-      "default_profile": "deep"
+      "model": "all-MiniLM-L6-v2"
     },
     "work": {
       "path": "~/Obsidian/work-vault",
-      "model": "all-mpnet-base-v2",
-      "default_profile": "repos"
+      "model": "all-mpnet-base-v2"
     }
   },
   "default_vault": "amoxtli",
@@ -153,8 +145,7 @@ EOF
 **Multi-vault features:**
 - **LRU cache**: Max 3 vaults in memory (~1.5GB total)
 - **Independent indexes**: Each vault has `.temoa/model-name/` directory
-- **Per-vault configuration**: Model, default profile customizable per vault
-- **Vault selector**: Dropdown in web UI
+- **Per-vault configuration**: Model customizable per vault
 - **CLI vault flag**: `--vault` flag for all commands
 - **Fast switching**: ~400ms when cached, ~15-20s on first load
 
@@ -167,7 +158,6 @@ EOF
 | `vault_path` | Path to your Obsidian vault (single-vault setup) |
 | `storage_dir` | Leave `null` to use `vault/.temoa/model-name/` |
 | `server.port` | Change if 8080 already in use |
-| `search.default_profile` | Default search profile ("default", "repos", "recent", "deep", "keywords") |
 | `search.time_decay` | Time-aware scoring configuration (boosts recent documents) |
 | `chunking.enabled` | Enable adaptive chunking for large files (recommended: true) |
 | `chunking.chunk_size` | Chunk size in characters (default: 2000) |
@@ -410,31 +400,6 @@ curl "http://localhost:8080/search?q=obsidian&limit=3" | jq '.results[] | {title
 ]
 ```
 
-**Search with profile** (Phase 3.5.1):
-```bash
-# Repos profile (optimized for GitHub repos/tech docs)
-curl "http://localhost:8080/search?q=obsidian&profile=repos&limit=3" | jq '.results[] | {title, score: .similarity_score}'
-
-# Deep profile (optimized for long-form content)
-curl "http://localhost:8080/search?q=narrative&profile=deep&limit=3" | jq '.results[] | {title, score: .similarity_score}'
-```
-
-**List available profiles**:
-```bash
-curl http://localhost:8080/profiles | jq .
-```
-
-**Expected**:
-```json
-{
-  "default": "Balanced search (50/50 hybrid, all features)",
-  "repos": "GitHub repos and tech docs (70% BM25, metadata boost)",
-  "recent": "Recent work (7-day half-life, 90-day cutoff)",
-  "deep": "Long-form content (80% semantic, 3 chunks/file)",
-  "keywords": "Exact keyword matching (80% BM25, fast)"
-}
-```
-
 ### Statistics
 
 ```bash
@@ -451,40 +416,6 @@ curl http://localhost:8080/stats | jq .
   "num_directories": 42
 }
 ```
-
-### Graph API (Exploration Tools)
-
-**Note neighbors** (wikilink graph):
-```bash
-curl "http://localhost:8080/graph/neighbors?file_path=MyNote.md&vault=amoxtli" | jq .
-```
-
-**Graph statistics**:
-```bash
-curl "http://localhost:8080/graph/stats?vault=amoxtli" | jq .
-```
-
-**Graph hubs** (most-linked notes):
-```bash
-curl "http://localhost:8080/graph/hubs?limit=10&vault=amoxtli" | jq .
-```
-
-### Web UI
-
-Open in browser:
-```bash
-open http://localhost:8080
-```
-
-Try searching for something. Results should appear in <1 second.
-
-**Unified Search Interface**:
-- **List View**: Simple search with results cards (default)
-- **Explorer View**: Three-pane layout with score inspection
-  - Controls pane: Fetch/Live parameter mixer
-  - Results pane: Search results with click-to-inspect
-  - Inspector pane: Detailed scores, metadata, linked notes, similar topics
-- Toggle between views: Click "List"/"Explorer" button or press `t`
 
 ### Automated Smoke Test
 
@@ -588,12 +519,9 @@ Now you have a home screen icon for quick access!
 
 ### Update Index
 
-After adding new notes or gleanings:
+After adding new notes:
 
 ```bash
-# Extract new gleanings (if needed)
-temoa extract
-
 # Update index incrementally (recommended - only changed files)
 temoa reindex
 ```
@@ -616,12 +544,6 @@ curl -X POST http://localhost:8080/reindex?force=false
 curl -X POST http://localhost:8080/reindex?force=true
 ```
 
-**Via Web UI**:
-1. Navigate to Management page: `http://localhost:8080/manage`
-2. Click "Reindex Vault" button
-3. For full rebuild: Check "Full rebuild (process all files)" first
-4. Default (unchecked) is incremental
-
 **Performance comparison** (3,059 file vault):
 
 | Operation | Time | Files Processed |
@@ -630,14 +552,12 @@ curl -X POST http://localhost:8080/reindex?force=true
 | Incremental (no changes) | 4.8s | 0 files |
 | Incremental (5 new) | 6-8s | 5 files |
 
-### Automated Gleaning Extraction
+### Gleaning Extraction
 
-Add to crontab (daily at 11 PM):
+Gleaning extraction is handled by [pixquitl](https://github.com/pborenstein/pixquitl) (extracted from temoa in v2.0). Add to crontab:
 
 ```bash
-crontab -e
-# Add this line:
-0 23 * * * cd ~/projects/temoa && temoa extract
+0 23 * * * cd ~/projects/nahuatl-PROJECTS/pixquitl && uv run pixquitl extract
 ```
 
 ### Check Server Status
@@ -826,11 +746,10 @@ Option 2: Configuration file (`~/.config/temoa/config.json`):
 
 ### Rate Limiting
 
-**Default limits** (Phase 4):
+**Default limits**:
 - `/search`: 1,000 requests per hour per IP
 - `/archaeology`: 20 requests per hour per IP
 - `/reindex`: 5 requests per hour per IP
-- `/extract`: 10 requests per hour per IP
 
 Returns HTTP 429 (Too Many Requests) when limits are exceeded.
 
@@ -840,8 +759,7 @@ Returns HTTP 429 (Too Many Requests) when limits are exceeded.
   "rate_limits": {
     "search_per_hour": 1000,
     "archaeology_per_hour": 20,
-    "reindex_per_hour": 5,
-    "extract_per_hour": 10
+    "reindex_per_hour": 5
   }
 }
 ```
@@ -860,36 +778,16 @@ Returns HTTP 429 (Too Many Requests) when limits are exceeded.
 
 ---
 
-## PWA Installation
-
-Temoa can be installed as a Progressive Web App on mobile devices.
-
-**iOS (Safari)**:
-1. Open Temoa in Safari: `http://100.x.x.x:8080`
-2. Tap the Share button
-3. Scroll down and tap "Add to Home Screen"
-4. Tap "Add"
-
-**Android (Chrome)**:
-1. Open Temoa in Chrome: `http://100.x.x.x:8080`
-2. Tap the three-dot menu
-3. Tap "Add to Home screen" or "Install app"
-4. Tap "Add" or "Install"
-
-Installing as a PWA provides one-tap access from your home screen, launches without browser UI, provides offline UI (search requires network), and maintains persistent state and settings.
-
----
-
 ## References
 
 - **[README.md](../README.md)**: Quick start guide
-- **[ARCHITECTURE.md](ARCHITECTURE.md)**: System architecture (updated for Phase 3.5)
-- **[SEARCH-MECHANISMS.md](SEARCH-MECHANISMS.md)**: Search algorithms and profiles
+- **[ARCHITECTURE.md](ARCHITECTURE.md)**: System architecture
+- **[SEARCH-MECHANISMS.md](SEARCH-MECHANISMS.md)**: Search algorithms
 - **[IMPLEMENTATION.md](IMPLEMENTATION.md)**: Implementation plan and progress
 - **[CONTEXT.md](CONTEXT.md)**: Current project status
 
 ---
 
 **Created**: 2025-11-19
-**Last Updated**: 2026-01-26 (Exploration Tools)
-**Version**: 0.6.0
+**Last Updated**: 2026-06-07
+**Version**: 2.0.0
