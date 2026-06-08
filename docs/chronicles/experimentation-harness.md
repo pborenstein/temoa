@@ -1258,3 +1258,23 @@ make the history navigable and give users a way to run back to the UI version.
 **Files**: `docs/ZEITGEIST-INTEGRATION.md`, `docs/README.md`
 
 ---
+
+## Entry 101: Search Query Logging — Persistent Measurement Infrastructure (2026-06-08)
+
+**What**: Every search (HTTP + CLI) now logs to `.temoa/search_log.db`: query, mode, timing, result count, top/median scores, per-result `{path, score}`, and pipeline stage breakdown. New `temoa log` CLI command shows recent searches and aggregate stats.
+
+**Why**: Experimenting with algorithm changes (reranker blending, chunking, multi-model) without measurement is guesswork. The log enables before/after comparison of real queries. Modeled on apantli's SQLite cost tracking pattern.
+
+**How**:
+- `src/temoa/search_log.py`: `SearchLog` class, aiosqlite, schema with indexes on timestamp and vault
+- Server lifespan initializes log at `{index_path}/search_log.db`; search handler awaits `log_search()` after response assembly
+- CLI search command calls `asyncio.run()` to log synchronously after results returned
+- Pipeline stage timing now always captured into `ctx.stages_debug` (previously gated on `pipeline_debug` param); HTTP response behavior unchanged
+- Test suite overrides `app.state.search_log` with tmp_path instance to avoid polluting live vault
+- Display converts UTC timestamps to local time
+
+**Decisions**: Store UTC in DB, convert to local at display time (same as apantli). Store results as `{path, score}` only — no content or descriptions.
+
+**Files**: `src/temoa/search_log.py` (new), `src/temoa/server.py`, `src/temoa/cli.py`, `src/temoa/pipeline.py`, `tests/test_search_log.py` (new) — commit `d2dbaba`
+
+---
