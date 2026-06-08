@@ -2,9 +2,9 @@
 
 > **Purpose**: Technical documentation of all search algorithms, ranking methods, and quality enhancements in Temoa.
 
-**Last Updated**: 2025-12-31
-**Status**: Phase 3.5 (Adaptive Chunking)
-**Version**: 0.7.0
+**Last Updated**: 2026-06-08
+**Status**: Experimentation Phase (v2.0.0)
+**Version**: 2.0.0
 
 ---
 
@@ -44,6 +44,7 @@ The search pipeline consists of:
   - [Chunk Deduplication](#chunk-deduplication)
   - [Configuration](#chunking-configuration)
 - [Multi-Vault Support](#multi-vault-support)
+- [Reading the Search Log](#reading-the-search-log)
 - [Pipeline Debugging](#pipeline-debugging)
   - [Pipeline Stages](#pipeline-stages)
   - [API Usage](#api-usage)
@@ -534,6 +535,21 @@ Cross-Encoder (re-ranking):
   ✓ Accurate: Learns query-document interactions
   ✗ Slow: Must process each pair separately
 ```
+
+**Understanding Cross-Encoder Scores**:
+
+The cross-encoder outputs a raw logit — an unbounded signed number with no fixed range. The sign and magnitude mean:
+
+| Score range | Meaning |
+|-------------|---------|
+| Positive (e.g. `7.5`, `0.2`) | Model thinks this document answers the query |
+| Near zero (e.g. `-0.5` to `0.5`) | Borderline — weak signal either way |
+| Negative (e.g. `-3`, `-10`) | Model thinks this document does NOT answer the query |
+| Very negative (< `-8`) | Strong mismatch — document is off-topic |
+
+**Key insight**: The scores are only meaningful *relative to each other within a single query*. A score of `-2` doesn't mean "bad" in absolute terms — it means "less relevant than the thing scoring `+0.2`." What matters is the ranking order and whether *any* result has a positive score.
+
+When all results are negative, the vault has nothing that directly answers the query — the top result is just the least-bad match.
 
 **Why we chose it**:
 - **Measured improvement**: 20-30% improvement in Precision@5
@@ -1104,6 +1120,85 @@ The overhead comes from:
 3. **Tuning re-ranking**: See how cross-encoder changes result order
 4. **Parameter optimization**: Compare pipeline behavior across different parameter settings
 5. **Performance analysis**: Identify slow stages (timing per stage)
+
+---
+
+## Reading the Search Log
+
+Every search is recorded in `.temoa/search_log.db`. Use `temoa log` to view it.
+
+```bash
+temoa log                  # recent searches (summary)
+temoa log --detail         # include ranked result paths
+temoa log --stats          # aggregate stats
+temoa log --recent 50      # last 50 searches
+```
+
+### What each field means
+
+**Summary line** (`temoa log`):
+```
+2026-06-08 00:27:17  purity in discussions...  [semantic, 10 results  top=0.227]
+│                    │                           │         │            │
+│                    │                           │         │            └─ highest cross-encoder score in results
+│                    │                           │         └─ how many results returned
+│                    │                           └─ search mode used
+│                    └─ the query
+└─ local time
+```
+
+**Result lines** (`temoa log --detail`):
+```
+   1.  0.227  L/writing with LLMs.md
+   2. -2.461  Reference/Conversation LLMs and Building Abstractions.md
+   │   │      │
+   │   │      └─ vault-relative path
+   │   └─ cross-encoder score for this result
+   └─ rank (1 = best)
+```
+
+### Making sense of the scores
+
+The score shown is the **cross-encoder score** — the final score after reranking. See [Cross-Encoder Re-Ranking](#2-cross-encoder-re-ranking) for what the sign means.
+
+**Quick interpretation guide**:
+
+| What you see | What it means |
+|---|---|
+| Top score is positive | At least one result genuinely answers the query |
+| Top score is near zero | Weak match — relevant-ish but not a direct answer |
+| All scores negative | Vault has nothing that directly answers the query; results are best-available, not good |
+| Large gap between #1 and #2 | #1 is clearly the right answer |
+| All scores clustered (e.g. `-10` to `-11`) | Results are indistinguishable — ranking is noise |
+
+**Example — good search** (vault has the answer):
+```
+purity in discussions about using llms in writing  [semantic, 10 results  top=0.227]
+   1.  0.227  L/writing with LLMs.md          ← clear winner, positive score
+   2. -2.461  Reference/Conversation LLMs...  ← decent fallback
+   3. -6.553  L/llms-are-scary.md             ← weak match, large gap from #2
+```
+
+**Example — poor search** (vault lacks direct match):
+```
+rags to riches  [semantic, 10 results  top=-10.659]
+   1. -10.945  Reference/Book Freak 210 The Art of Money Getting.md
+   2. -11.040  L/Sandberg's wealth cycle.md
+   3. -11.221  Reference/"We touch bros but we no gay"...
+```
+All negative, scores clustered within 0.3 of each other — the reranker sees no real match. Results are returned anyway (the bi-encoder found something vaguely related) but none are direct answers.
+
+### Using the log to compare changes
+
+The log's main value is before/after comparison. When you change a parameter (mode, rerank, model), run the same query and compare:
+
+1. Did the right document move up in rank?
+2. Did the top score become more positive (or less negative)?
+3. Did the gap between #1 and #2 increase (clearer winner)?
+
+**Hybrid vs semantic** — common pattern:
+- Semantic mode: conceptual queries win (the right note ranks #1 even with negative scores)
+- Hybrid mode: keyword-heavy queries win, but broad queries get flooded with BM25 matches that the reranker then scores poorly
 
 ---
 
