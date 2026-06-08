@@ -1,8 +1,8 @@
 ---
 phase: "Experimentation"
 phase_name: "Knobs & Dials"
-updated: 2026-05-30
-last_commit: 48c90ec
+updated: 2026-06-07
+last_commit: 96b9938
 branch: main
 ---
 
@@ -10,8 +10,8 @@ branch: main
 
 ## Current Focus
 
-Temoa is a clean pure search API. Type filtering restored after discovering
-tlatecpana skills depend on `--type gleaning` / `--exclude-type daily`.
+Temoa is a clean pure search API. Launchd service and cahuitl cron updated.
+System is fully operational in its rebuilt form.
 
 ## Active Tasks
 
@@ -22,6 +22,8 @@ tlatecpana skills depend on `--type gleaning` / `--exclude-type daily`.
 - [x] Restore type filtering (--type / --exclude-type, filter_by_type in pipeline)
 - [x] Extract gleaning code to pixquitl repo
 - [x] Merge branch to main (48c90ec)
+- [x] Restart launchd service (new server live)
+- [x] Update cahuitl cron to use `pixquitl extract` instead of `temoa extract`
 
 ## Blockers
 
@@ -29,13 +31,11 @@ None
 
 ## Context
 
-- Branch has 8 commits ahead of main; all work on `claude/docs-codebase-review-5YeTG`
 - `--type` / `--exclude-type` use `normalize_type()` from `nahuatl_frontmatter`
 - tlatecpana `temoa-search` skill uses CLI directly — no skill changes needed
 - pixquitl extracted at `~/projects/nahuatl-PROJECTS/pixquitl` (gleaning lifecycle)
-- 147 tests passing
+- 196 tests passing
 
 ## Next Session
 
-Restart launchd service to pick up the new server, then update cahuitl
-cron to use `pixquitl extract` instead of `temoa extract`.
+No queued tasks. Identify what to work on next.
