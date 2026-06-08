@@ -1221,3 +1221,24 @@ make the history navigable and give users a way to run back to the UI version.
 **Files**: `CHANGELOG.md`, `pyproject.toml` — commits `e6d0967`, `80e436e`
 
 ---
+
+## Entry 99: Documentation Overhaul for v2.0.0 (2026-06-07)
+
+**What**: Scrapped and rewrote all documentation to match what temoa actually is after the v2.0 rebuild. Deleted 8 stale files, archived 2, rewrote 7.
+
+**Why**: Docs still described v1.x — UI, gleanings, graph, harness, inspector, search profiles. None of it exists. A future session reading ARCHITECTURE.md would have been completely misled.
+
+**How**:
+- `ARCHITECTURE.md`: full rewrite, 2170 → ~300 lines
+- `README.md`: full rewrite, accurate CLI/API surface
+- `IMPLEMENTATION.md`: version bump, v2.0 rebuild phase added
+- `DECISIONS.md`: DEC-092/093/094 marked superseded; DEC-098 added (v2.0 rationale)
+- `DEPLOYMENT.md`: removed profiles, graph endpoints, `temoa extract`
+- `SEARCH-MECHANISMS.md`: StatusFilterStage degleanified; pipeline viewer UI ref removed
+- `CLAUDE.md`: commands updated, version corrected
+- Deleted: GLEANINGS.md, TRACKING-SYSTEM.md, PRODUCTION-HARDENING-ROADMAP.md, OPUS-OPINES.md, SYNTHESIS_PREFILTER_PLAN.md, plans/dashboard-*.md, plans/qmd-pipeline-*.md
+- Archived: MULTI-MODEL-PLAN.md, qmd-pipeline-improvements.md (pipeline improvements still applicable)
+
+**Files**: commits `4ba0466`, `8516252`
+
+---
