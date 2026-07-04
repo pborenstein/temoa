@@ -238,8 +238,6 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for details.
 
 ## Philosophy
 
-> You don't have an organization problem. You have a surfacing problem.
-
 - Search by meaning — embeddings find connections keywords miss
 - Mobile-first — your vault in your pocket
 - Local processing — no cloud, no external APIs, full privacy
