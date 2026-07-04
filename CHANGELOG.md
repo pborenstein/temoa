@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-07-04
+
+The embedding engine is now a first-class temoa package. The vendored
+`synthesis/` directory (a snapshot of the pre-temoa standalone Synthesis
+project) has been removed; the modules temoa actually uses live in
+`src/temoa/engine/`.
+
+### Added
+
+- Persistent search query log: SQLite `search_log.db`, `temoa log` command with `--detail` and `--stats` ([d2dbaba](https://github.com/pborenstein/temoa/commit/d2dbaba)) ([e604677](https://github.com/pborenstein/temoa/commit/e604677))
+
+### Changed
+
+- Synthesis engine extracted into `src/temoa/engine/`; sys.path hack removed, `synthesis_path` config key now optional and ignored (old configs keep working) ([6cb546a](https://github.com/pborenstein/temoa/commit/6cb546a))
+- v1-era chronicles and gleaning docs archived to `docs/archive/chronicles-v1/`; tracking docs reframed around the pure search engine ([d9ed540](https://github.com/pborenstein/temoa/commit/d9ed540))
+
+### Removed
+
+- Vendored `synthesis/` directory (~40 files: standalone CLI, visualizer, docs, pyproject, uv.lock) ([6cb546a](https://github.com/pborenstein/temoa/commit/6cb546a))
+- Dead `src/temoa/ui/` directory and unused `GleaningError` left over from the v2.0 rebuild ([d9ed540](https://github.com/pborenstein/temoa/commit/d9ed540))
+
+### Fixed
+
+- `temoa archaeology` crashed with a nonexistent `top_k` argument, and its display read response fields the client never returned ([6cb546a](https://github.com/pborenstein/temoa/commit/6cb546a))
+
 ## [2.0.0] - 2026-06-07
 
 Complete rebuild as a pure search engine. UI, gleanings extraction, and knowledge
@@ -73,7 +98,8 @@ macOS launchd service management.
 - Per-vault filter state management ([2b6a36a](https://github.com/pborenstein/temoa/commit/2b6a36a))
 - Query expansion disabled by default based on production usage ([79aa611](https://github.com/pborenstein/temoa/commit/79aa611))
 
-[Unreleased]: https://github.com/pborenstein/temoa/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/pborenstein/temoa/compare/v2.1.0...HEAD
+[2.1.0]: https://github.com/pborenstein/temoa/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/pborenstein/temoa/compare/v1.1.0...v2.0.0
 [1.1.0]: https://github.com/pborenstein/temoa/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/pborenstein/temoa/releases/tag/v1.0.0
