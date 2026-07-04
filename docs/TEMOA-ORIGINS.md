@@ -676,10 +676,10 @@ Present: Three vaults, multiple content types
 ## Key Documents
 
 **Original vision**: `docs/archive/original-planning/PROJECT-PROPOSAL.md`
-**Phase 2 implementation**: `docs/chronicles/phase-2-gleanings.md`
-**Normalization**: `docs/chronicles/production-hardening.md` (Entry 34)
-**Enrichment**: `docs/chronicles/production-hardening.md` (Entry 37)
-**Current workflow**: `docs/GLEANINGS.md`
+**Phase 2 implementation**: `docs/archive/chronicles-v1/phase-2-gleanings.md`
+**Normalization**: `docs/archive/chronicles-v1/production-hardening.md` (Entry 34)
+**Enrichment**: `docs/archive/chronicles-v1/production-hardening.md` (Entry 37)
+**Gleaning history**: `docs/archive/gleanings-history.md` (gleaning lifecycle now lives in pixquitl)
 
 ---
 
@@ -746,7 +746,7 @@ Present: Three vaults, multiple content types
 
 **Related Documents**:
 - KNOWLEDGE-ARCHAEOLOGY.md - The pattern at multiple scales
-- GLEANINGS.md - Current workflow
-- CHRONICLES (all phases) - Implementation timeline
+- docs/archive/gleanings-history.md - Gleaning system chronology (lifecycle now in pixquitl)
+- docs/archive/chronicles-v1/ + docs/chronicles/ - Implementation timeline
 - docs/archive/original-planning/PROJECT-PROPOSAL.md - First vision
 - ~/projects/obsidian-projects/synthesis - The foundation

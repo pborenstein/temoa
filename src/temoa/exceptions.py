@@ -57,12 +57,3 @@ class ConfigError(TemoaError):
     vault path doesn't exist.
     """
     pass
-
-
-class GleaningError(TemoaError):
-    """Error during gleaning operations.
-
-    Raised when gleaning extraction, maintenance, or status management fails.
-    Examples: invalid frontmatter, URL normalization failed, link check failed.
-    """
-    pass

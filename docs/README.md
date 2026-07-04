@@ -2,7 +2,7 @@
 
 > Navigation guide for all documentation in this directory.
 
-**Last Updated**: 2026-06-07
+**Last Updated**: 2026-07-04
 
 ---
 
@@ -31,7 +31,7 @@
 | [CONTEXT.md](CONTEXT.md) | Current session state and active tasks |
 | [IMPLEMENTATION.md](IMPLEMENTATION.md) | Phase progress tracker |
 | [DECISIONS.md](DECISIONS.md) | Architectural decision registry (DEC-001+) |
-| [chronicles/](chronicles/) | Design discussions and history, organized by phase |
+| [chronicles/](chronicles/) | Session-by-session notes for the current (v2 pure search) era |
 
 ---
 
@@ -39,7 +39,7 @@
 
 | Directory | Contents |
 |-----------|----------|
-| [chronicles/](chronicles/) | Session-by-session implementation notes (never archived) |
+| [archive/chronicles-v1/](archive/chronicles-v1/) | v1-era chronicles (UI, gleanings, phases 0–3.5, hardening) |
 | [archive/](archive/) | Completed plans, superseded docs, research notes |
 
 ---

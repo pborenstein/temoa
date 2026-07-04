@@ -396,3 +396,39 @@ Strip temoa to a pure search engine:
 **Commits**: c83bfde (server rebuild), 1ef34ca (gleaning strip), a826237 (type filtering restore), 48c90ec (merge)
 
 ---
+
+## DEC-103: Archive v1 Chronicles — Docs Track the Pure Search Engine (2026-07-04)
+
+**Status**: ✅ Accepted
+
+**Context**:
+- After the v2.0 rebuild (DEC-098), docs/ still described the v1 UI-centric tool:
+  chronicles/ held 13 files (~19,000 lines) about gleanings, the web UI, and
+  phases 0–3.5; IMPLEMENTATION.md was organized as the v1 phase ladder
+- The old convention was "chronicles are never archived," which made the docs
+  read as if gleanings and the UI were still part of temoa
+- src/temoa/ui/ (250KB of HTML/PWA assets) was still tracked despite the server
+  being a pure JSON API
+
+**Decision**:
+1. Move v1-era chronicles to `docs/archive/chronicles-v1/`; `docs/chronicles/`
+   holds only the current era, starting with `v2-pure-search.md` (Entries 91+)
+2. Split `experimentation-harness.md` at Entry 91: harness-UI entries archived,
+   road-to-v2 and later entries stay live
+3. Rewrite IMPLEMENTATION.md: v1 phases condensed to a single history table;
+   active section reframed as "Search Quality Experimentation"
+4. Delete dead code left from the rebuild: `src/temoa/ui/`, unused `GleaningError`
+5. Retire the "never archived" convention: chronicles archive when an era ends
+
+**Alternatives considered**:
+- `chronicles/v1/` subfolder (keeps the "never archived" letter of the law) — rejected; archive/ is where superseded material already lives
+- Delete outright — rejected; the history has reference value
+
+**Consequences**:
+- ✅ docs/ describes the tool that exists; new sessions stop absorbing v1 framing
+- ✅ chronicles/ is one file instead of 13; entry numbering continues unchanged (next: 103)
+- ⚠️ Links into old chronicle paths must point at `docs/archive/chronicles-v1/`
+
+**See Also**: Chronicle Entry 102
+
+---

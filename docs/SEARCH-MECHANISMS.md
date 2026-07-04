@@ -218,7 +218,7 @@ The search pipeline consists of:
 ```
 
 **See also**:
-- chronicles/ Entry 38 (Frontmatter-Aware Search)
+- archive/chronicles-v1/ Entry 38 (Frontmatter-Aware Search)
 - test-vault/BM25_TAG_BOOSTING_RESULTS.md (experimental validation)
 
 ---

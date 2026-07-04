@@ -1,17 +1,18 @@
 # IMPLEMENTATION.md - Temoa Development Plan
 
-> **Approach**: Plan like waterfall, implement in agile
->
-> This document tracks **phase-level** progress across all implementation phases. Original planning documents archived in `docs/archive/original-planning/`. Detailed implementation notes in `docs/chronicles/`.
->
-> **Source of truth**: for current session state and day-to-day active tasks,
+> This document is the durable milestone record for temoa as a **pure search
+> engine** (v2.0+). For current session state and day-to-day active tasks,
 > [CONTEXT.md](CONTEXT.md) is the live source — it is updated every session and
-> may be ahead of this file. This file is the durable phase/milestone record.
+> may be ahead of this file.
+>
+> The v1 era (UI-centric search tool with gleaning extraction, web UI, and
+> graph features) is history: see [History: v1 Era](#history-v1-era-2025-11--2026-05)
+> below and `docs/archive/chronicles-v1/`.
 
 **Project**: Temoa - Local Semantic Search Server for Obsidian Vault
 **Created**: 2025-11-18
-**Status**: Experimentation Phase 🔵 ACTIVE - Pure Search Engine
-**Last Updated**: 2026-06-07
+**Status**: Search Quality Experimentation 🔵 ACTIVE
+**Last Updated**: 2026-07-04
 **Current Version**: 2.0.0
 **Current Branch**: `main`
 
@@ -22,263 +23,62 @@
 | Document | Purpose |
 |----------|---------|
 | [ARCHITECTURE.md](ARCHITECTURE.md) | System architecture, embeddings explanation, data flow |
-| [chronicles/](chronicles/) | Design discussions and decision history (organized by phase) |
+| [SEARCH-MECHANISMS.md](SEARCH-MECHANISMS.md) | Search algorithms, ranking, score interpretation |
+| [chronicles/](chronicles/) | Design discussions and decision history (v2 era) |
 | [RESEARCH-NOTES.md](RESEARCH-NOTES.md) | External research, tool comparisons, actionable ideas |
 | [CLAUDE.md](../CLAUDE.md) | Development guide for AI sessions |
 | This file | Implementation progress tracking |
 
 ---
 
-## Phase Overview
+## History: v1 Era (2025-11 – 2026-05)
 
-| Phase | Status | Duration | Dependencies |
-|-------|--------|----------|--------------|
-| Phase 0: Discovery & Validation | ✅ **COMPLETE** | 1 day | None |
-| Phase 1: Minimal Viable Search | ✅ **COMPLETE** | 1 day | Phase 0 ✅ |
-| Phase 2: Gleanings Integration | ✅ **COMPLETE** | 1 day | Phase 1 ✅ |
-| Phase 2.5: Mobile Validation + UI | ✅ **COMPLETE** | 1 week | Phase 2 ✅ |
-| Phase 3: Enhanced Features | ✅ **COMPLETE** | 2 weeks | Phase 2.5 ✅ |
-| v2.0 Rebuild: Pure Search Engine | ✅ **COMPLETE** | 2026-05 | Phase 3 ✅ |
-| **Experimentation: Knobs & Dials** | 🔵 **ACTIVE** | ongoing | v2.0 ✅ |
-| [Phase 4: Vault-First LLM](archive/backburner/phase-4-llm.md) | ⚪ Backburner | TBD | Experimentation |
+Temoa started as a UI-centric search tool with a mobile web UI, gleaning
+extraction from daily notes, and vault graph features. Phases 0–3.5 plus
+production hardening built and polished that tool. In 2026-05 it was rebuilt
+as a pure search engine (server.py 2671 → 430 lines): the web UI, graph code,
+and gleaning lifecycle were removed. Gleanings now live in
+[pixquitl](../../pixquitl).
 
----
+Condensed milestones (details in `docs/archive/chronicles-v1/`):
 
-## Phase 0: Discovery & Validation ✅
-
-**Status**: COMPLETE (2025-11-18)
-
-- Validated performance: 400ms search time, scales to 2,289 files
-- Identified architecture: FastAPI server with direct Synthesis imports (not subprocess)
-- Mobile use case validated (< 1s response time)
-
-See: chronicles/phase-0-1-foundation.md (Entry 4)
+| Milestone | Completed | Highlights |
+|-----------|-----------|------------|
+| Phase 0–1: Foundation | 2025-11-18 | FastAPI + direct Synthesis imports, 400ms search |
+| Phase 2: Gleanings + CLI | 2025-11-19 | Extraction system, Click CLI |
+| Phase 2.5: Mobile + UI | 2025-11-24 | Tailscale deploy, incremental reindex (30x) |
+| Phase 3: Enhanced Features | 2025-12-01 | Multi-vault, cross-encoder reranking, query expansion, time scoring, PWA |
+| Production Hardening | 2025-12 – 2026-03 | Security, launchd service, BM25 tag boosting, test hygiene (0 failures), GitHub enrichment |
+| Phase 3.5: Adaptive Chunking | 2025-12-30 | Sliding-window chunking, per-vault models |
+| Search Harness UI | 2026-01 – 2026-02 | Score mixer, pipeline viewer, query filters (removed in v2) |
+| **v2.0 Rebuild: Pure Search Engine** | 2026-05-30 | UI/gleanings/graph removed, composable pipeline, 8-command CLI |
 
 ---
 
-## Phase 1: Minimal Viable Search ✅
-
-**Status**: COMPLETE (2025-11-18)
-
-- FastAPI server with direct Synthesis imports (10x faster than subprocess)
-- Mobile web UI with obsidian:// links
-- 400ms search latency (5x better than 2s target)
-- 24 passing tests, 1,180 lines production code
-
-See: chronicles/phase-0-1-foundation.md (Entry 6)
-
----
-
-## Phase 2: Gleanings Integration ✅
-
-**Status**: COMPLETE (2025-11-19)
-
-- Extraction system for daily notes (MD5-based IDs, incremental mode)
-- Migrated 505 historical gleanings
-- API endpoint for reindexing
-- Production validation: 1,368 gleanings from 742 daily notes
-
-See: chronicles/phase-2-gleanings.md (Entries 7, 9)
-
----
-
-## CLI Implementation ✅
-
-**Status**: COMPLETE (2025-11-19)
-
-- Click-based CLI with 9 subcommands (config, index, search, stats, etc.)
-- Validated on production vault (2,281 files indexed in ~17s)
-- Color-coded output, comprehensive help text
-
-See: chronicles/phase-2-gleanings.md (Entry 8)
-
----
-
-## Phase 2.5: Mobile Validation + UI Optimization ✅
-
-**Status**: COMPLETE (2025-11-24)
-
-- Deployed via Tailscale, behavioral hypothesis validated
-- Gleaning status management (active/inactive/hidden with auto-restore)
-- Type filtering and UI refinement (compact collapsible results)
-- Management page with progress indicators
-- Incremental reindexing (30x speedup: 5s vs 159s)
-
-See: chronicles/phase-2.5-deployment.md (Entries 11-19)
-
----
-
-## Phase 3: Enhanced Features ✅
-
-**Status**: COMPLETE (2025-12-01)
-
-**Part 0: Multi-Vault Support** - LRU cache (max 3 vaults), independent indexes, webapp selector
-
-**Part 1: Technical Debt** - FastAPI lifespan pattern, removed sys.path hacks, app state pattern
-
-**Part 2: Search Quality** - Cross-encoder re-ranking (20-30% precision gain), TF-IDF query expansion, time-aware scoring
-
-**Part 3: UI/UX** - PWA support (installable), search history, keyboard shortcuts, mobile-first optimization
-
-See: chronicles/phase-3-implementation.md (Entries 20-32)
-
----
-## Production Hardening 🔵
-
-**Status**: IN PROGRESS (2025-12-06 onwards)
-
-**Part 1: Infrastructure & Critical Fixes** - ✅ COMPLETE
-- Vault format agnostic support (plain text files)
-- Critical bug fixes (pipeline order, path traversal, query expansion)
-- Unicode sanitization
-
-**Part 2: Deployment** - ✅ COMPLETE
-- macOS launchd service management (auto-start, auto-restart, port 8080)
-
-**Part 3: Search Quality** - ✅ COMPLETE
-- Frontmatter-aware search (BM25 tag boosting with 5x multiplier, 100% success for tag queries)
-- Description field integration
-
-**Part 4: Gleaning Enhancement** - ✅ COMPLETE
-- URL normalization system (GitHub cleanup, emoji removal)
-- GitHub API enrichment (7 metadata fields, 259 repos enriched)
-
-**Part 5: Code Quality & Refinement** - ✅ COMPLETE (2026-01-09)
-- [x] Comprehensive code review (2026-01-05) - 20 issues identified
-- [x] Production hardening roadmap created (6 phases, 25-30 hours estimated)
-- [x] Phase 0: Testing Infrastructure (223 tests, 171 passing baseline, TESTING.md)
-- [x] Phase 1: Low-Risk Simplifications (config docs, frontmatter helper, history limits)
-- [x] Phase 2: Performance Optimizations (700-1300ms latency reduction)
-- [x] Phase 3: Error Handling (specific exception types, fail-open/closed philosophy)
-- [x] Phase 4: Security Hardening (CORS restrictive defaults, rate limiting, path validation)
-- [x] Phase 5: Architecture Improvements (SKIPPED - optional, working well as-is)
-- [x] Phase 6: Documentation & Polish (TESTING.md, ARCHITECTURE.md, CLAUDE.md, IMPLEMENTATION.md updated)
-
-**Part 6: Test Hygiene** - ✅ COMPLETE (2026-02-22)
-- [x] Fix 33 failing tests → 0 failures (196 passed, 0 failed, 0 skipped)
-- [x] Fix 2 real bugs in `normalizers.py` (case-insensitive domain, double-slash paths)
-- [x] Resolve 15 skipped tests (deleted — all untestable or duplicate)
-
-**Part 7: Gleaning Extractor Fix** - ✅ COMPLETE (2026-03-16)
-- [x] Diagnose domain-as-title bug (GitHub `<title>` beyond 8KB read limit)
-- [x] Fix: use GitHub API for `github.com` URLs, 64KB read for all others
-- [x] GitHub naked URLs now populate description from API
-- [x] Write `docs/gleanings-history.md` (chronology of gleaning system)
-- [x] Run full re-extraction to apply fix (verified: 0 bare github.com titles remain)
-- [x] YouTube titles via oEmbed API: 19 → 1 remaining (channel URL, not fixable)
-- [x] Meta description from HTML for all naked URLs (empty descriptions: 202 → 181)
-- [ ] 181 remaining empty descriptions — floor without LLM, accept or manual
-
-**Part 8: Bug Fixes** - ✅ COMPLETE (2026-03-16)
-- [x] Fix "not indexed / Last Indexed: Never" after reindex — call `validate_storage_safe()` post-reindex to re-inject `vault_path` into `index.json`
-- [x] Fix surrogate pair YAML escapes in gleaning files — `ensure_ascii=False` in `to_markdown()`, 21 existing files repaired
-
-See: chronicles/test-hygiene.md, docs/TESTING.md, chronicles/production-hardening.md
-
----
-
-## Phase 3.5: Specialized Search Modes 🔵
-
-**Status**: COMPLETE
-
-**Goal**: Enable optimized search experiences for different content types through adaptive chunking and metadata-aware ranking.
-
-**See**: [docs/phases/phase-3.5-specialized-search.md](phases/phase-3.5-specialized-search.md) for complete plan
-
-### Sub-phases Overview
-
-- [x] 3.5.1: ~~Core Profile System~~ (REMOVED - search profiles deleted, parameters used directly)
-- [x] 3.5.2: Adaptive Chunking (4-5 days) ✅ **COMPLETE**
-- [ ] 3.5.3: Metadata Boosting (2 days)
-- [ ] 3.5.5: UI Updates (2 days)
-- [ ] 3.5.6: Documentation & Testing (1-2 days)
-
-### Phase 3.5.2: Adaptive Chunking ✅ COMPLETE
-
-**Completed**: 2025-12-30
-**Branch**: `phase-3.5-search-modes`
-**Commits**: `37ce8f9`, `ebbc70b`, `c1da088`, `3c3da84`, `8c1dc1c`
-
-**Deliverables**:
-- ✅ `synthesis/src/embeddings/chunking.py` - Core chunking logic (207 lines)
-- ✅ Updated `synthesis/src/embeddings/vault_reader.py` - Chunk support
-- ✅ Updated `synthesis/src/embeddings/pipeline.py` - Chunking parameters
-- ✅ Updated `src/temoa/synthesis.py` - Deduplication + chunk metadata
-- ✅ CLI: `--enable-chunking`, `--model` flags for index/reindex
-- ✅ Server: `/reindex` chunking query parameters
-- ✅ Tests: 19 unit tests for chunking (all passing)
-
-**Chunking Parameters**:
-- `chunk_size`: 2000 chars (well within 512 token limit)
-- `chunk_overlap`: 400 chars (preserves context at boundaries)
-- `chunk_threshold`: 4000 chars (minimum size before chunking)
-
-**Key Features**:
-- Sliding window chunking with overlap
-- Smart final chunk merging (avoids tiny trailing chunks)
-- Per-vault model selection via config or `--model` flag
-- Chunk deduplication (keeps best-scoring chunk per file)
-- Progress messages during model loading delays
-
-**Files Created**:
-- `synthesis/src/embeddings/chunking.py` (207 lines)
-- `tests/test_chunking.py` (19 tests)
-
-**Files Modified**:
-- `synthesis/src/embeddings/vault_reader.py` - read_file_chunked(), chunk metadata
-- `synthesis/src/embeddings/pipeline.py` - chunking parameters
-- `src/temoa/synthesis.py` - deduplicate_chunks(), search integration
-- `src/temoa/server.py` - /reindex chunking params
-- `src/temoa/cli.py` - --enable-chunking, --model flags, vault-specific model selection
-- `.gitignore` - Fixed to allow tests/ directory
-
-**Impact**:
-- Files >4000 chars now fully searchable (previously truncated at ~2500 chars)
-- Example: 9MB book → 4.4x content items (2006 files → 8755 searchable chunks)
-- Backward compatible (chunking disabled by default)
-
----
-
-### Next Session Start Here
-
-**Current Branch**: `main`
-**Current Focus**: Phase 3.5 (Chunking) complete - Ready for next phase or refinements
-
-**Recent Work**:
-
-*2026-01-04*: Documentation cleanup
-- ✅ Updated ARCHITECTURE.md for Phase 3.5 (chunking, multi-vault, 22 API endpoints)
-- ✅ Updated DEPLOYMENT.md for Phase 3.5 (config format, chunking clarification)
-- ✅ Archived QoL materials to docs/archive/QoL-improvements/
-- ✅ Updated docs navigation (README.md, archive README)
-- ✅ Removed DOCUMENTATION-GUIDE.md (session workflows now in plinth plugin)
-- Commits: 7f498aa, 9975e0b, 61c2dfb
-
-*2026-01-02*:
-- ✅ Completed all QoL improvements (Phases 1-5)
-- ✅ Mobile testing validated (iOS/Android working well)
-- ✅ Squash merged qol-detour → phase-3.5-search-modes
-- ✅ Branch cleanup (qol-detour deleted)
-- ✅ Web UI now at feature parity with CLI
-
-**QoL Improvements**: ✅ COMPLETE (3-4 days)
-1. ✅ **Phase 1**: Search result redesign (content-first layout, dates visible) - COMPLETE
-2. ✅ **Phase 2**: Search UI integration (vault selector in web UI) - COMPLETE
-3. ✅ **Phase 3**: Management enhancements (gleaning management, model selection, advanced stats) - COMPLETE
-4. ✅ **Phase 4-5**: Integration & testing (mobile-first) - COMPLETE
-5. Squash merged to phase-3.5-search-modes (commit 12d2e64)
-
----
-
-## Experimentation: Knobs & Dials 🔵
-
-**Status**: ACTIVE
-**Goal**: Systematically tune search parameters for optimal real-world performance
-**Duration**: Ongoing
-
-### Overview
-
-The production hardening is complete. Now we experiment with different combinations of search parameters to find the sweet spot for actual usage patterns.
+## Current Era: Search Quality Experimentation 🔵
+
+**Status**: ACTIVE (since v2.0 rebuild, 2026-05-30)
+**Goal**: Use real search-log data to measure and improve search quality
+
+### Done
+
+- [x] v2.0 rebuild: composable pipeline (`pipeline.py`), `server_filters.py`, stripped CLI
+- [x] Restore type filtering (`--type`/`--exclude-type`, `include_types`/`exclude_types`) — Entry 97
+- [x] Versioned releases v1.1.0 / v2.0.0 — Entry 98
+- [x] Documentation overhaul for v2.0.0 — Entry 99
+- [x] Zeitgeist integration design notes ([ZEITGEIST-INTEGRATION.md](ZEITGEIST-INTEGRATION.md)) — Entry 100
+- [x] Search query logging: SQLite `search_log.db`, `temoa log` / `--detail` / `--stats` — Entry 101
+- [x] SEARCH-MECHANISMS.md: cross-encoder score explanation + log reading guide
+
+### Open
+
+- [ ] Build up search log data from real usage; review with `temoa log --stats`
+- [ ] Known-miss list: queries where temoa returned nothing but the answer was in the vault — collect as regression set
+- [ ] Score baseline: calibrate what a "good" cross-encoder score looks like with known-good queries
+- [ ] Position-aware reranker blending — fix hybrid burying good semantic results (BM25 floods conceptual queries; plan in `docs/archive/qmd-pipeline-improvements.md`)
+- [ ] Zeitgeist snapshot chunking (see ZEITGEIST-INTEGRATION.md)
+- [ ] Config-driven pipeline profiles (`search.profiles` in config.json, `profile` query param)
+- [ ] Fix vault logging inconsistency: CLI logs full path, server logs vault name
 
 ### Tunable Parameters
 
@@ -292,64 +92,6 @@ The production hardening is complete. Now we experiment with different combinati
 | Cross-encoder re-rank | `server.py` | enabled | on/off |
 | Score threshold | `server.py` | 0.3 | 0.1-0.8 |
 | Top-k retrieval | `server.py` | 50 | 10-200 |
-
-### Tasks
-
-**Tooling**:
-- [x] Build harness UI (`/harness`) for score weight tuning (Entry 50-52)
-- [x] Build pipeline viewer (`/pipeline`) for stage-by-stage visualization (Entry 53)
-- [x] Add `?harness=true` API parameter for structured score output
-- [x] Add `?pipeline_debug=true` API parameter for stage state capture
-- [x] Implement Results Filter with Obsidian syntax (Entry 71-73)
-  - [x] Lexer + parser for property/tag/path/file filtering
-  - [x] Client-side filtering on cached results
-  - [x] Boolean operators (AND/OR/NOT) and grouping
-  - [x] Clear filter button and reset functionality
-- [x] Implement Query Filter for pre-filtering (Entry 74)
-  - [x] Generic property/tag/path/file filtering before search
-  - [x] JSON query params: `include_props`, `exclude_props`, `include_tags`, etc.
-  - [x] 15-20x speedup with exclude filters (e.g., `-[type:daily]`)
-  - [x] Cancel button for long-running queries (AbortController)
-  - [x] Config option: `search.default_query_filter`
-- [x] Implement Option B: Single LIVE slider architecture (Entry 76)
-  - [x] Remove FETCH hybrid slider, keep only LIVE slider
-  - [x] Server always runs hybrid search (semantic + BM25)
-  - [x] Client-side instant re-blending without server calls
-  - [x] Inspector optimized to update only scores section
-  - [x] Add "Clear All" button to search history dropdown
-
-**Cron / maintenance tooling** (2026-04):
-- [x] `--log-format` flag for `reindex` (appends to vault log)
-- ~~`temoa build-graph` command~~ — removed with graph code (2026-05-30)
-- ~~`extract` / `gleaning` CLI commands~~ — removed; gleanings offloaded to separate tool
-
-**Temoa rebuild — pure search engine** (2026-05-30, see chronicles Entry 96):
-- [x] Strip gleaning extraction, graph, and web UI from server.py (2671 → 430 lines)
-- [x] Create composable pipeline abstraction: SearchContext, Stage protocol, Pipeline runner
-- [x] Extract post-retrieval stages into pipeline.py; server.search() calls default_pipeline()
-- [x] Create server_filters.py with filter_by_* helpers
-- [x] Delete gleanings.py, normalizers.py, github_client.py, text_cleaner.py, vault_graph.py
-- [x] Delete scripts/ directory (extract_gleanings, maintain_gleanings, etc.)
-- [x] Strip CLI to 8 commands; search uses default_pipeline()
-- [x] 147 tests passing
-
-**Experimentation**:
-- [ ] Document baseline performance (latency, relevance)
-- [ ] Define test query suite with expected results
-- [ ] Config-driven pipeline profiles (`search.profiles` in config.json, `profile` query param)
-- [ ] Query logging: `--log-queries` flag or wrapper that appends `{timestamp, query, top 5 results}` to a log file for evaluation (noted 2026-05-17: no way to tell if results are actually good)
-- [ ] Known-miss list: cases where temoa returned nothing but the answer was in the vault — collect as regression set
-- [ ] Score baseline: calibrate what a "good" cross-encoder score looks like with known-good queries
-
-- [x] Restore type filtering: `filter_by_type()` in server_filters.py, `QueryFilterStage`,
-  `/search` params `include_types`/`exclude_types`, CLI `--type`/`--exclude-type`
-  (needed by tlatecpana `temoa-search` skill — see Entry 97)
-
-**Completed**:
-- [x] Merge branch to main (48c90ec)
-- [x] Restart launchd service with new server
-- [x] Update cahuitl cron to use `pixquitl extract` (gleaning extraction moved to pixquitl)
-- [x] Documentation overhaul for v2.0.0 (2026-06-07)
 
 ### Methodology
 
@@ -365,10 +107,10 @@ The production hardening is complete. Now we experiment with different combinati
 **Status**: Backburner
 **Goal**: LLMs check vault before internet
 
-Moved to backburner. See [archive/backburner/phase-4-llm.md](archive/backburner/phase-4-llm.md) for full plan.
+See [archive/backburner/phase-4-llm.md](archive/backburner/phase-4-llm.md) for full plan.
 
 ---
 
-**Last Updated**: 2026-05-30
-**Current Phase**: Experimentation (Knobs & Dials)
+**Last Updated**: 2026-07-04
+**Current Phase**: Search Quality Experimentation
 **Next**: See [CONTEXT.md](CONTEXT.md) for current session state and active tasks (live source of truth)

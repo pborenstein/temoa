@@ -2,8 +2,8 @@
 
 > **Purpose**: Context and guidance for Claude AI across development sessions.
 
-**Last Updated**: 2026-06-07
-**Project Status**: Experimentation Phase Active — Pure Search Engine
+**Last Updated**: 2026-07-04
+**Project Status**: Search Quality Experimentation — Pure Search Engine
 **Current Version**: 2.0.0
 **Current Branch**: `main`
 
@@ -48,14 +48,14 @@ temoa/
 │   ├── ARCHITECTURE.md   # System architecture & data flow
 │   ├── SEARCH-MECHANISMS.md  # Search algorithms & ranking
 │   ├── IMPLEMENTATION.md # Progress tracking (source of truth for phase status)
-│   ├── chronicles/       # Design discussions & decision log (by phase)
+│   ├── chronicles/       # Design discussions & decision log (v2 era; v1 in archive/chronicles-v1/)
 │   ├── DECISIONS.md      # Architectural decision records
 │   ├── TESTING.md        # Test baseline, known failures
 │   └── DEPLOYMENT.md     # Launchd service setup
 ├── synthesis/            # Core search engine (bundled)
 ├── src/temoa/            # Temoa source code
 │   ├── server.py         # FastAPI app, endpoints, lifespan
-│   ├── cli.py            # Click CLI — 8 commands
+│   ├── cli.py            # Click CLI — 9 commands
 │   ├── pipeline.py       # Composable post-retrieval pipeline
 │   ├── server_filters.py # Filter functions (type, tag, property, path, file)
 │   ├── synthesis.py      # SynthesisClient wrapper, hybrid search
@@ -63,6 +63,7 @@ temoa/
 │   ├── reranker.py       # Cross-encoder re-ranking
 │   ├── query_expansion.py # TF-IDF query expansion
 │   ├── time_scoring.py   # Time-aware scoring
+│   ├── search_log.py     # SQLite search query log
 │   ├── config.py         # Configuration management
 │   ├── client_cache.py   # Multi-vault LRU cache
 │   ├── rate_limiter.py   # Per-IP sliding-window rate limiter
@@ -96,7 +97,7 @@ See `docs/IMPLEMENTATION.md` and `docs/CONTEXT.md` for current status.
 
 ### Test Baseline
 
-Run `uv run pytest`. Current: 196 passed, 0 failed, 0 skipped.
+Run `uv run pytest`. Current: 155 passed, 0 failed, 0 skipped.
 
 ---
 
@@ -146,11 +147,11 @@ launchctl list | grep temoa
 | `docs/ARCHITECTURE.md` | System architecture, data flow, security, performance |
 | `docs/SEARCH-MECHANISMS.md` | All search algorithms, ranking, tag boosting, chunking |
 | `docs/TESTING.md` | Test baseline, known failures, debugging |
-| `docs/chronicles/` | Design discussions & decision history (organized by phase) |
+| `docs/chronicles/` | Design discussions & decision history (v2 era; v1 in `docs/archive/chronicles-v1/`) |
 | `docs/DECISIONS.md` | Architectural decision records |
 | `docs/DEPLOYMENT.md` | Launchd service setup |
 | `docs/RESEARCH-NOTES.md` | External research, tool comparisons, actionable ideas |
 
 ---
 
-**Owner**: pborenstein | **Created**: 2025-11-18 | **Last Updated**: 2026-06-07
+**Owner**: pborenstein | **Created**: 2025-11-18 | **Last Updated**: 2026-07-04
