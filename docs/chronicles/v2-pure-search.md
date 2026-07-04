@@ -233,3 +233,24 @@ make the history navigable and give users a way to run back to the UI version.
 **Files**: docs/ reorganization, `src/temoa/exceptions.py`, `src/temoa/ui/` (deleted). 155 tests passing.
 
 ---
+
+## Entry 103: Synthesis Extraction — Engine Folded into src/temoa/engine/ (2026-07-04)
+
+**What**: Extracted the 8 modules temoa actually uses from the vendored `synthesis/` directory into `src/temoa/engine/` and deleted the rest (~40 files: standalone CLI, visualizer, doc/, pyproject/uv.lock, ConfigManager). Also fixed `temoa archaeology` (broken on main) and brought all docs into congruence.
+
+**Why**: `synthesis/` was a vendored copy of the pre-temoa standalone project (still at `~/projects/obsidian-projects/synthesis`), carrying its own CLAUDE.md/README/deps and the graph/canvas code v2.0 was supposed to shed. Temoa imported only EmbeddingPipeline, ModelRegistry, and TemporalArchaeologist via a sys.path hack.
+
+**How**:
+- `git mv` embeddings modules + temporal_archaeology → `src/temoa/engine/` (flat package)
+- Removed sys.path hack and `synthesis_path` from SynthesisClient, ClientCache, cli, server; `synthesis_path` is now an ignored legacy config key
+- Deleted unused `ModelRegistry.get/set_default_model` (needed the standalone ConfigManager) and dead `main()` in temporal_archaeology
+- Fixed `temoa archaeology`: CLI passed nonexistent `top_k` and read a response schema (`results`/`periods`/`title`) the client never returned
+- Docs congruence pass: TESTING.md rebuilt against actual suite (156/0/0), config examples in README/ARCHITECTURE fixed (missing required `vault_path`, unused `default_vault` key), `temoa log` added to README, DEPLOYMENT version header reconciled, docs/README index completed
+
+**Verified**: 156 tests pass; real CLI search, archaeology, and server boot (port 8091) against amoxtli all work.
+
+**Decisions**: DEC-104
+
+**Files**: `src/temoa/engine/` (new), `synthesis/` (deleted), `synthesis.py`, `client_cache.py`, `config.py`, `cli.py`, `server.py`, tests, docs.
+
+---

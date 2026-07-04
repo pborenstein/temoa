@@ -69,6 +69,9 @@ Condensed milestones (details in `docs/archive/chronicles-v1/`):
 - [x] Zeitgeist integration design notes ([ZEITGEIST-INTEGRATION.md](ZEITGEIST-INTEGRATION.md)) — Entry 100
 - [x] Search query logging: SQLite `search_log.db`, `temoa log` / `--detail` / `--stats` — Entry 101
 - [x] SEARCH-MECHANISMS.md: cross-encoder score explanation + log reading guide
+- [x] Repo cleanup: v1 chronicles archived, tracking reframed — Entry 102, DEC-103
+- [x] Synthesis extraction: engine folded into `src/temoa/engine/`, vendored dir deleted — Entry 103, DEC-104
+- [x] Fix `temoa archaeology` (nonexistent `top_k` arg, wrong response schema in CLI display)
 
 ### Open
 

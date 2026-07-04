@@ -1,22 +1,22 @@
 # Temoa Testing Guide
 
-**Last Updated**: 2026-02-21
-**Test Baseline**: 196 passed, 0 failed, 15 skipped
+**Last Updated**: 2026-07-04
+**Test Baseline**: 156 passed, 0 failed, 0 skipped
 
 ---
 
 ## Test Status Overview
 
-### Current Baseline (Test Hygiene Phase Complete)
+### Current Baseline (v2.0 Pure Search Engine)
 
 ```
-Total Tests: 211
-Passing: 196 (92.9%)
-Skipped: 15 (7.1%)
+Total Tests: 156
+Passing: 156 (100%)
+Skipped: 0
 Failed: 0
 ```
 
-**Key Metric**: **0 failures is the norm.** Every test either passes or doesn't exist. Skipped tests require real infrastructure (Obsidian vault, Synthesis engine) that isn't available in CI.
+**Key Metric**: **0 failures is the norm.** Every test either passes or doesn't exist. Tests for removed v1 features (gleanings, normalizers, UI) were deleted with the v2.0 rebuild.
 
 ---
 
@@ -48,42 +48,21 @@ uv run python -m pytest --cov=src/temoa --cov-report=html
 
 ---
 
-## Skipped Tests (15 tests)
-
-All skips require infrastructure not available in CI. Each has a reason string.
-
-**Disk full scenarios** (2 tests) - `test_edge_cases.py`:
-
-- `test_reindex_with_no_disk_space`: Requires disk full simulation
-- `test_gleaning_write_with_no_space`: Requires disk full simulation
-
-**Multi-vault integration** (5 tests) - `test_multi_vault_integration.py`:
-
-- Require real vault paths and Synthesis engine
-
-**Synthesis integration** (8 tests) - `test_synthesis.py`, `test_storage.py`:
-
-- Require Synthesis engine and vault configuration
-
----
-
 ## Test Organization
 
 ### By Feature
 
 | Feature | Test File | Tests |
 |---------|-----------|-------|
-| Chunking | `test_chunking.py` | 19 passing |
-| Configuration | `test_config.py` | 7 passing |
-| Edge Cases | `test_edge_cases.py` | 32 passing, 2 skipped |
-| Gleanings | `test_gleanings.py` | 19 passing |
-| Multi-vault | `test_multi_vault_integration.py` | 5 skipped |
-| Normalizers | `test_normalizers.py` | 44 passing |
-| Reranker | `test_reranker.py` | 8 passing |
-| Server | `test_server.py` | 53 passing |
-| Storage | `test_storage.py` | 8 passing (4 need vault, skipped) |
-| Synthesis | `test_synthesis.py` | 1 passing, 7 skipped |
-| Unicode | `test_unicode.py` | 4 passing |
+| Chunking | `test_chunking.py` | 19 |
+| Configuration | `test_config.py` | 8 |
+| Edge Cases | `test_edge_cases.py` | 21 |
+| Pipeline | `test_pipeline.py` | 23 |
+| Reranker | `test_reranker.py` | 9 |
+| Search Log | `test_search_log.py` | 8 |
+| Server | `test_server.py` | 14 |
+| Storage | `test_storage.py` | 13 |
+| Unicode | `test_unicode.py` | 41 |
 
 ---
 
@@ -93,7 +72,7 @@ All skips require infrastructure not available in CI. Each has a reason string.
 
 1. **Every test must pass.** No aspirational specs, no "known failures."
 2. **Test behavior, not internals.** Call the same interfaces real code calls.
-3. **Skip for infrastructure, not laziness.** `@pytest.mark.skip` is for real vault / Synthesis dependencies only.
+3. **Skip for infrastructure, not laziness.** `@pytest.mark.skip` is for tests that genuinely need a real vault; currently none.
 
 ### Unit Tests
 
@@ -119,7 +98,7 @@ class TestMyFeatureEdgeCases:
     def test_handles_empty_input(self, tmp_path):
         """Should handle empty input gracefully."""
         # BM25Index requires storage_dir=tmp_path
-        # ClientCache.get() takes (vault_path, synthesis_path, model, storage_dir)
+        # ClientCache.get() takes (vault_path, model, storage_dir)
 ```
 
 ---
@@ -168,12 +147,12 @@ uv run python -m pytest --lf
 
 - **0 test failures** (no exceptions)
 - No regressions when adding features
-- Core paths covered: search, index, extract, normalize
+- Core paths covered: search, index, pipeline, filtering
 - Security tests passing: CORS, rate limiting, path validation
 - Performance within targets (< 2s mobile)
 
 ---
 
 **Created**: 2026-01-09
-**Last Updated**: 2026-02-21
-**Context**: Test Hygiene Phase - cleaned 33 failures to 0
+**Last Updated**: 2026-07-04
+**Context**: v2.0 pure search engine baseline (v1 feature tests deleted with the rebuild)

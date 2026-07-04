@@ -432,3 +432,41 @@ Strip temoa to a pure search engine:
 **See Also**: Chronicle Entry 102
 
 ---
+
+## DEC-104: Fold the Synthesis Engine into src/temoa/engine/ (2026-07-04)
+
+**Status**: ✅ Accepted (supersedes DEC-048)
+
+**Context**:
+- `synthesis/` was a vendored snapshot of the standalone Synthesis project
+  (pre-temoa, abandoned at `~/projects/obsidian-projects/synthesis` since 2025-10)
+- Temoa imported only three things — EmbeddingPipeline, ModelRegistry,
+  TemporalArchaeologist — via a sys.path insert and a `synthesis_path` config key
+- The rest (~40 files) was standalone-era cruft: its own CLI, visualizer/graph
+  code, docs, pyproject, uv.lock, config system
+
+**Decision**:
+1. Move the used modules into `src/temoa/engine/` as a flat, regular package
+2. Delete `synthesis/` entirely; drop the sys.path hack and `synthesis_path`
+   parameter from SynthesisClient / ClientCache / callers
+3. Treat `synthesis_path` in config.json as an ignored legacy key (no error)
+4. Keep `synthesis.py` / `SynthesisClient` names for now — renaming the wrapper
+   is cosmetic and touches every caller
+
+**Alternatives considered**:
+- Trim `synthesis/` in place, keep import mechanism — rejected: leaves the
+  vendored-repo weirdness (sys.path, config key) permanently
+- Rename SynthesisClient in the same pass — deferred as churn without behavior change
+
+**Consequences**:
+- ✅ No more sys.path manipulation; engine is importable as `temoa.engine`
+- ✅ One config key fewer; old configs keep working unchanged
+- ✅ ~40 dead files gone; single pyproject/uv.lock
+- ✅ Chunking tests import `temoa.engine.chunking` normally
+- ⚠️ DEC-048 (isolate sys.path usage to helper method) is superseded
+- ⚠️ The standalone repo at `~/projects/obsidian-projects/synthesis` is now
+  fully historical; the living code is only in temoa
+
+**See Also**: Chronicle Entry 103
+
+---

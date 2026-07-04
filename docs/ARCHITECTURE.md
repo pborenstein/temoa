@@ -1,6 +1,6 @@
 # ARCHITECTURE.md - Temoa System Architecture
 
-**Last Updated**: 2026-06-07
+**Last Updated**: 2026-07-04
 **Version**: 2.0.0
 **Status**: Pure search engine — no UI, no gleanings, no graph
 
@@ -16,12 +16,12 @@ CLI (temoa search / temoa server)
             │
             ▼
     SynthesisClient (synthesis.py)
-      - wraps Synthesis as direct Python imports
+      - wraps the embedding engine
       - keeps model in memory (~500 MB)
       - LRU cache for multi-vault
             │
             ▼
-    Synthesis Engine (synthesis/)
+    Embedding Engine (src/temoa/engine/)
       - sentence-transformers embeddings
       - BM25 keyword index
       - NumPy vector store
@@ -31,8 +31,10 @@ CLI (temoa search / temoa server)
     + .temoa/ (embedding index, BM25 index)
 ```
 
-**Key design**: Synthesis is imported directly as Python code — not called as a subprocess.
-This keeps the model in memory and reduces search latency from ~2-3s to ~400ms.
+**Key design**: the model stays loaded in a long-lived process, which keeps
+search latency at ~400ms (vs ~2-3s if a subprocess reloaded it per query).
+The engine was extracted from the standalone Synthesis project (2026-07) and
+is a regular temoa package.
 
 ---
 
@@ -41,10 +43,11 @@ This keeps the model in memory and reduces search latency from ~2-3s to ~400ms.
 | File | Role |
 |------|------|
 | `server.py` | FastAPI app, HTTP endpoints, lifespan (model loading) |
-| `cli.py` | Click CLI — 8 commands wrapping server and search logic |
+| `cli.py` | Click CLI — 9 commands wrapping server and search logic |
 | `pipeline.py` | Composable post-retrieval pipeline with `SearchContext` |
 | `server_filters.py` | Filter functions: type, tag, property, path, file |
-| `synthesis.py` | `SynthesisClient` — wrapper around Synthesis engine |
+| `synthesis.py` | `SynthesisClient` — wrapper around the embedding engine |
+| `engine/` | Embedding engine: pipeline, model registry, vault reader, chunking, store, temporal archaeology |
 | `bm25_index.py` | BM25 keyword index for hybrid search |
 | `reranker.py` | Cross-encoder re-ranking (ms-marco-MiniLM-L-6-v2) |
 | `query_expansion.py` | TF-IDF query expansion for short queries |
@@ -178,6 +181,7 @@ Config is loaded from (in priority order):
 
 ```json
 {
+  "vault_path": "~/Obsidian/amoxtli",
   "vaults": [
     {
       "name": "amoxtli",
@@ -186,7 +190,6 @@ Config is loaded from (in priority order):
       "model": "all-MiniLM-L6-v2"
     }
   ],
-  "default_vault": "amoxtli",
   "default_model": "all-MiniLM-L6-v2",
   "server": {
     "host": "0.0.0.0",

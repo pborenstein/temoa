@@ -140,7 +140,6 @@ def search(query, limit, min_score, include_types, exclude_types, hybrid, rerank
         effective_model = vault_model or config.default_model
 
         client = SynthesisClient(
-            synthesis_path=config.synthesis_path,
             vault_path=vault_path,
             model=effective_model,
             storage_dir=storage_dir
@@ -299,32 +298,34 @@ def archaeology(topic, limit, output_json, vault):
 
     try:
         client = SynthesisClient(
-            synthesis_path=config.synthesis_path,
             vault_path=vault_path,
             model=config.default_model,
             storage_dir=storage_dir
         )
 
-        analysis = client.archaeology(topic, top_k=limit)
+        analysis = client.archaeology(topic)
 
         if output_json:
             click.echo(json.dumps(analysis, indent=2))
         else:
             click.echo(f"\nTemporal analysis for: {click.style(topic, fg='cyan', bold=True)}\n")
 
-            if 'results' in analysis and analysis['results']:
-                click.echo(f"Found {len(analysis['results'])} relevant documents")
+            entries = analysis.get('entries', [])
+            if entries:
+                click.echo(f"Found {len(entries)} relevant documents")
 
-                if 'periods' in analysis:
-                    click.echo(f"\nActive periods:")
-                    for period in analysis['periods']:
-                        click.echo(f"  * {period}")
+                if analysis.get('peak_periods'):
+                    click.echo(f"\nPeak periods:")
+                    for period in analysis['peak_periods']:
+                        click.echo(f"  * {period['month']} (intensity {period['intensity']:.2f})")
 
-                click.echo(f"\nTop results:")
-                for i, result in enumerate(analysis['results'][:10], 1):
-                    click.echo(f"{i}. {result['title']}")
-                    click.echo(f"   Date: {result.get('date', 'Unknown')}")
-                    click.echo(f"   Similarity: {result['similarity_score']:.3f}")
+                top_entries = sorted(
+                    entries, key=lambda e: e['similarity_score'], reverse=True
+                )[:limit]
+                click.echo(f"\nTop entries:")
+                for i, entry in enumerate(top_entries, 1):
+                    click.echo(f"{i}. {entry['date']}  ({entry['similarity_score']:.3f})")
+                    click.echo(f"   {entry['content'][:80]}")
                     click.echo()
             else:
                 click.echo("No results found.")
@@ -354,7 +355,6 @@ def stats(output_json, vault):
 
     try:
         client = SynthesisClient(
-            synthesis_path=config.synthesis_path,
             vault_path=vault_path,
             model=config.default_model,
             storage_dir=storage_dir
@@ -440,7 +440,6 @@ def index(vault, force, model, enable_chunking, chunk_size, chunk_overlap, chunk
 
     try:
         client = SynthesisClient(
-            synthesis_path=config.synthesis_path,
             vault_path=vault_path,
             model=embedding_model,
             storage_dir=storage_dir
@@ -514,7 +513,6 @@ def reindex(vault, force, model, enable_chunking, chunk_size, chunk_overlap, chu
 
     try:
         client = SynthesisClient(
-            synthesis_path=config.synthesis_path,
             vault_path=vault_path,
             model=embedding_model,
             storage_dir=storage_dir
@@ -586,7 +584,6 @@ def config():
         click.echo("Paths:")
         click.echo(f"  Vault: {cfg.vault_path}")
         click.echo(f"  Index: {cfg.index_path}")
-        click.echo(f"  Synthesis: {cfg.synthesis_path}")
         click.echo()
         click.echo("Server:")
         click.echo(f"  Host: {cfg.server_host}")

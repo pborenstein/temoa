@@ -10,16 +10,18 @@ branch: main
 
 ## Current Focus
 
-Repo cleanup complete: v1-era docs archived, tracking reframed around the pure
-search engine. Next up: use the search log to pick and measure one search
-quality improvement.
+Repo cleanup complete: v1 docs archived, synthesis engine folded into
+`src/temoa/engine/`, all docs congruent. Ready to cut v2.1.0 and get back to
+search quality work.
 
 ## Active Tasks
 
-- [x] Archive v1 chronicles to `docs/archive/chronicles-v1/`; chronicles/ now holds only the v2 era
-- [x] Rewrite IMPLEMENTATION.md: v1 phase ladder condensed to a history table
-- [x] Remove dead code: `src/temoa/ui/` (unused since v2 rebuild), unused `GleaningError`
-- [x] Wrapup: Entry 102, DEC-103
+- [x] Archive v1 chronicles; reframe IMPLEMENTATION.md (Entry 102, DEC-103)
+- [x] Extract synthesis → `src/temoa/engine/`; delete vendored dir (Entry 103, DEC-104)
+- [x] Fix `temoa archaeology` (broken CLI schema + top_k arg)
+- [x] Docs congruence pass (TESTING.md, config examples, README)
+- [ ] Release v2.1.0 (releaserator)
+- [ ] Restart launchd service to pick up new code
 - [ ] Build up search log data, then pick one improvement to measure
 
 ## Blockers
@@ -28,14 +30,13 @@ None
 
 ## Context
 
-- 155 tests passing
-- `search_log.db` in `.temoa/`; CLI logs vault as full path, server logs vault name (minor inconsistency)
-- Cross-encoder scores are unbounded signed logits: positive = answers query, negative = doesn't; only meaningful relative to each other within one query
-- Observed: hybrid hurts conceptual queries (BM25 floods with keyword matches the reranker scores poorly)
-- qmd pipeline improvements in docs/archive/ (position-aware blending, heading-aware chunking, zeitgeist chunking)
+- 156 tests passing; `synthesis_path` in config.json is now ignored (legacy)
+- launchd service still running pre-extraction code until restarted
+- Cross-encoder scores are unbounded signed logits; only comparable within one query
+- Observed: hybrid hurts conceptual queries (BM25 floods with keyword matches)
+- qmd pipeline improvement plans in docs/archive/ (position-aware blending, etc.)
 
 ## Next Session
 
 Run real searches, build up log data, then pick one improvement to measure:
-position-aware reranker blending (fix hybrid burying good semantic results) or
-zeitgeist snapshot chunking.
+position-aware reranker blending or zeitgeist snapshot chunking.

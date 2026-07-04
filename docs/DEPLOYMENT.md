@@ -1,7 +1,7 @@
 # Temoa Deployment Guide
 
-**Last Updated**: 2026-05-30
-**Version**: 0.7.0
+**Last Updated**: 2026-07-04
+**Version**: 2.0.0
 **For**: Phase 3.5 Complete - Production Deployment + Exploration Tools
 
 ---
@@ -59,7 +59,6 @@ mkdir -p ~/.config/temoa
 cat > ~/.config/temoa/config.json << 'EOF'
 {
   "vault_path": "~/Obsidian/your-vault",
-  "synthesis_path": "~/projects/temoa/synthesis",
   "storage_dir": null,
   "default_model": "all-mpnet-base-v2",
   "server": {
@@ -122,7 +121,6 @@ cat > ~/.config/temoa/config.json << 'EOF'
     }
   },
   "default_vault": "amoxtli",
-  "synthesis_path": "~/projects/temoa/synthesis",
   "server": {
     "host": "0.0.0.0",
     "port": 8080
@@ -789,5 +787,5 @@ Returns HTTP 429 (Too Many Requests) when limits are exceeded.
 ---
 
 **Created**: 2025-11-19
-**Last Updated**: 2026-06-07
+**Last Updated**: 2026-07-04
 **Version**: 2.0.0

@@ -110,7 +110,6 @@ class Config:
             "  cat > ~/.config/temoa/config.json << 'EOF'\n"
             "{\n"
             '  "vault_path": "~/Obsidian/your-vault",\n'
-            '  "synthesis_path": "~/projects/temoa/synthesis",\n'
             '  "index_path": null,\n'
             '  "default_model": "all-mpnet-base-v2",\n'
             '  "server": {"host": "0.0.0.0", "port": 8080},\n'
@@ -141,7 +140,10 @@ class Config:
 
         # Expand and validate paths
         config["vault_path"] = self._expand_path(config["vault_path"], "vault_path")
-        config["synthesis_path"] = self._expand_path(config["synthesis_path"], "synthesis_path")
+
+        # Legacy key from when the engine was a bundled external project;
+        # ignored since the engine moved into temoa.engine
+        config.pop("synthesis_path", None)
 
         # Handle optional index_path
         if config.get("index_path"):
@@ -168,9 +170,9 @@ class Config:
         """
         expanded = Path(path).expanduser().resolve()
 
-        # Only validate vault_path and synthesis_path exist
+        # Only validate vault_path exists
         # (index_path will be created if needed)
-        if name in ["vault_path", "synthesis_path"] and not expanded.exists():
+        if name == "vault_path" and not expanded.exists():
             # Build helpful error message
             error_msg = [
                 f"Configuration error: {name} path does not exist",
@@ -217,11 +219,6 @@ class Config:
     def vault_path(self) -> Path:
         """Path to Obsidian vault"""
         return self._config["vault_path"]
-
-    @property
-    def synthesis_path(self) -> Path:
-        """Path to Synthesis directory"""
-        return self._config["synthesis_path"]
 
     @property
     def index_path(self) -> Optional[Path]:
@@ -360,6 +357,5 @@ class Config:
     def __repr__(self) -> str:
         return (
             f"Config(vault={self.vault_path}, "
-            f"synthesis={self.synthesis_path}, "
             f"model={self.default_model})"
         )

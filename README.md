@@ -36,6 +36,7 @@ Create `~/.config/temoa/config.json`:
 
 ```json
 {
+  "vault_path": "~/Obsidian/myvault",
   "vaults": [
     {
       "name": "myvault",
@@ -44,7 +45,6 @@ Create `~/.config/temoa/config.json`:
       "model": "all-MiniLM-L6-v2"
     }
   ],
-  "default_vault": "myvault",
   "server": {
     "host": "0.0.0.0",
     "port": 8080
@@ -94,6 +94,7 @@ temoa stats               # Vault statistics
 temoa config              # Show current configuration
 temoa vaults              # List configured vaults and their models
 temoa archaeology "topic" # Show when you were interested in a topic over time
+temoa log                 # Show the search query log (--detail, --stats)
 ```
 
 ### Index vs Reindex
@@ -229,7 +230,7 @@ FastAPI Server (server.py)
     │
 SynthesisClient (synthesis.py) — model in memory
     │
-Synthesis Engine (synthesis/) — sentence-transformers + NumPy
+Embedding Engine (src/temoa/engine/) — sentence-transformers + NumPy
     │
 Obsidian Vault + .temoa/ index
 ```
@@ -253,4 +254,4 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for details.
 
 ---
 
-**Version**: 2.0.0 | **Created**: 2025-11-17 | **Last Updated**: 2026-06-07
+**Version**: 2.0.0 | **Created**: 2025-11-17 | **Last Updated**: 2026-07-04

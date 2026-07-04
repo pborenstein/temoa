@@ -1,6 +1,5 @@
 {
   "vault_path": "~/Obsidian/amoxtli",
-  "synthesis_path": "synthesis",
   "index_path": null,
   "default_model": "all-MiniLM-L6-v2",
   "server": {
@@ -21,7 +20,6 @@
   "rate_limits": {
     "search_per_hour": 1000,
     "archaeology_per_hour": 20,
-    "reindex_per_hour": 5,
-    "extract_per_hour": 10
+    "reindex_per_hour": 5
   }
 }

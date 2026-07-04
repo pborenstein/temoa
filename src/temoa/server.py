@@ -93,7 +93,6 @@ async def lifespan(app: FastAPI):
         )
         client_cache.get(
             vault_path=default_vault_path,
-            synthesis_path=config.synthesis_path,
             model=config.default_model,
             storage_dir=default_storage_dir,
         )
@@ -183,7 +182,6 @@ def _get_client(request: Request, vault: Optional[str] = None) -> tuple[Synthesi
 
     client = client_cache.get(
         vault_path=vault_path,
-        synthesis_path=config.synthesis_path,
         model=vault_model,
         storage_dir=storage_dir,
     )

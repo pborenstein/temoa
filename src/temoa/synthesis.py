@@ -1,10 +1,10 @@
 """
-Synthesis direct import wrapper - loads model once, keeps in memory.
+Embedding engine client - loads model once, keeps in memory.
 
-This module imports Synthesis code directly (not subprocess) to achieve
-~400ms search times by keeping the sentence-transformer model in memory.
+Wraps temoa.engine (the embedding pipeline extracted from the standalone
+Synthesis project) to achieve ~400ms search times by keeping the
+sentence-transformer model in memory.
 """
-import sys
 import logging
 import re
 import numpy as np
@@ -225,57 +225,39 @@ class SynthesisClient:
 
     def __init__(
         self,
-        synthesis_path: Path,
         vault_path: Path,
         model: str = "all-MiniLM-L6-v2",
-        storage_dir: Optional[Path] = None
+        *,
+        storage_dir: Path
     ):
         """
-        Initialize Synthesis client with direct imports.
+        Initialize the embedding engine client.
 
         Args:
-            synthesis_path: Path to Synthesis directory (synthesis/)
             vault_path: Path to Obsidian vault
             model: Model name to load (default: all-MiniLM-L6-v2)
-            storage_dir: Where embeddings are stored (default: synthesis_path/embeddings)
+            storage_dir: Where embeddings are stored
 
         Raises:
-            SynthesisError: If Synthesis cannot be imported or initialized
+            SynthesisError: If the engine cannot be imported or initialized
         """
-        self.synthesis_path = synthesis_path.resolve()
         self.vault_path = vault_path.resolve()
         self.vault_name = vault_path.name
         self.model_name = model
-
-        # Default storage to synthesis/embeddings/
-        if storage_dir is None:
-            storage_dir = synthesis_path / "embeddings"
         self.storage_dir = storage_dir
 
-        logger.info(
-            f"Initializing Synthesis: vault={vault_path}, "
-            f"synthesis={synthesis_path}, model={model}"
-        )
+        logger.info(f"Initializing engine: vault={vault_path}, model={model}")
 
-        # Import Synthesis modules
-        # Note: Synthesis is a bundled external dependency, we need it on the path
-        self._ensure_synthesis_on_path()
-
+        # Lazy import: loading the engine package pulls in sentence_transformers,
+        # which is slow — keep it out of module import time
         try:
-            from src.embeddings import EmbeddingPipeline
-            from src.embeddings.models import ModelRegistry
-            from src.temporal_archaeology import TemporalArchaeologist
+            from .engine import EmbeddingPipeline, ModelRegistry, TemporalArchaeologist
 
             self.EmbeddingPipeline = EmbeddingPipeline
             self.ModelRegistry = ModelRegistry
             self.TemporalArchaeologist = TemporalArchaeologist
-
-            logger.debug("Successfully imported Synthesis modules")
         except ImportError as e:
-            raise SynthesisError(
-                f"Could not import Synthesis from {synthesis_path}: {e}\n"
-                f"Make sure Synthesis is installed at that location."
-            )
+            raise SynthesisError(f"Could not import embedding engine: {e}")
 
         # Validate model
         if not self.ModelRegistry.validate_model(model):
@@ -321,18 +303,6 @@ class SynthesisClient:
         except Exception as e:
             logger.warning(f"Could not initialize BM25 index: {e}")
             self.bm25_index = None
-
-    def _ensure_synthesis_on_path(self):
-        """
-        Ensure Synthesis directory is on sys.path for imports.
-
-        Note: Synthesis is a bundled external dependency that we import from.
-        This is cleaner than manipulating sys.path inline in __init__.
-        """
-        synthesis_str = str(self.synthesis_path)
-        if synthesis_str not in sys.path:
-            sys.path.insert(0, synthesis_str)
-            logger.debug(f"Added {synthesis_str} to sys.path")
 
     def search(
         self,

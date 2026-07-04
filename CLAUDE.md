@@ -11,7 +11,7 @@
 
 ## Project Overview
 
-**Temoa** is a local semantic search server for Obsidian vaults. FastAPI server → direct Synthesis imports → multi-stage search pipeline (semantic + BM25 + frontmatter) → results.
+**Temoa** is a local semantic search server for Obsidian vaults. FastAPI server → embedding engine (`temoa.engine`) → multi-stage search pipeline (semantic + BM25 + frontmatter) → results.
 
 **Problem Solved**: Saved links and notes accumulate but never resurface. Temoa makes your vault the first place to check before external search.
 
@@ -24,7 +24,7 @@
 1. **uv shop** — always use `uv`. Never pip, poetry, or other tools.
 2. **No hardcoded paths** — use `pathlib`, `~` expansion, relative paths. Never `/Users/`, `/home/`.
 3. **Mobile-first** — if it doesn't work on phone, it doesn't work. Target < 2s response time.
-4. **Privacy & local** — no external APIs for search/embeddings. Synthesis is local.
+4. **Privacy & local** — no external APIs for search/embeddings. Everything runs locally.
 5. **Avoid over-engineering** — no JS frameworks, no complex state, no premature abstraction.
 6. **Plan like waterfall, implement in agile** — detailed upfront planning, iterative small commits.
 
@@ -52,13 +52,13 @@ temoa/
 │   ├── DECISIONS.md      # Architectural decision records
 │   ├── TESTING.md        # Test baseline, known failures
 │   └── DEPLOYMENT.md     # Launchd service setup
-├── synthesis/            # Core search engine (bundled)
 ├── src/temoa/            # Temoa source code
 │   ├── server.py         # FastAPI app, endpoints, lifespan
 │   ├── cli.py            # Click CLI — 9 commands
 │   ├── pipeline.py       # Composable post-retrieval pipeline
 │   ├── server_filters.py # Filter functions (type, tag, property, path, file)
 │   ├── synthesis.py      # SynthesisClient wrapper, hybrid search
+│   ├── engine/           # Embedding engine (pipeline, models, store, chunking, archaeology)
 │   ├── bm25_index.py     # BM25 keyword index
 │   ├── reranker.py       # Cross-encoder re-ranking
 │   ├── query_expansion.py # TF-IDF query expansion
@@ -77,10 +77,10 @@ temoa/
 
 ---
 
-## Critical Context: Synthesis
+## Critical Context: Embedding Engine
 
-**Location**: `synthesis/` (bundled) — modifiable; it's Temoa's own code, not a vendor dependency
-**Role**: Local semantic search engine; Temoa imports it directly as a Python module (10x faster than subprocess)
+**Location**: `src/temoa/engine/` — extracted from the standalone Synthesis project (2026-07), now a regular temoa package
+**Role**: Sentence-transformer embeddings, model registry, vault reader, chunking, temporal archaeology. `SynthesisClient` (synthesis.py) wraps it and keeps the model in memory.
 
 **Models available** (configured per vault):
 - `all-MiniLM-L6-v2` (384d, fast) — default
@@ -97,7 +97,7 @@ See `docs/IMPLEMENTATION.md` and `docs/CONTEXT.md` for current status.
 
 ### Test Baseline
 
-Run `uv run pytest`. Current: 155 passed, 0 failed, 0 skipped.
+Run `uv run pytest`. Current: 156 passed, 0 failed, 0 skipped.
 
 ---
 

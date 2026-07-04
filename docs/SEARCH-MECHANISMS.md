@@ -2,7 +2,7 @@
 
 > **Purpose**: Technical documentation of all search algorithms, ranking methods, and quality enhancements in Temoa.
 
-**Last Updated**: 2026-06-08
+**Last Updated**: 2026-07-04
 **Status**: Experimentation Phase (v2.0.0)
 **Version**: 2.0.0
 
@@ -593,7 +593,7 @@ Notice: Cross-encoder correctly ranks "obsidiantools" #1 despite lower bi-encode
 
 ## Adaptive Chunking
 
-**Files**: `synthesis/src/embeddings/chunking.py`, `src/temoa/synthesis.py::deduplicate_chunks()`
+**Files**: `src/temoa/engine/chunking.py`, `src/temoa/synthesis.py::deduplicate_chunks()`
 **Added**: Phase 3.5.2 (2025-12-30)
 
 **What it does**: Automatically splits large documents into overlapping chunks to ensure full content coverage in semantic search.
@@ -695,9 +695,9 @@ temoa index --model all-mpnet-base-v2
 - **Example**: 2,006 files → 8,755 searchable chunks (4.4x content coverage)
 
 **Files Modified**:
-- `synthesis/src/embeddings/chunking.py` - Core chunking logic (207 lines)
-- `synthesis/src/embeddings/vault_reader.py` - Integration with file reading
-- `synthesis/src/embeddings/pipeline.py` - Chunking parameters
+- `src/temoa/engine/chunking.py` - Core chunking logic (207 lines)
+- `src/temoa/engine/vault_reader.py` - Integration with file reading
+- `src/temoa/engine/pipeline.py` - Chunking parameters
 - `src/temoa/synthesis.py` - Deduplication and search integration
 
 **See also**:
@@ -716,7 +716,7 @@ temoa index --model all-mpnet-base-v2
 1. Each vault has independent index stored in `vault/.temoa/model-name/`
 2. LRU cache keeps up to 3 vaults in memory (~1.5GB RAM total)
 3. Vault switching is fast when cached (~400ms), slower on first load (~15-20s for model loading)
-4. Web UI provides vault selector dropdown
+4. Server accepts `?vault=name` on all endpoints
 5. CLI supports `--vault` flag for all commands
 
 **Architecture**:

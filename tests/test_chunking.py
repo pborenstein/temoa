@@ -2,15 +2,9 @@
 Unit tests for adaptive chunking system.
 """
 import pytest
-import sys
-from pathlib import Path
 
-# Import chunking module directly (avoid package relative imports)
-synthesis_src = Path(__file__).parent.parent / "synthesis" / "src" / "embeddings"
-sys.path.insert(0, str(synthesis_src))
-
-import chunking
-from chunking import (
+from temoa.engine import chunking
+from temoa.engine.chunking import (
     should_chunk,
     chunk_document,
     Chunk,

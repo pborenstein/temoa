@@ -24,7 +24,7 @@ from collections import defaultdict, Counter
 from typing import Dict, List, Tuple, Optional, NamedTuple
 import re
 
-from .embeddings import EmbeddingPipeline
+from .pipeline import EmbeddingPipeline
 
 
 class InterestTimeline(NamedTuple):
@@ -372,27 +372,3 @@ class TemporalArchaeologist:
             ])
         
         return "\n".join(lines)
-
-
-def main():
-    """CLI interface for Temporal Interest Archaeology"""
-    import argparse
-    
-    parser = argparse.ArgumentParser(description="Mine vault for interest evolution patterns")
-    parser.add_argument("query", help="Interest to trace (e.g., 'AI', 'productivity', 'writing')")
-    parser.add_argument("--threshold", type=float, default=0.3, help="Similarity threshold (default: 0.3)")
-    parser.add_argument("--width", type=int, default=80, help="ASCII timeline width (default: 80)")
-    
-    args = parser.parse_args()
-    
-    print("Initializing Temporal Archaeologist...")
-    archaeologist = TemporalArchaeologist()
-    
-    print(f"Tracing interest: {args.query}")
-    timeline = archaeologist.trace_interest(args.query, threshold=args.threshold)
-    
-    print("\n" + archaeologist.ascii_timeline(timeline, width=args.width))
-
-
-if __name__ == "__main__":
-    main()

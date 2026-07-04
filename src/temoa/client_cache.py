@@ -27,7 +27,6 @@ class ClientCache:
         cache = ClientCache(max_size=3)
         client = cache.get(
             vault_path=Path("~/vault1"),
-            synthesis_path=Path("~/synthesis"),
             model="all-mpnet-base-v2",
             storage_dir=Path("~/vault1/.temoa")
         )
@@ -49,7 +48,6 @@ class ClientCache:
     def get(
         self,
         vault_path: Path,
-        synthesis_path: Path,
         model: str,
         storage_dir: Path
     ) -> SynthesisClient:
@@ -63,7 +61,6 @@ class ClientCache:
 
         Args:
             vault_path: Path to vault
-            synthesis_path: Path to Synthesis directory
             model: Model name (e.g., "all-mpnet-base-v2")
             storage_dir: Storage directory for index
 
@@ -82,7 +79,6 @@ class ClientCache:
         # Cache MISS - create new client
         logger.info(f"Cache MISS: Creating client for {vault_path.name} ({model})")
         client = SynthesisClient(
-            synthesis_path=synthesis_path,
             vault_path=vault_path,
             model=model,
             storage_dir=storage_dir

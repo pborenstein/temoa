@@ -10,7 +10,6 @@ def test_config_loads_successfully(tmp_path):
     config_file = tmp_path / "config.json"
     config_data = {
         "vault_path": str(tmp_path / "vault"),
-        "synthesis_path": str(tmp_path / "synthesis"),
         "index_path": None,
         "default_model": "all-MiniLM-L6-v2",
         "server": {"host": "0.0.0.0", "port": 8080},
@@ -19,7 +18,6 @@ def test_config_loads_successfully(tmp_path):
 
     # Create required directories
     (tmp_path / "vault").mkdir()
-    (tmp_path / "synthesis").mkdir()
 
     # Write config file
     with open(config_file, "w") as f:
@@ -30,13 +28,35 @@ def test_config_loads_successfully(tmp_path):
 
     # Verify properties
     assert config.vault_path == (tmp_path / "vault").resolve()
-    assert config.synthesis_path == (tmp_path / "synthesis").resolve()
     assert config.default_model == "all-MiniLM-L6-v2"
     assert config.server_host == "0.0.0.0"
     assert config.server_port == 8080
     assert config.search_default_limit == 10
     assert config.search_max_limit == 50
     assert config.search_timeout == 10
+
+
+def test_config_ignores_legacy_synthesis_path(tmp_path):
+    """Legacy synthesis_path key is ignored, even if the path doesn't exist"""
+    config_file = tmp_path / "config.json"
+    config_data = {
+        "vault_path": str(tmp_path / "vault"),
+        "synthesis_path": str(tmp_path / "nonexistent-synthesis"),
+        "index_path": None,
+        "default_model": "all-MiniLM-L6-v2",
+        "server": {"host": "0.0.0.0", "port": 8080},
+        "search": {"default_limit": 10, "max_limit": 50, "timeout": 10}
+    }
+
+    (tmp_path / "vault").mkdir()
+
+    with open(config_file, "w") as f:
+        json.dump(config_data, f)
+
+    config = Config(config_file)
+
+    assert config.vault_path == (tmp_path / "vault").resolve()
+    assert "synthesis_path" not in config._config
 
 
 def test_config_missing_file_raises_error(tmp_path):
@@ -66,18 +86,14 @@ def test_config_expands_tilde_paths(tmp_path):
 
     # Use tmp_path subdirectories — no touching the real home dir
     vault_path = tmp_path / "vault"
-    synthesis_path = tmp_path / "synthesis"
     vault_path.mkdir()
-    synthesis_path.mkdir()
 
     # Build tilde-relative paths by replacing the home prefix with ~
     home = str(Path.home())
     vault_tilde = "~" + str(vault_path).removeprefix(home) if str(vault_path).startswith(home) else str(vault_path)
-    synthesis_tilde = "~" + str(synthesis_path).removeprefix(home) if str(synthesis_path).startswith(home) else str(synthesis_path)
 
     config_data = {
         "vault_path": vault_tilde,
-        "synthesis_path": synthesis_tilde,
         "index_path": None,
         "default_model": "all-MiniLM-L6-v2",
         "server": {"host": "0.0.0.0", "port": 8080},
@@ -91,7 +107,6 @@ def test_config_expands_tilde_paths(tmp_path):
 
     # Verify paths are expanded and ~ is gone
     assert config.vault_path == vault_path.resolve()
-    assert config.synthesis_path == synthesis_path.resolve()
     assert "~" not in str(config.vault_path)
 
 
@@ -100,7 +115,6 @@ def test_config_default_index_path(tmp_path):
     config_file = tmp_path / "config.json"
     config_data = {
         "vault_path": str(tmp_path / "vault"),
-        "synthesis_path": str(tmp_path / "synthesis"),
         "index_path": None,  # Should default
         "default_model": "all-MiniLM-L6-v2",
         "server": {"host": "0.0.0.0", "port": 8080},
@@ -108,7 +122,6 @@ def test_config_default_index_path(tmp_path):
     }
 
     (tmp_path / "vault").mkdir()
-    (tmp_path / "synthesis").mkdir()
 
     with open(config_file, "w") as f:
         json.dump(config_data, f)
@@ -125,15 +138,11 @@ def test_config_nonexistent_vault_raises_error(tmp_path):
     config_file = tmp_path / "config.json"
     config_data = {
         "vault_path": str(tmp_path / "nonexistent-vault"),
-        "synthesis_path": str(tmp_path / "synthesis"),
         "index_path": None,
         "default_model": "all-MiniLM-L6-v2",
         "server": {"host": "0.0.0.0", "port": 8080},
         "search": {"default_limit": 10, "max_limit": 50, "timeout": 10}
     }
-
-    # Only create synthesis, not vault
-    (tmp_path / "synthesis").mkdir()
 
     with open(config_file, "w") as f:
         json.dump(config_data, f)
@@ -150,7 +159,6 @@ def test_config_repr(tmp_path):
     config_file = tmp_path / "config.json"
     config_data = {
         "vault_path": str(tmp_path / "vault"),
-        "synthesis_path": str(tmp_path / "synthesis"),
         "index_path": None,
         "default_model": "all-MiniLM-L6-v2",
         "server": {"host": "0.0.0.0", "port": 8080},
@@ -158,7 +166,6 @@ def test_config_repr(tmp_path):
     }
 
     (tmp_path / "vault").mkdir()
-    (tmp_path / "synthesis").mkdir()
 
     with open(config_file, "w") as f:
         json.dump(config_data, f)
@@ -168,5 +175,4 @@ def test_config_repr(tmp_path):
 
     assert "Config" in repr_str
     assert "vault" in repr_str.lower()
-    assert "synthesis" in repr_str.lower()
     assert "all-MiniLM-L6-v2" in repr_str

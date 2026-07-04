@@ -4,7 +4,6 @@ Model registry and configuration for sentence transformers.
 from dataclasses import dataclass
 from typing import Dict, List, Optional
 import logging
-from ..config import ConfigManager
 
 logger = logging.getLogger(__name__)
 
@@ -124,37 +123,6 @@ Model: {spec.name}
   Description: {spec.description}
   Max Sequence Length: {spec.max_sequence_length} tokens
 """
-    
-    @classmethod
-    def get_default_model(cls) -> str:
-        """Get the currently configured default model."""
-        try:
-            config_manager = ConfigManager()
-            return config_manager.get_default_model()
-        except Exception as e:
-            logger.warning(f"Failed to load default model from config: {e}")
-            return cls.FALLBACK_DEFAULT_MODEL
-    
-    @classmethod
-    def set_default_model(cls, model_name: str) -> bool:
-        """Set the default model in configuration.
-        
-        Args:
-            model_name: Model name to set as default
-            
-        Returns:
-            True if successfully saved
-        """
-        if not cls.validate_model(model_name):
-            logger.error(f"Cannot set invalid model '{model_name}' as default")
-            return False
-        
-        try:
-            config_manager = ConfigManager()
-            return config_manager.set_default_model(model_name)
-        except Exception as e:
-            logger.error(f"Failed to set default model: {e}")
-            return False
     
     @classmethod
     def format_model_table(cls) -> str:
