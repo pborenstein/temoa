@@ -12,7 +12,7 @@
 **Project**: Temoa - Local Semantic Search Server for Obsidian Vault
 **Created**: 2025-11-18
 **Status**: Search Quality Experimentation 🔵 ACTIVE
-**Last Updated**: 2026-07-04
+**Last Updated**: 2026-07-06
 **Current Version**: 2.0.0
 **Current Branch**: `main`
 
@@ -72,6 +72,7 @@ Condensed milestones (details in `docs/archive/chronicles-v1/`):
 - [x] Repo cleanup: v1 chronicles archived, tracking reframed — Entry 102, DEC-103
 - [x] Synthesis extraction: engine folded into `src/temoa/engine/`, vendored dir deleted — Entry 103, DEC-104
 - [x] Fix `temoa archaeology` (nonexistent `top_k` arg, wrong response schema in CLI display)
+- [x] Release v2.1.0; launchd service restarted on new code
 
 ### Open
 
@@ -82,6 +83,8 @@ Condensed milestones (details in `docs/archive/chronicles-v1/`):
 - [ ] Zeitgeist snapshot chunking (see ZEITGEIST-INTEGRATION.md)
 - [ ] Config-driven pipeline profiles (`search.profiles` in config.json, `profile` query param)
 - [ ] Fix vault logging inconsistency: CLI logs full path, server logs vault name
+- [ ] Evaluate v1 config legacy: multi-vault registry, CLI duplicating engine in-process
+      vs. thin HTTP client to warm server (discussed 2026-07-06, no decision)
 
 ### Tunable Parameters
 
@@ -114,6 +117,6 @@ See [archive/backburner/phase-4-llm.md](archive/backburner/phase-4-llm.md) for f
 
 ---
 
-**Last Updated**: 2026-07-04
+**Last Updated**: 2026-07-06
 **Current Phase**: Search Quality Experimentation
 **Next**: See [CONTEXT.md](CONTEXT.md) for current session state and active tasks (live source of truth)
