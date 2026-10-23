@@ -15,7 +15,7 @@
 
 **Problem Solved**: Saved links and notes accumulate but never resurface. Temoa makes the vault the first place to check before external search.
 
-**Users**: LLM agents only, mostly Claude Code sessions in the vault running the `temoa-search` skill through the CLI. The web UI is unused. Temoa began as a phone-first search app for a person; that era is archived (see `docs/archive/`).
+**Users**: LLM agents only, mostly Claude Code sessions in the vault running the `temoa-search` skill through the CLI. The web UI is unused because Philip searches through Claude: Claude checks whether the results were actually useful, which the UI can't do. A UI may come back later; for now the job is making Temoa better for the agent. Temoa began as a phone-first search app for a person; that era is archived (see `docs/archive/`).
 
 **Vault**: `~/Obsidian/amoxtli`
 

@@ -7,7 +7,7 @@
 
 `search_log.db` records what Temoa returned. It doesn't record whether that was what the searcher wanted. Without that, no change to the pipeline can be measured: there is nothing to compare before and after against.
 
-LLM agents are Temoa's only users. Philip doesn't use the web UI (noted 2026-10-22); searches come from Claude Code sessions running the `temoa-search` skill in the vault. The agent's next moves after a search show whether it worked: it reads a result, or it falls back to grep and finds the answer somewhere Temoa didn't point. That signal exists today and is thrown away.
+LLM agents are Temoa's only users. Philip doesn't use the web UI (noted 2026-10-22); searches come from Claude Code sessions running the `temoa-search` skill in the vault. He searches through Claude because Claude checks whether the results were useful. That checking is the judgment this plan wants to record. The agent's next moves after a search show whether it worked: it reads a result, or it falls back to grep and finds the answer somewhere Temoa didn't point. That signal exists today and is thrown away.
 
 ## What exists
 
