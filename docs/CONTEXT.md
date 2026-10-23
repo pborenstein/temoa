@@ -1,8 +1,8 @@
 ---
 phase: "Search Quality Experimentation"
 phase_name: "Pure Search Engine"
-updated: 2026-07-06
-last_commit: 21d1ccb
+updated: 2026-10-22
+last_commit: bbfa860
 branch: main
 ---
 
@@ -10,14 +10,18 @@ branch: main
 
 ## Current Focus
 
-v2.1.0 released and launchd service restarted on new code. Clarified CLI/server
-architecture. Ready for search quality work: build log data, measure one improvement.
+Search quality needs an outcome signal, not just a query log. Plan written in
+`docs/SEARCH-QUALITY-PLAN.md`: capture what agents use and what grep finds that
+Temoa missed, turn that into a judged test set, then measure one change.
 
 ## Active Tasks
 
-- [x] Release v2.1.0 (tag exists, HEAD is the version bump)
-- [x] Restart launchd service (PID confirmed started after v2.1.0 commit)
-- [ ] Build up search log data, then pick one improvement to measure
+- [x] Write search-quality plan (SEARCH-QUALITY-PLAN.md)
+- [x] Stop Claude Code transcripts expiring (`cleanupPeriodDays: 36500`, user settings)
+- [ ] Phase 0: read-only transcript harvester → candidate judgments JSONL
+- [ ] Phase 1: `caller`/`session` columns, print log id with CLI results
+- [ ] Phase 2: `judgments` table + `temoa judge`; one step added to temoa-search skill
+- [ ] Phase 3: `temoa eval` (recall@10, MRR, flood rate by mode)
 
 ## Blockers
 
@@ -25,15 +29,17 @@ None
 
 ## Context
 
-- CLI does NOT call the server: each `temoa search` builds its own SynthesisClient
-  in-process and pays full model load; server keeps models warm via client_cache
-- CLI and server share only disk state: config.json + `.temoa/` index
-- Multi-vault registry in config.json is v1 web-app legacy; possible simplifications:
-  thin HTTP-client CLI mode, or drop multi-vault (discussed, no decision)
-- Cross-encoder scores are unbounded signed logits; only comparable within one query
-- Observed: hybrid hurts conceptual queries (BM25 floods with keyword matches)
+- search_log.db: 452 searches 2026-06-08 to 2026-10-23 (357 hybrid, 94 semantic), no outcomes
+- Transcripts on disk go back to 2026-09-22; 10 contain `temoa search`, 24 searches,
+  18 followed by grep/find within three tool calls (crude; not all are misses)
+- Worked miss (2026-10-22, Josiah query, hybrid): top 3 were BM25 floods, the 2 relevant
+  hits were semantic-only at ranks 7-8, 4 relevant notes not returned (found by grep)
+- `docs/RESEARCH-NOTES.md` has an uncommitted txtai entry (Entry 002, dated 2026-07-24),
+  not part of this session's commit
+- CLI does not call the server; each `temoa search` loads models in-process
 
 ## Next Session
 
-Run real searches, build up log data, then pick one improvement to measure:
-position-aware reranker blending or zeitgeist snapshot chunking.
+Write the Phase 0 harvester: walk `~/.claude/projects/*/*.jsonl`, pair each
+`temoa search` with the reads and greps that follow it, write candidate judgments
+for Philip to review.

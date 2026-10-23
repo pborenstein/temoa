@@ -77,8 +77,9 @@ Condensed milestones (details in `docs/archive/chronicles-v1/`):
 ### Open
 
 - [ ] Build up search log data from real usage; review with `temoa log --stats`
-- [ ] Known-miss list: queries where temoa returned nothing but the answer was in the vault — collect as regression set
-- [ ] Score baseline: calibrate what a "good" cross-encoder score looks like with known-good queries
+- [x] Search-quality plan: outcome logging, judged test set, eval — [SEARCH-QUALITY-PLAN.md](SEARCH-QUALITY-PLAN.md), Entry 104
+- [ ] Known-miss list: queries where temoa returned nothing but the answer was in the vault — collect as regression set (plan Phases 0–2)
+- [ ] Score baseline: calibrate what a "good" cross-encoder score looks like with known-good queries (plan Phase 3)
 - [ ] Position-aware reranker blending — fix hybrid burying good semantic results (BM25 floods conceptual queries; plan in `docs/archive/qmd-pipeline-improvements.md`)
 - [ ] Zeitgeist snapshot chunking (see ZEITGEIST-INTEGRATION.md)
 - [ ] Config-driven pipeline profiles (`search.profiles` in config.json, `profile` query param)

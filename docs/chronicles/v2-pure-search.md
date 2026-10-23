@@ -254,3 +254,21 @@ make the history navigable and give users a way to run back to the UI version.
 **Files**: `src/temoa/engine/` (new), `synthesis/` (deleted), `synthesis.py`, `client_cache.py`, `config.py`, `cli.py`, `server.py`, tests, docs.
 
 ---
+
+## Entry 104: Search Quality Plan — Logging Outcomes (2026-10-22)
+
+**What**: Wrote `docs/SEARCH-QUALITY-PLAN.md`. Session run from the amoxtli vault, not this repo.
+
+**Why**: `search_log.db` records queries and results but not whether the search worked, so no pipeline change can be measured. Agents' next moves after a search (read a result, or grep and find what Temoa missed) are that signal, and it was being thrown away.
+
+**How**:
+- Surveyed the existing log (452 searches) and the Claude Code transcripts: of 24 agent searches in 10 transcripts, 18 were followed by grep/find within three tool calls
+- Worked example from a TIMELINE session: a keyword-heavy hybrid query put three BM25 floods on top, ranked the two relevant semantic-only hits 7th and 8th, and missed four notes grep found
+- Plan: Phase 0 harvest transcripts; Phase 1 caller/session columns and printed log id; Phase 2 `judgments` table and `temoa judge`; Phase 3 `temoa eval`; Phase 4 measure one change (position-aware blending first)
+- Set `cleanupPeriodDays: 36500` in `~/.claude/settings.json` so transcripts stop expiring (oldest left: 2026-09-22)
+
+**Decisions**: none yet; plan status is Proposed
+
+**Files**: `docs/SEARCH-QUALITY-PLAN.md` (new), `docs/CONTEXT.md`, `docs/IMPLEMENTATION.md`
+
+---
