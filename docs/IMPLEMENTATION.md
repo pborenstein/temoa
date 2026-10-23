@@ -86,8 +86,11 @@ Condensed milestones (details in `docs/archive/chronicles-v1/`):
 - [ ] Zeitgeist snapshot chunking (see ZEITGEIST-INTEGRATION.md)
 - [ ] Config-driven pipeline profiles (`search.profiles` in config.json, `profile` query param)
 - [ ] Fix vault logging inconsistency: CLI logs full path, server logs vault name
+- [ ] Tests write to the real `search_log.db` (`TestClient(app)` loads real config); isolate, then delete the 71 junk rows — Entry 106
 - [ ] Evaluate v1 config legacy: multi-vault registry, CLI duplicating engine in-process
-      vs. thin HTTP client to warm server (discussed 2026-07-06, no decision)
+      vs. thin HTTP client to warm server (discussed 2026-07-06, no decision).
+      Evidence 2026-10-22: server has no real callers since 2026-04-17 — Entry 106
+- [x] Release v2.2.0 (Phase 0 harvester)
 
 ### Tunable Parameters
 

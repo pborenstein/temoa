@@ -289,3 +289,19 @@ make the history navigable and give users a way to run back to the UI version.
 **Decisions**: none; where reviewed judgments live is still the plan's open question
 
 **Files**: `5c0c9fb`
+
+## Entry 106: v2.2.0 Release; Nobody Calls the Server (2026-10-22)
+
+**What**: Released v2.2.0 (Phase 0 harvester). Checked whether anything uses the launchd server.
+
+**Why**: Every agent search goes through the CLI, so the warm server may be dead weight.
+
+**How**:
+- `search_log.db`: 72 server-side rows, 71 of them test-suite queries from three `pytest` runs (2026-07-04 ×2, 2026-10-22); the other is a v2.1.0 smoke test
+- `~/Library/Logs/temoa.log`: last remote `/search` over Tailscale 2026-04-17; since then only localhost smoke tests and 404s on the removed UI
+- Bug found: server tests use `TestClient(app)` with the real config, so each `pytest` run adds ~10 rows to the vault's search log. Skews `temoa log --stats` and would skew Phase 3 eval
+- Release: newer `uv` rewrote `uv.lock` (revision 3→5, CUDA marker simplification, no version changes); kept the bump to the version line only
+
+**Decisions**: none; thin-client vs. retire-the-server stays open
+
+**Files**: `c17676a`, tag `v2.2.0`
