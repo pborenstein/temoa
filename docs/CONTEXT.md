@@ -35,7 +35,7 @@ None
 - Worked miss (2026-10-22, Josiah query, hybrid): top 3 were BM25 floods, the 2 relevant
   hits were semantic-only at ranks 7-8, 4 relevant notes not returned (found by grep)
 - LLM agents are the only users; Philip doesn't use the web UI. CLAUDE.md's
-  "mobile-first" principle predates this and is stale
+  "mobile-first" principle replaced with "agent-first" (2026-10-22)
 - CLI does not call the server; each `temoa search` loads models in-process
 
 ## Next Session

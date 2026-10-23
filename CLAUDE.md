@@ -2,9 +2,9 @@
 
 > **Purpose**: Context and guidance for Claude AI across development sessions.
 
-**Last Updated**: 2026-07-04
+**Last Updated**: 2026-10-22
 **Project Status**: Search Quality Experimentation — Pure Search Engine
-**Current Version**: 2.0.0
+**Current Version**: 2.1.0
 **Current Branch**: `main`
 
 ---
@@ -13,7 +13,9 @@
 
 **Temoa** is a local semantic search server for Obsidian vaults. FastAPI server → embedding engine (`temoa.engine`) → multi-stage search pipeline (semantic + BM25 + frontmatter) → results.
 
-**Problem Solved**: Saved links and notes accumulate but never resurface. Temoa makes your vault the first place to check before external search.
+**Problem Solved**: Saved links and notes accumulate but never resurface. Temoa makes the vault the first place to check before external search.
+
+**Users**: LLM agents only, mostly Claude Code sessions in the vault running the `temoa-search` skill through the CLI. The web UI is unused. Temoa began as a phone-first search app for a person; that era is archived (see `docs/archive/`).
 
 **Vault**: `~/Obsidian/amoxtli`
 
@@ -23,9 +25,9 @@
 
 1. **uv shop** — always use `uv`. Never pip, poetry, or other tools.
 2. **No hardcoded paths** — use `pathlib`, `~` expansion, relative paths. Never `/Users/`, `/home/`.
-3. **Mobile-first** — if it doesn't work on phone, it doesn't work. Target < 2s response time.
+3. **Agent-first** — the user is an LLM agent. Output must be easy to act on: `--json`, vault-relative paths, descriptions that save a file read. Agents search often, so keep each call fast.
 4. **Privacy & local** — no external APIs for search/embeddings. Everything runs locally.
-5. **Avoid over-engineering** — no JS frameworks, no complex state, no premature abstraction.
+5. **Avoid over-engineering** — no complex state, no premature abstraction.
 6. **Plan like waterfall, implement in agile** — detailed upfront planning, iterative small commits.
 
 ---
@@ -154,4 +156,4 @@ launchctl list | grep temoa
 
 ---
 
-**Owner**: pborenstein | **Created**: 2025-11-18 | **Last Updated**: 2026-07-04
+**Owner**: pborenstein | **Created**: 2025-11-18 | **Last Updated**: 2026-10-22
