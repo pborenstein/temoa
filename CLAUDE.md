@@ -4,7 +4,7 @@
 
 **Last Updated**: 2026-10-22
 **Project Status**: Search Quality Experimentation — Pure Search Engine
-**Current Version**: 2.1.0
+**Current Version**: 2.2.0
 **Current Branch**: `main`
 
 ---

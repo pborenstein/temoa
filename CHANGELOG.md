@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-10-22
+
+First step of the search-quality plan: mining Claude Code transcripts for
+what agents did after each `temoa search`, as candidate relevance judgments.
+
+### Added
+
+- Transcript harvester `scripts/harvest_transcripts.py`: finds each `temoa search` in Claude Code transcripts and labels returned, opened, cited, and grep-found paths as candidate judgments; `scripts/show_candidates.py` prints them; how-to in `scripts/README.md` ([5c0c9fb](https://github.com/pborenstein/temoa/commit/5c0c9fb))
+- Search-quality plan `docs/SEARCH-QUALITY-PLAN.md`: outcome logging, judged test set, eval ([42bb792](https://github.com/pborenstein/temoa/commit/42bb792))
+- txtai research notes in `docs/RESEARCH-NOTES.md` ([38100b0](https://github.com/pborenstein/temoa/commit/38100b0))
+
+### Changed
+
+- Users are now LLM agents only: "mobile-first" principle replaced with "agent-first", web UI instrumentation dropped from the plan ([27b4d43](https://github.com/pborenstein/temoa/commit/27b4d43)) ([2d3a9f9](https://github.com/pborenstein/temoa/commit/2d3a9f9)) ([30ea5e3](https://github.com/pborenstein/temoa/commit/30ea5e3))
+
 ## [2.1.0] - 2026-07-04
 
 The embedding engine is now a first-class temoa package. The vendored
@@ -98,7 +113,8 @@ macOS launchd service management.
 - Per-vault filter state management ([2b6a36a](https://github.com/pborenstein/temoa/commit/2b6a36a))
 - Query expansion disabled by default based on production usage ([79aa611](https://github.com/pborenstein/temoa/commit/79aa611))
 
-[Unreleased]: https://github.com/pborenstein/temoa/compare/v2.1.0...HEAD
+[Unreleased]: https://github.com/pborenstein/temoa/compare/v2.2.0...HEAD
+[2.2.0]: https://github.com/pborenstein/temoa/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/pborenstein/temoa/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/pborenstein/temoa/compare/v1.1.0...v2.0.0
 [1.1.0]: https://github.com/pborenstein/temoa/compare/v1.0.0...v1.1.0
