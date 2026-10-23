@@ -3,7 +3,71 @@
 > **Purpose**: Notes from external reading, tools, and ideas that inform Temoa's direction.
 > Each entry records provenance (source), what was learned, and what (if anything) is actionable.
 
-**Last Updated**: 2026-04-04
+**Last Updated**: 2026-07-24
+
+---
+
+## Entry 002 — txtai
+
+**Date**: 2026-07-24
+**Sources**:
+- https://github.com/neuml/txtai (Apache 2.0, Python)
+- https://huggingface.co/blog/neuml/txtai
+- https://neuml.github.io/txtai/ (embeddings, ANN config, hybrid query docs)
+
+---
+
+### What it is
+
+txtai is a general-purpose "all-in-one AI framework" built around an `Embeddings` database that unifies three layers: a vector index (sparse + dense), a relational store (SQLite/DuckDB) for content and metadata, and optionally a graph network over the embedding space for topic modeling. On top of that it bundles pipelines for RAG, extraction, summarization, translation, transcription, and autonomous agents, plus multi-modal indexing (text, audio, images, video) and API bindings (Python, JS, Java, Rust, Go, MCP).
+
+Minimal usage:
+
+```python
+import txtai
+embeddings = txtai.Embeddings()
+embeddings.index(["Correct", "Not what we hoped"])
+embeddings.search("positive", 1)
+```
+
+### Feature comparison
+
+| Feature | Temoa | txtai |
+|---------|-------|-------|
+| Dense vector search | sentence-transformers + NumPy, brute-force cosine | sentence-transformers, pluggable ANN backend |
+| Vector index | none — flat NumPy array (`engine/store.py`), no faiss/hnsw dependency | faiss (default), hnsw, annoy, sqlite-vec, pgvector, milvus, and others |
+| Sparse/keyword search | `rank_bm25.BM25Okapi`, custom pickle storage | sparse index (BM25-family), same DB abstraction as dense |
+| Hybrid fusion | RRF (k=60), fixed weighting | equal-weighted by default, tunable via `weights=` param or SQL `similar(query, weight)` |
+| Re-ranking | cross-encoder (sentence-transformers), ~200ms, +20-30% precision | not a first-class pipeline stage in the docs reviewed; would need to be composed manually |
+| Query expansion | TF-IDF based, for queries <3 words | not native — would come from a pipeline/LLM call |
+| Filtering | Python-side, over JSON metadata (`server_filters.py`): type/tag/property/path | native SQL: `SELECT ... FROM txtai WHERE similar('query') AND tag='x'` |
+| Content storage | JSON metadata file + NumPy embeddings array | SQLite/DuckDB, with object storage for binary content |
+| Time-decay scoring | custom, configurable half-life | not native |
+| Multi-vault | LRU-cached per-vault clients (`client_cache.py`) | not a concept — one embeddings DB per instantiation, app-level to manage multiplicity |
+| Topic modeling / graph | none | graph network over embeddings, community detection |
+| Deployment | FastAPI HTTP server, launchd, Tailscale-only, single-user | Web API + MCP server, generic |
+| Scope | Obsidian-vault-specific search engine | general multi-modal AI framework (RAG, agents, workflows) |
+
+### What's actually ahead
+
+**ANN vector index.** This is the one place txtai's engineering is a real step past what temoa has. Temoa's `EmbeddingStore` (`src/temoa/engine/store.py`) is a flat NumPy array with brute-force cosine similarity — no faiss, hnsw, or any approximate index; `faiss` isn't even in the dependency tree. At the current scale (~3,000 files, 159s full reindex, ~400ms search) this hasn't been a problem, but it's the ceiling: brute-force search is O(n) per query and will start to hurt well before the vault reaches an order of magnitude more notes.
+
+**SQL-filterable content store.** txtai's `SELECT id, text, score FROM txtai WHERE similar('query', 0.5) AND tag='x'` collapses what temoa does with a Python filter pipeline (`server_filters.py`) plus a separate metadata JSON file into one queryable store. Not obviously *better* for temoa's case — the filter pipeline is simple and already fast — but it's a cleaner mental model if filtering ever gets more complex (compound property queries, joins across frontmatter fields).
+
+### What's not relevant
+
+Everything else in txtai's surface area is aimed at a different problem than temoa's. Multi-modal indexing (audio/image/video), autonomous agents, workflow chaining, and the graph/topic-modeling layer are all real capabilities but outside what a personal-vault search server needs. Adopting txtai wholesale would mean pulling in a much heavier, more general dependency to get one component (the ANN index) that's individually adoptable without the rest.
+
+### Actionable ideas for Temoa
+
+**Near-term, cheap:**
+
+1. **Swap `EmbeddingStore`'s brute-force search for faiss.** This is the only piece worth lifting directly — faiss (or hnswlib) as a drop-in ANN backend behind the existing `EmbeddingStore` interface, keeping temoa's own metadata/hybrid/rerank pipeline untouched. Checked the live amoxtli index while writing this entry: it's grown past the README's 3,059-file benchmark — 6,776 markdown files, 8,554 chunk-level embeddings at 768d (`all-mpnet-base-v2`), indexed 2026-07-24. Brute-force NumPy cosine over 8,554×768 is still likely sub-second, but the growth curve (roughly 2.8x since the last documented benchmark) means the "future-proofing" framing understates it — this is worth an actual benchmark now, not just a someday item.
+
+**Not worth pursuing:**
+
+2. Adopting txtai's `Embeddings` class wholesale — would mean rebuilding temoa's Obsidian-specific plumbing (frontmatter filters, multi-vault LRU cache, launchd/Tailscale deployment) on top of a much larger general-purpose framework, to gain one component (ANN indexing) that's separable anyway.
+3. SQL-filterable content store — the current Python filter pipeline is simple, fast, and already covers temoa's actual filter surface (type/tag/property/path). Revisit only if filter complexity grows past what the current approach can express cleanly.
 
 ---
 
