@@ -2,7 +2,7 @@
 phase: "Search Quality Experimentation"
 phase_name: "Pure Search Engine"
 updated: 2026-10-22
-last_commit: bbfa860
+last_commit: 5c0c9fb
 branch: main
 ---
 
@@ -10,15 +10,16 @@ branch: main
 
 ## Current Focus
 
-Search quality needs an outcome signal, not just a query log. Plan written in
-`docs/SEARCH-QUALITY-PLAN.md`: capture what agents use and what grep finds that
-Temoa missed, turn that into a judged test set, then measure one change.
+Search quality needs an outcome signal, not just a query log
+(`docs/SEARCH-QUALITY-PLAN.md`). Phase 0 harvester is done; its candidates
+need review before they count as judgments.
 
 ## Active Tasks
 
 - [x] Write search-quality plan (SEARCH-QUALITY-PLAN.md)
 - [x] Stop Claude Code transcripts expiring (`cleanupPeriodDays: 36500`, user settings)
-- [ ] Phase 0: read-only transcript harvester → candidate judgments JSONL
+- [x] Phase 0: transcript harvester → `~/Obsidian/amoxtli/.temoa/candidates.jsonl`
+- [ ] Review candidates (`scripts/show_candidates.py`); decide judgment storage
 - [ ] Phase 1: `caller`/`session` columns, print log id with CLI results
 - [ ] Phase 2: `judgments` table + `temoa judge`; one step added to temoa-search skill
 - [ ] Phase 3: `temoa eval` (recall@10, MRR, flood rate by mode)
@@ -29,17 +30,16 @@ None
 
 ## Context
 
-- search_log.db: 452 searches 2026-06-08 to 2026-10-23 (357 hybrid, 94 semantic), no outcomes
-- Transcripts on disk go back to 2026-09-22; 10 contain `temoa search`, 24 searches,
-  18 followed by grep/find within three tool calls (crude; not all are misses)
-- Worked miss (2026-10-22, Josiah query, hybrid): top 3 were BM25 floods, the 2 relevant
-  hits were semantic-only at ranks 7-8, 4 relevant notes not returned (found by grep)
-- LLM agents are the only users; Philip doesn't use the web UI. CLAUDE.md's
-  "mobile-first" principle replaced with "agent-first" (2026-10-22)
+- Harvest: 17 real searches in 8 transcripts (earlier "24 in 10" counted quoted
+  mentions). Candidates: used 6, missed 23, unopened 147, context 16, grep_only 149
+- Known misses confirmed: Josiah (relevant hits at ranks 7-8, 9 grep finds) and
+  1095 tax form (answers in 4 daily notes, top 3 unrelated)
+- Agents often pipe `temoa search` through grep/python; 5 rows are `parse: loose`.
+  Phase 1's printed log id + `--json` would make this exact
+- How-to for both scripts: `scripts/README.md`
 - CLI does not call the server; each `temoa search` loads models in-process
 
 ## Next Session
 
-Write the Phase 0 harvester: walk `~/.claude/projects/*/*.jsonl`, pair each
-`temoa search` with the reads and greps that follow it, write candidate judgments
-for Philip to review.
+Philip reviews candidates. Then start Phase 1: `caller`/`session` columns in
+`search_log.py` with a migration, and print the log row id in CLI output.

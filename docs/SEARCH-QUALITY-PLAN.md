@@ -72,6 +72,8 @@ Each grep-found note is a labeled pair: (query, path that should have been retur
 
 Transcripts expire. Before building anything, write a read-only script that walks the transcripts and, for each `temoa search`, records the query, the session, and the paths the agent read or grepped up in the next few calls. Output is a JSONL of candidate judgments, reviewed by hand before it counts.
 
+**Done 2026-10-22**: `scripts/harvest_transcripts.py` writes `~/Obsidian/amoxtli/.temoa/candidates.jsonl`; `scripts/show_candidates.py` prints it. See `scripts/README.md`. First run: 17 searches in 8 transcripts.
+
 `cleanupPeriodDays` in `~/.claude/settings.json` was set to 36500 on 2026-10-22, so the transcripts still on disk (back to 2026-09-22) and every later one are kept. Anything older was already deleted.
 
 ### Phase 1: identify searches

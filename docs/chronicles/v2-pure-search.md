@@ -272,3 +272,20 @@ make the history navigable and give users a way to run back to the UI version.
 **Files**: `docs/SEARCH-QUALITY-PLAN.md` (new), `docs/CONTEXT.md`, `docs/IMPLEMENTATION.md`
 
 ---
+
+## Entry 105: Phase 0 Transcript Harvester (2026-10-22)
+
+**What**: `scripts/harvest_transcripts.py` and `scripts/show_candidates.py`, plus `scripts/README.md`. 8 tests in `tests/test_harvest_transcripts.py` (baseline 164).
+
+**Why**: Phase 0 of SEARCH-QUALITY-PLAN.md. Get candidate judgments out of the transcripts before building logging.
+
+**How**:
+- For each `temoa search` invoked through Bash, parse returned paths (text, `--json`, or `loose` when piped through grep/python), then look at the next 5 tool calls and the agent's reply up to the next prompt
+- Paths matched against current vault files; labels `used`, `missed`, `unopened`, `context`, `grep_only`
+- `missed` needs a citation or grep-then-open; opened-only files are `context` (first run had project files reported as misses)
+- First run: 17 searches in 8 transcripts (the plan's 24-in-10 counted quoted mentions). Josiah and 1095-tax-form misses reproduced
+- Output kept in `~/Obsidian/amoxtli/.temoa/candidates.jsonl`: lists vault paths, so out of git and sync
+
+**Decisions**: none; where reviewed judgments live is still the plan's open question
+
+**Files**: `5c0c9fb`

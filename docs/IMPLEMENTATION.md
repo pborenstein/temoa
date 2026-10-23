@@ -12,7 +12,7 @@
 **Project**: Temoa - Local Semantic Search Server for Obsidian Vault
 **Created**: 2025-11-18
 **Status**: Search Quality Experimentation 🔵 ACTIVE
-**Last Updated**: 2026-07-06
+**Last Updated**: 2026-10-22
 **Current Version**: 2.0.0
 **Current Branch**: `main`
 
@@ -78,7 +78,9 @@ Condensed milestones (details in `docs/archive/chronicles-v1/`):
 
 - [ ] Build up search log data from real usage; review with `temoa log --stats`
 - [x] Search-quality plan: outcome logging, judged test set, eval — [SEARCH-QUALITY-PLAN.md](SEARCH-QUALITY-PLAN.md), Entry 104
-- [ ] Known-miss list: queries where temoa returned nothing but the answer was in the vault — collect as regression set (plan Phases 0–2)
+- [x] Plan Phase 0: transcript harvester (`scripts/harvest_transcripts.py`, `scripts/show_candidates.py`) — Entry 105
+- [ ] Review harvested candidates into judgments
+- [ ] Known-miss list: queries where temoa returned nothing but the answer was in the vault — collect as regression set (plan Phases 1–2)
 - [ ] Score baseline: calibrate what a "good" cross-encoder score looks like with known-good queries (plan Phase 3)
 - [ ] Position-aware reranker blending — fix hybrid burying good semantic results (BM25 floods conceptual queries; plan in `docs/archive/qmd-pipeline-improvements.md`)
 - [ ] Zeitgeist snapshot chunking (see ZEITGEIST-INTEGRATION.md)
@@ -118,6 +120,6 @@ See [archive/backburner/phase-4-llm.md](archive/backburner/phase-4-llm.md) for f
 
 ---
 
-**Last Updated**: 2026-07-06
+**Last Updated**: 2026-10-22
 **Current Phase**: Search Quality Experimentation
 **Next**: See [CONTEXT.md](CONTEXT.md) for current session state and active tasks (live source of truth)

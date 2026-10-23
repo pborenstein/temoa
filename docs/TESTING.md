@@ -1,7 +1,7 @@
 # Temoa Testing Guide
 
 **Last Updated**: 2026-07-04
-**Test Baseline**: 156 passed, 0 failed, 0 skipped
+**Test Baseline**: 164 passed, 0 failed, 0 skipped
 
 ---
 

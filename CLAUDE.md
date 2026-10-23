@@ -99,7 +99,7 @@ See `docs/IMPLEMENTATION.md` and `docs/CONTEXT.md` for current status.
 
 ### Test Baseline
 
-Run `uv run pytest`. Current: 156 passed, 0 failed, 0 skipped.
+Run `uv run pytest`. Current: 164 passed, 0 failed, 0 skipped.
 
 ---
 
