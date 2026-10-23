@@ -34,8 +34,8 @@ None
   18 followed by grep/find within three tool calls (crude; not all are misses)
 - Worked miss (2026-10-22, Josiah query, hybrid): top 3 were BM25 floods, the 2 relevant
   hits were semantic-only at ranks 7-8, 4 relevant notes not returned (found by grep)
-- `docs/RESEARCH-NOTES.md` has an uncommitted txtai entry (Entry 002, dated 2026-07-24),
-  not part of this session's commit
+- LLM agents are the only users; Philip doesn't use the web UI. CLAUDE.md's
+  "mobile-first" principle predates this and is stale
 - CLI does not call the server; each `temoa search` loads models in-process
 
 ## Next Session

@@ -7,7 +7,7 @@
 
 `search_log.db` records what Temoa returned. It doesn't record whether that was what the searcher wanted. Without that, no change to the pipeline can be measured: there is nothing to compare before and after against.
 
-Most searches come from Claude Code sessions running the `temoa-search` skill in the vault. The agent's next moves after a search show whether it worked: it reads a result, or it falls back to grep and finds the answer somewhere Temoa didn't point. That signal exists today and is thrown away.
+LLM agents are Temoa's only users. Philip doesn't use the web UI (noted 2026-10-22); searches come from Claude Code sessions running the `temoa-search` skill in the vault. The agent's next moves after a search show whether it worked: it reads a result, or it falls back to grep and finds the answer somewhere Temoa didn't point. That signal exists today and is thrown away.
 
 ## What exists
 
@@ -15,7 +15,7 @@ Most searches come from Claude Code sessions running the `temoa-search` skill in
 |:-------|:------|:--------|
 | `search_log.db` | 452 searches, 2026-06-08 to 2026-10-23 (357 hybrid, 94 semantic, 1 BM25); query, params, ranked paths and scores, timing | Who searched, what was used, what was missed |
 | Claude Code transcripts (`~/.claude/projects/*/*.jsonl`) | Every `temoa search` call by an agent, and every tool call after it | Expire: the oldest left is 2026-09-22. Not linked to log rows |
-| Web UI (server) | Searches from the phone | Click-through |
+| Web UI (server) | Not used: LLMs are the only users | Nothing to instrument |
 
 ## First look at the transcripts
 
@@ -78,7 +78,7 @@ Transcripts expire. Before building anything, write a read-only script that walk
 
 | Change | Where |
 |:-------|:------|
-| Add `caller` (`cli`, `server`, `agent`) and `session` columns | `search_log.py` schema, with a migration |
+| Add `caller` (`cli` or `server`) and `session` columns | `search_log.py` schema, with a migration |
 | Print the log row id with CLI results, and include it in `--json` output | `cli.py` |
 | Take `--session` / `TEMOA_SESSION` so an agent can tag its searches | `cli.py` |
 | Fix the vault inconsistency (CLI logs path, server logs name) | already an open item |
@@ -91,7 +91,7 @@ A `judgments` table keyed on the search id: `path`, `verdict` (`used`, `irreleva
 
 The `temoa-search` skill (in tlatecpana) gets one step: after a search, if you read results or grep for the same thing, run `temoa judge` with what was used and what grep found that Temoa didn't. One call, at the point where the agent already knows the answer.
 
-For the phone UI, log result clicks as `used` with `judge: philip`. Optional; depends on how much the phone gets used.
+The web UI gets no click logging: nobody uses it.
 
 ### Phase 3: eval
 
@@ -117,12 +117,11 @@ Wait for about 30 judged queries before trusting a difference.
 
 ## Caveats
 
-- **Self-grading.** Agent judgments are the agent's view of relevance. Philip should spot-check them, at least early on.
+- **Self-grading.** With LLMs as the only users, agent judgments are the whole signal. They are the agent's view of relevance, so Philip should spot-check them, at least early on.
 - **Agent behavior confounds results.** A miss can be a bad query, not bad search: the example query was keyword-stuffed. Log the query as given, and keep query-writing advice in the skill separate from pipeline changes.
 - **Grep isn't always a miss.** Grep for a literal string after a good search is normal. Only paths grep found that weren't in Temoa's results count as `missed`.
 - **Overhead.** One extra command per search. If agents skip it, Phase 0's transcript script can run periodically instead, at lower accuracy.
 
 ## Open questions
 
-- Is the phone UI used enough to be worth instrumenting?
 - Should judgments live in `search_log.db` or in a separate file the vault can see?
